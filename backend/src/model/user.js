@@ -1,28 +1,16 @@
-import { Schema } from "mongoose";
-
-const { } = require('mongoose');
+const { Schema, model } = require('mongoose');
 
 const UserSchema = new Schema({
     email: {
         type: String,
-        required: true
+        required: true,
     },
     password: {
         type: String,
         required: true
     },
-    name: {
-        type: String,
-    },
-    user: {
-        type: String,
-    },
-    telephone: {
-        type: String,
-    },
-    avatar: {
-        type: String,
-    },
+    firstname: String,
+    telephone: String,
 }, {
     timestamps: true,
 });
