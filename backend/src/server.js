@@ -8,6 +8,7 @@ const server = express();
 mongoose.connect('mongodb+srv://zetta:zetta@clusterzetta-mcozz.mongodb.net/mercadozetta?retryWrites=true&w=majority', {
     useUnifiedTopology: true, useNewUrlParser: true
 });
+
 server.use(express.json());
 server.use(routes);
 
