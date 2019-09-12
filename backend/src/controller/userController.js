@@ -1,4 +1,4 @@
-const User = require('../model/user');
+const User = require('../model/User');
 
 module.exports = {
     login(req, res) {
@@ -10,36 +10,23 @@ module.exports = {
                 return res.status(500).send();
             }
             if (!email) {
-                return res.status(404).send();
+                return res.status(404).send({ error: 'User not found' });
             }
-            console.log("Logado com sucesso")
-            return res.status(200).send();
+            return res.status(200).send(req.body.email);
         })
     },
 
     async register(req, res) {
         let { email, password, firstname, telephone } = req.body;
 
-        const userExists = await User.findOne({ user: email });
-
-        if (userExists) {
-            return res.json(userExists)
+        try {
+            if (await User.findOne({ email }))
+                return res.status(400).send({ error: 'User already exists' });
+            const newUser = await User.create(req.body);
+            newUser.password = undefined;
+            return res.status(200).send({ newUser });
+        } catch (err) {
+            return res.status(400).send({ error: 'Registration failed' });
         }
-
-        const newUser = await User.create({
-            email: email,
-            password: password,
-            firstname: firstname,
-            telephone: telephone,
-        })
-
-        newUser.save(function (err, savedUser) {
-            if (err) {
-                console.log(err);
-                return res.status(500).send();
-            }
-            console.log("Cadastrado com sucesso")
-            return res.status(200).send();
-        })
     },
 };
