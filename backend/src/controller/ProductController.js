@@ -1,6 +1,23 @@
 const User = require('../model/User');
 
 module.exports = {
+    // index de pesquisa de produtos ta bugado
+    // está retornando o objeto todo
+    // falta filtrar só os produtos do objeto
+
+    async index(req, res) {
+        const { user } = req.headers;
+        const loggedUser = await User.findById(user);
+
+        const products = await User.find({
+            $and: [
+                { id_: { $in: loggedUser.products } }
+            ],
+        })
+
+        return res.status(200).send(products);
+
+    },
 
     async add(req, res) {
         try {
