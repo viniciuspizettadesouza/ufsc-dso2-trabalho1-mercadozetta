@@ -11,6 +11,10 @@ const UserSchema = new Schema({
     },
     firstname: String,
     telephone: String,
+    products: [{
+        type: String,
+        ref: 'User',
+    }]
 }, {
     timestamps: true,
 });
