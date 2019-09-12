@@ -7,4 +7,8 @@ yarn init -y
 # instala express
 yarn add express
 
+# instalar nodemon para monitoramento do servidor em desenvolvimento
+
+backend/yarn add nodemon -D
+
 15minutos
