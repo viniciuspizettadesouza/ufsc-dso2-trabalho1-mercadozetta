@@ -1,5 +1,5 @@
 const express = require('express');
-const userController = require('./controller/userController');
+const UserController = require('./controller/UserController');
 
 const routes = express.Router();
 
@@ -7,6 +7,8 @@ routes.get('/', (req, res) => {
     return res.json({ message: `Hello ${req.query.name}` });
 })
 
-routes.post('/users', userController.store);
+routes.post('/login', UserController.login);
+
+routes.post('/register', UserController.register);
 
 module.exports = routes;
