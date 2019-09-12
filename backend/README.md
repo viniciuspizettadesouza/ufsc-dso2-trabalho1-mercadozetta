@@ -11,4 +11,11 @@ yarn add express
 
 backend/yarn add nodemon -D
 
-15minutos
+# instalar mongoose
+facilitador que converte a linguagem javascript do programa para linguagem SQL
+
+backend/yarn add mongoose
+
+48minutos criar JSON de cadastro para depois puxar os dados no cadastro userController
+
+52
