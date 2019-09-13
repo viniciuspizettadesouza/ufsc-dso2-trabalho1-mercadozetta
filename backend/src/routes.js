@@ -1,4 +1,5 @@
 const express = require('express');
+const AuthController = require('./controller/AuthController');
 const UserController = require('./controller/UserController');
 const ProductController = require('./controller/ProductController');
 
@@ -11,7 +12,7 @@ routes.get('/products', ProductController.index);
 
 routes.post('/login', UserController.login);
 
-routes.post('/register', UserController.register);
+routes.post('/register', AuthController.register);
 
 routes.post('/user/:userID/addproduct', ProductController.add);
 
