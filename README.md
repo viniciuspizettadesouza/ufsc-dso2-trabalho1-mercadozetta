@@ -9,4 +9,6 @@ onde "dev" é o script criado no arquivo package.json
 yarn start
 
 
-achar no video para que serve o cors
+achar no video backend para que serve o cors
+
+continuar a partir dos 59min do front
