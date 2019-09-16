@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import './Index.css';
 
 import logo from '../assets/logo.svg'
@@ -8,9 +9,9 @@ export default function Login({ history }) {
         e.preventDefault();
         history.push(`/login`);
     }
-    async function handleRegister(e) {
+    async function handleAccount(e) {
         e.preventDefault();
-        history.push(`/register/product`);
+        history.push(`/register-user`);
     }
     async function handleProdutos(e) {
         e.preventDefault();
@@ -20,7 +21,9 @@ export default function Login({ history }) {
     return (
         <div>
             <div className="login-container">
-                <img src={logo} alt="logo" />
+                <Link to="/">
+                    <img src={logo} alt="logo" />
+                </Link>
             </div>
             <div className="login-container">
                 <form onSubmit={handleLogin}>
@@ -28,7 +31,7 @@ export default function Login({ history }) {
                 </form>
             </div>
             <div className="login-container">
-                <form onSubmit={handleRegister}>
+                <form onSubmit={handleAccount}>
                     <button type="submit">Criar conta</button>
                 </form>
             </div>
