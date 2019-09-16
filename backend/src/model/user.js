@@ -19,11 +19,7 @@ const UserSchema = new Schema({
     telephone: {
         type: String,
         lowercase: true,
-    },
-    products: [{
-        type: String,
-        ref: 'User',
-    }]
+    }
 }, {
     timestamps: true,
 });
