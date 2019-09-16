@@ -6,18 +6,15 @@ import logo from '../assets/logo.svg'
 export default function Login({ history }) {
     async function handleLogin(e) {
         e.preventDefault();
-
         history.push(`/login`);
     }
     async function handleRegister(e) {
         e.preventDefault();
-
-        history.push(`/register`);
+        history.push(`/register/product`);
     }
     async function handleProdutos(e) {
         e.preventDefault();
-
-        history.push(`/user/:id`);
+        history.push(`/user/:_id`);
     }
 
     return (
@@ -29,7 +26,7 @@ export default function Login({ history }) {
                 <form onSubmit={handleLogin}>
                     <button type="submit">Login</button>
                 </form>
-            </div>            
+            </div>
             <div className="login-container">
                 <form onSubmit={handleRegister}>
                     <button type="submit">Criar conta</button>
@@ -41,6 +38,5 @@ export default function Login({ history }) {
                 </form>
             </div>
         </div>
-
     );
 }
