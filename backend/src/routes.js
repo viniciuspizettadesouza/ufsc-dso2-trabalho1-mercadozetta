@@ -12,6 +12,8 @@ routes.get('/products', ProductController.index);
 
 routes.post('/login', UserController.login);
 
+routes.post('/authenticate', AuthController.authenticate);
+
 routes.post('/register', AuthController.register);
 
 routes.post('/user/:userID/addproduct', ProductController.add);
