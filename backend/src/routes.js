@@ -5,9 +5,6 @@ const ProductController = require('./controller/ProductController');
 
 const routes = express.Router();
 
-routes.get('/', (req, res) => {
-    return res.json({ message: `Hello ${req.query.name}` });
-})
 routes.get('/products', ProductController.index);
 
 routes.post('/login', UserController.login);
