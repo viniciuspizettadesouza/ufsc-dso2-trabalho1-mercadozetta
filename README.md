@@ -11,4 +11,8 @@ yarn start
 
 achar no video backend para que serve o cors
 
-continuar a partir dos 59min do front
+erro ao cadastrar produtos novos
+
+problema login com senha hasheada
+
+problema productcontroller
