@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import './Register.css';
+import { Link } from 'react-router-dom';
+import './Index.css';
 
 import api from '../services/api';
 
@@ -25,8 +26,14 @@ export default function Login({ history }) {
 
     return (
         <div className="login-container">
+
+
             <form onSubmit={handleSubmit}>
-                <img src={logo} alt="logo" />
+                <div className="login-container">
+                    <Link to="/">
+                        <img src={logo} alt="logo" />
+                    </Link>
+                </div>
                 <input
                     placeholder="Nome"
                     value={username}
