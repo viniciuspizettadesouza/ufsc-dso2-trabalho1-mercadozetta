@@ -11,6 +11,8 @@ onde "dev" é o script criado no arquivo package.json
 
 yarn start
 
+<img src="images/mercadozetta.jpg" width="400">
+
 # rotas
 
 (ok) cadastrar usuario
@@ -30,4 +32,5 @@ achar no video backend para que serve o cors
 # Extra
 
 Fazer token de autenticação se der tempo a partir de 6:30
+
 https://www.youtube.com/watch?v=KKTX1l3sZGk
