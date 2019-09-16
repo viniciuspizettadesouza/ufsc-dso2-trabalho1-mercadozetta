@@ -3,7 +3,7 @@ const User = require('../model/User');
 module.exports = {
     // index de pesquisa de produtos ta bugado
     // está retornando o objeto todo
-    // falta filtrar só os produtos do objeto
+    // falta filtrar só os produtos do objeto user
 
     async index(req, res) {
         const { user } = req.headers;
