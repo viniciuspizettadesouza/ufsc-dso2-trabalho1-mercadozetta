@@ -7,11 +7,11 @@ const routes = express.Router();
 
 routes.get('/products', ProductController.index);
 
-routes.post('/login', UserController.login);
+routes.post('/login', AuthController.authenticate);
 
-routes.post('/authenticate', AuthController.authenticate);
+routes.post('/register-product', ProductController.add);
 
-routes.post('/register', AuthController.register);
+routes.post('/register-user', UserController.register);
 
 routes.post('/user/:userID/addproduct', ProductController.add);
 
