@@ -8,6 +8,8 @@ onde "dev" é o script criado no arquivo package.json
 # Para rodar o frontend da aplicação:
 yarn start
 
+<img src="images/mercadozetta.jpg" width="400">
+
 # rotas
 
 (ok) rota de registro de usuario
