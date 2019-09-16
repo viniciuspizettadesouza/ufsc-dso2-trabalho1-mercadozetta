@@ -6,7 +6,6 @@ module.exports = {
 
         User.findOne({ email: email, password: password }, function (err, email) {
             if (err) {
-                console.log(err);
                 return res.status(500).send();
             }
             if (!email) {
