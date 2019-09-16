@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import './Register.css';
+import { Link } from 'react-router-dom';
+import './Index.css';
 
-import api from '../services/api';
 
 import logo from '../assets/logo.svg'
 
@@ -12,19 +12,17 @@ export default function Login({ history }) {
     async function handleSubmit(e) {
         e.preventDefault();
 
-        const response = await api.post('/login', {
-            email, password
-        });
-
-        const { _id } = response.data;
-
-        history.push(`/user/${_id}`);
+        history.push(`/user/${email}`);
     }
 
     return (
         <div className="login-container">
             <form onSubmit={handleSubmit}>
-                <img src={logo} alt="logo" />
+                <div className="login-container">
+                    <Link to="/">
+                        <img src={logo} alt="logo" />
+                    </Link>
+                </div>
                 <input
                     placeholder="E-mail"
                     value={email}
