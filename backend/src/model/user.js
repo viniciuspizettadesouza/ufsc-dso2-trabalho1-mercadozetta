@@ -12,7 +12,7 @@ const UserSchema = new Schema({
         required: true,
         select: false,
     },
-    firstname: {
+    username: {
         type: String,
         lowercase: true,
     },
