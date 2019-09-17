@@ -1,7 +1,8 @@
 import React from 'react';
 import './Index.css';
 
-import Header from './header';
+import Header from './header/index';
+import Product from './Products';
 
 export default function Login({ history }) {
     async function handleLogin(e) {
@@ -14,12 +15,13 @@ export default function Login({ history }) {
     }
     async function handleProdutos(e) {
         e.preventDefault();
-        history.push(`/user/:_id`);
+        history.push(`/add-user`);
     }
 
     return (
         <div>
             <Header />
+            <input type="text" />
             <div className="login-container">
                 <form onSubmit={handleLogin}>
                     <button type="submit">Login</button>
@@ -29,12 +31,14 @@ export default function Login({ history }) {
                 <form onSubmit={handleAccount}>
                     <button type="submit">Criar conta</button>
                 </form>
+
             </div>
             <div className="login-container">
                 <form onSubmit={handleProdutos}>
-                    <button type="submit">Produtos</button>
+                    <button type="submit">Inserir Produtos</button>
                 </form>
             </div>
+            <Product />
         </div>
     );
 }
