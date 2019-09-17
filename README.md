@@ -24,8 +24,6 @@ yarn start
 
 front cadastro produtos
 
-css da listagem de produtos
-
 css das outras paginas
 
 mostrar produtos na home

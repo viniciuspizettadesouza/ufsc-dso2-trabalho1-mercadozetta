@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import './Index.css';
 
+import Header from './header';
 import api from '../services/api';
-
-import logo from '../assets/logo.svg'
 
 export default function Products({ match, history }) {
     const [products, setProducts] = useState([]);
@@ -25,32 +23,27 @@ export default function Products({ match, history }) {
         loadProducts();
     }, [match.params.id]);
 
-
     return (
-        <div className="main-container">
-            <div className="login-container">
-                <Link to="/">
-                    <img src={logo} alt="logo" />
-                </Link>
-            </div>
-            <ul>
-                {products.map(product => (
-                    <li key={product._id}>
-                        <img src="https://www.gsuplementos.com.br/upload/produto/imagem/creatina-250g-creapure-growth-supplements.jpg" alt="produto" />
-                        <footer>
-                            <strong>{product.name}</strong>
-                            <p>{product.description}</p>
-                        </footer>
-                    </li>
-
-                ))}
-            </ul>
+        <div>
+            <Header />
             <div className="login-container">
                 <form onSubmit={handleProdutos}>
                     <button type="submit">Inserir Produtos</button>
                 </form>
             </div>
+            <div className="product-container">
+                <ul>
+                    {products.map(product => (
+                        <li key={product._id}>
+                            <img src="https://www.gsuplementos.com.br/upload/produto/imagem/creatina-250g-creapure-growth-supplements.jpg" alt="produto" />
+                            <footer>
+                                <strong>{product.name}</strong>
+                                <p>{product.description}</p>
+                            </footer>
+                        </li>
+                    ))}
+                </ul>
+            </div>
         </div>
-
     );
 }

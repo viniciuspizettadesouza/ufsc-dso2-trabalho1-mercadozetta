@@ -1,8 +1,7 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
 import './Index.css';
 
-import logo from '../assets/logo.svg'
+import Header from './header';
 
 export default function Login({ history }) {
     async function handleLogin(e) {
@@ -20,11 +19,7 @@ export default function Login({ history }) {
 
     return (
         <div>
-            <div className="login-container">
-                <Link to="/">
-                    <img src={logo} alt="logo" />
-                </Link>
-            </div>
+            <Header />
             <div className="login-container">
                 <form onSubmit={handleLogin}>
                     <button type="submit">Login</button>

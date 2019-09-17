@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import './Index.css';
 
-
-import logo from '../assets/logo.svg'
+import Header from './header';
 
 export default function Login({ history }) {
     const [email, setEmail] = useState('');
@@ -16,25 +14,24 @@ export default function Login({ history }) {
     }
 
     return (
-        <div className="login-container">
-            <form onSubmit={handleSubmit}>
-                <div className="login-container">
-                    <Link to="/">
-                        <img src={logo} alt="logo" />
-                    </Link>
-                </div>
-                <input
-                    placeholder="E-mail"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                />
-                <input
-                    placeholder="Senha"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                />
-                <button type="submit">Login</button>
-            </form>
+        <div>
+            <Header />
+            <div className="login-container">
+                <form onSubmit={handleSubmit}>
+                    <input
+                        placeholder="E-mail"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                    />
+                    <input
+                        placeholder="Senha"
+                        value={password}
+                        onChange={e => setPassword(e.target.value)}
+                    />
+                    <button type="submit">Login</button>
+                </form>
+            </div>
         </div>
+
     );
 }

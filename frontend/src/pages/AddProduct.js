@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
 import './Index.css';
 
-import api from '../services/api';
+import Header from './header';
 
-import logo from '../assets/logo.svg'
+import api from '../services/api';
 
 export default function Login({ history }) {
     const [username, setUsername] = useState('');
@@ -23,25 +22,25 @@ export default function Login({ history }) {
     }
 
     return (
-        <div className="login-container">
-            <form onSubmit={handleSubmit}>
-                <div className="login-container">
-                    <Link to="/">
-                        <img src={logo} alt="logo" />
-                    </Link>
-                </div>
-                <input
-                    placeholder="Nome"
-                    value={username}
-                    onChange={e => setUsername(e.target.value)}
-                />
-                <input
-                    placeholder="Descrição"
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                />
-                <button type="submit">Inserir Anúncio</button>
-            </form>
+        <div>
+            <Header />
+            <div className="login-container">
+                <form onSubmit={handleSubmit}>
+                    <div className="login-container">
+                    </div>
+                    <input
+                        placeholder="Nome"
+                        value={username}
+                        onChange={e => setUsername(e.target.value)}
+                    />
+                    <input
+                        placeholder="Descrição"
+                        value={description}
+                        onChange={e => setDescription(e.target.value)}
+                    />
+                    <button type="submit">Inserir Anúncio</button>
+                </form>
+            </div>
         </div>
     );
 }

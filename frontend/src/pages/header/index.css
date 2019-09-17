@@ -1,0 +1,25 @@
+.header {
+  grid-area: header;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #fff159;
+}
+.header img {
+  background-color: #fff159;
+  height: 100px;
+  padding-left: 100px;
+}
+
+.header button {
+  width: 150;
+  height: 40px;
+  object-fit: contain;
+  fill: white;
+}
+
+.button {
+  margin-left: auto;
+}
