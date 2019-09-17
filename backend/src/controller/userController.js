@@ -1,7 +1,7 @@
 const User = require('../model/User');
 
 module.exports = {
-    async register(req, res) {
+    async add(req, res) {
         const { email } = req.body;
 
         try {

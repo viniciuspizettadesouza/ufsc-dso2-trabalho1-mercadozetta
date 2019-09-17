@@ -22,10 +22,13 @@ yarn start
 
 # Problemas
 
-front do registro de usuarios
-front da lista de produtos
+front cadastro produtos
 
-falta filtro no listar do productcontroller
+css da listagem de produtos
+
+css das outras paginas
+
+mostrar produtos na home
 
 achar no video backend para que serve o cors
 

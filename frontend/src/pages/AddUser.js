@@ -8,22 +8,26 @@ import logo from '../assets/logo.svg'
 
 export default function Login({ history }) {
     const [username, setUsername] = useState('');
-    const [description, setDescription] = useState('');
+    const [telephone, setTelephone] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
 
     async function handleSubmit(e) {
         e.preventDefault();
 
-        const response = await api.post('/register', {
-            username, description
+        const response = await api.post('/add-user', {
+            username, telephone, email, password
+
         });
+        console.log(response.data);
 
-        const { _id } = response.data;
-
-        history.push(`/user/${_id}`);
+        history.push(`/user/${email}`);
     }
 
     return (
         <div className="login-container">
+
+
             <form onSubmit={handleSubmit}>
                 <div className="login-container">
                     <Link to="/">
@@ -36,11 +40,21 @@ export default function Login({ history }) {
                     onChange={e => setUsername(e.target.value)}
                 />
                 <input
-                    placeholder="Descrição"
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
+                    placeholder="Telefone"
+                    value={telephone}
+                    onChange={e => setTelephone(e.target.value)}
                 />
-                <button type="submit">Inserir Anúncio</button>
+                <input
+                    placeholder="E-mail"
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                />
+                <input
+                    placeholder="Senha"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                />
+                <button type="submit">Criar conta</button>
             </form>
         </div>
     );

@@ -9,9 +9,9 @@ routes.get('/products', ProductController.index);
 
 routes.post('/login', AuthController.authenticate);
 
-routes.post('/register-product', ProductController.add);
+routes.post('/add-product', ProductController.add);
 
-routes.post('/register-user', UserController.register);
+routes.post('/add-user', UserController.add);
 
 routes.post('/user/:userID/addproduct', ProductController.add);
 

@@ -11,11 +11,11 @@ export default function Products({ match, history }) {
 
     async function handleProdutos(e) {
         e.preventDefault();
-        history.push(`/register-product`);
+        history.push(`/add-product`);
     }
     useEffect(() => {
         async function loadProducts() {
-            const response = await api.get('/register', {
+            const response = await api.get('/products', {
                 headers: {
                     product: match.params.id,
                 }
@@ -34,12 +34,12 @@ export default function Products({ match, history }) {
                 </Link>
             </div>
             <ul>
-                {products.map(user => (
-                    <li>
+                {products.map(product => (
+                    <li key={product._id}>
                         <img src="https://www.gsuplementos.com.br/upload/produto/imagem/creatina-250g-creapure-growth-supplements.jpg" alt="produto" />
                         <footer>
-                            <strong>{user.product}</strong>
-                            <p>GROWTH SUPPLEMENTS</p>
+                            <strong>{product.name}</strong>
+                            <p>{product.description}</p>
                         </footer>
                     </li>
 

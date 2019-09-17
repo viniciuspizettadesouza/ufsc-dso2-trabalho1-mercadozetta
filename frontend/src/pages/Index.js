@@ -11,7 +11,7 @@ export default function Login({ history }) {
     }
     async function handleAccount(e) {
         e.preventDefault();
-        history.push(`/register-user`);
+        history.push(`/add-user`);
     }
     async function handleProdutos(e) {
         e.preventDefault();
