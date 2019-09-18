@@ -15,7 +15,7 @@ export default function Login({ history }) {
     }
     async function handleProdutos(e) {
         e.preventDefault();
-        history.push(`/add-user`);
+        history.push(`/add-product`);
     }
 
     return (
