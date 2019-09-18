@@ -104,3 +104,10 @@
   font-weight: bold;
   margin-top: 300px;
 }
+
+.products-flexbox {
+  display: flex;
+  flex-direction: column;
+  align-content: center;
+  justify-items: center;
+}

@@ -19,11 +19,13 @@ export default function Login({ history }) {
             <div className="login-container">
                 <form onSubmit={handleSubmit}>
                     <input
+                        type="email"
                         placeholder="E-mail"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
                     />
                     <input
+                        type="password"
                         placeholder="Senha"
                         value={password}
                         onChange={e => setPassword(e.target.value)}

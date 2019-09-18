@@ -1,7 +1,7 @@
 # trabalho1-dso2
 
     INE5612-04238A (20192) - Desenvolvimento de Sistemas Orientados a Objetos II
-    
+
 ## Descrição do Sistema
 
 Identifique uma categoria de produtos que você considera útil criar um sistema de vendas (ex: materiais esportivos, informática, livros, etc).
@@ -15,16 +15,19 @@ Os usuários cadastrados poderão cadastrar produtos para venda e também vender
 
 Após o clone do repositório, executar um dos comandos abaixo para carregar os modulos do node.
 
-    npm install
     yarn install
+    npm install
 
 ## Para rodar o backend da aplicação:
+
 Dentro da pasta backend, execute o comando abaixo para subir o servidor na porta 3333.
 
     yarn dev
+    npm run-script dev
     onde "dev" é o script criado no arquivo package.json
 
 ## Para rodar o frontend da aplicação:
+
 Dentro da pasta frontend, execute o comando abaixo para iniciar a aplicação na porta 3000.
 
     yarn start

@@ -21,7 +21,6 @@ export default function Login({ history }) {
     return (
         <div>
             <Header />
-            <input type="text" />
             <div className="login-container">
                 <form onSubmit={handleLogin}>
                     <button type="submit">Login</button>

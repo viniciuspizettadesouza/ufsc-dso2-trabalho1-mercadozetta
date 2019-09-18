@@ -27,16 +27,19 @@ export default function Login({ history }) {
                     <div className="login-container">
                     </div>
                     <input
+                        type="text"
                         placeholder="Nome"
                         value={name}
                         onChange={e => setName(e.target.value)}
                     />
                     <input
+                        type="text"
                         placeholder="Descrição"
                         value={description}
                         onChange={e => setDescription(e.target.value)}
                     />
                     <input
+                        type="text"
                         placeholder="Quantidade"
                         value={quant}
                         onChange={e => setQuant(e.target.value)}
