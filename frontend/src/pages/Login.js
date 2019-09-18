@@ -11,6 +11,7 @@ export default function Login({ history }) {
         e.preventDefault();
 
         history.push(`/user/${email}`);
+        //history.push(`/`);
     }
 
     return (

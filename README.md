@@ -11,22 +11,22 @@ Em sua página inicial, o sistema deve permitir buscar produtos, especificando a
 Os usuários deverão cadastrar-se no sistema, especificando os dados para contato (e-mail, telefone, etc.), dentre outras informações que você considere necessárias.
 Os usuários cadastrados poderão cadastrar produtos para venda e também vender produtos.
 
-## Instalar o node
+## Para testar a aplicação
 
-Após o clone do repositório, executar um dos comandos abaixo para carregar os modulos do node.
+Após clonar o repositório, executar um dos comandos abaixo para carregar os modulos do node.
 
-    yarn install
+    yarn install Ou
     npm install
 
-## Para rodar o backend da aplicação:
+Para rodar o backend da aplicação:
 
 Dentro da pasta backend, execute o comando abaixo para subir o servidor na porta 3333.
 
-    yarn dev
+    yarn dev Ou
     npm run-script dev
     onde "dev" é o script criado no arquivo package.json
 
-## Para rodar o frontend da aplicação:
+Para rodar o frontend da aplicação:
 
 Dentro da pasta frontend, execute o comando abaixo para iniciar a aplicação na porta 3000.
 

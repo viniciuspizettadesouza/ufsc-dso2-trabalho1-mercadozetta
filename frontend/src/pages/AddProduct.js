@@ -8,15 +8,16 @@ export default function Login({ history }) {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [quant, setQuant] = useState('');
+    const [img, setImage] = useState('');
 
     async function handleSubmit(e) {
         e.preventDefault();
 
         const response = await api.post('/add-product', {
-            name, description, quant
+            name, description, quant, img
         });
         console.log(response.data);
-        history.push(`/user/:id`);
+        history.push(`/`);
     }
 
     return (
@@ -28,21 +29,27 @@ export default function Login({ history }) {
                     </div>
                     <input
                         type="text"
-                        placeholder="Nome"
+                        placeholder="Nome do Produto"
                         value={name}
                         onChange={e => setName(e.target.value)}
                     />
                     <input
                         type="text"
-                        placeholder="Descrição"
+                        placeholder="Descrição do Produto"
                         value={description}
                         onChange={e => setDescription(e.target.value)}
                     />
                     <input
-                        type="text"
+                        type="number"
                         placeholder="Quantidade"
                         value={quant}
                         onChange={e => setQuant(e.target.value)}
+                    />
+                    <input
+                        type="text"
+                        placeholder="URL da Imagem"
+                        value={img}
+                        onChange={e => setImage(e.target.value)}
                     />
                     <button type="submit">Inserir Anúncio</button>
                 </form>

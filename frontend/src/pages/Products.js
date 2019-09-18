@@ -20,29 +20,35 @@ export default function Products({ history }) {
         loadProducts();
     });
 
-    const procure = useCallback(event => { 
+    const procure = useCallback(event => {
         setProduto(event.target.value)
-        if(event.target.value.length > 1) {
-            setNewProducts(products.filter(p => console.log(stringSimilarity.compareTwoStrings(p.name,produto)) || stringSimilarity.compareTwoStrings(p.name,produto) > 0.1))
+        if (event.target.value.length > 1) {
+            setNewProducts(products.filter(p => console.log(stringSimilarity.compareTwoStrings(p.name, produto)) || stringSimilarity.compareTwoStrings(p.name, produto) > 0.1))
             console.log(newProducts)
         } else if (event.target.value.length === 0) {
             setNewProducts(products)
-        }}
-        , [newProducts, produto, products])
-
+        }
+    }, [newProducts, produto, products])
 
     return (
-        <div className="products-flexbox">
-        <input type="text" placeholder="Procure um produto" value={produto} onChange={procure} />
+        <div className="product-flexbox">
+            <div className="login-container">
+                <button type="submit" placeholder="Procure um produto" value={produto} onClick={procure}>
+                    Buscar Produtos
+                </button>
+            </div>
+            <input type="text" placeholder="Procure um produto" value={produto} onChange={procure} />
+
+
             <div className="product-container">
                 <ul>
                     {newProducts.map(product => (
                         <li key={product._id}>
                             <img src="https://www.gsuplementos.com.br/upload/produto/imagem/creatina-250g-creapure-growth-supplements.jpg" alt="produto" />
-                            <footer>
-                                <strong>{product.name}</strong>
+                            <div>
+                                <p>{product.name}</p>
                                 <p>{product.description}</p>
-                            </footer>
+                            </div>
                         </li>
                     ))}
                 </ul>

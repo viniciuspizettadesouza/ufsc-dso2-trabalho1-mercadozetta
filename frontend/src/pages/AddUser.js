@@ -19,7 +19,7 @@ export default function Login({ history }) {
         });
         console.log(response.data);
 
-        history.push(`/user/${email}`);
+        history.push(`/`);
     }
 
     return (

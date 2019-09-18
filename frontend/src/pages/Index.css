@@ -105,9 +105,26 @@
   margin-top: 300px;
 }
 
-.products-flexbox {
+.product-flexbox {
   display: flex;
   flex-direction: column;
   align-content: center;
   justify-items: center;
+}
+.product-flexbox button {
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 4px;
+  height: 48px;
+  font-size: 16px;
+  background: #3483fa;
+  font-weight: bold;
+  color: #fff;
+  cursor: pointer;
 }
