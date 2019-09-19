@@ -15,7 +15,7 @@ export default function Products({ history }) {
             const response = await api.get('/products', {
 
             })
-            setProducts(response.data);
+            setProducts(response.data)
         }
         loadProducts();
     });
@@ -42,7 +42,7 @@ export default function Products({ history }) {
 
             <div className="product-container">
                 <ul>
-                    {newProducts.map(product => (
+                    {newProducts.length > 0 ? newProducts.map(product => (
                         <li key={product._id}>
                             <img src="https://www.gsuplementos.com.br/upload/produto/imagem/creatina-250g-creapure-growth-supplements.jpg" alt="produto" />
                             <div>
@@ -50,7 +50,7 @@ export default function Products({ history }) {
                                 <p>{product.description}</p>
                             </div>
                         </li>
-                    ))}
+                    )) : (<h1>Nenhum produto encontrado :(</h1>)}
                 </ul>
             </div>
         </div>
