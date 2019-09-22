@@ -1,0 +1,143 @@
+/*
+    CSS geral
+*/
+
+.login-container {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.login-container form {
+  width: 100%;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+}
+
+.login-container form input {
+  margin-top: 20px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  height: 48px;
+  padding: 0 20px;
+  font-size: 16px;
+  color: #666;
+}
+
+.login-container form input ::placeholder {
+  color: #999;
+}
+
+.login-container form button {
+  margin-top: 10px;
+  border: 0;
+  border-radius: 4px;
+  height: 48px;
+  font-size: 16px;
+  background: #3483fa;
+  font-weight: bold;
+  color: #fff;
+  cursor: pointer;
+}
+
+/*
+    CSS dos produtos
+*/
+
+.product-container {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 50px 0;
+  text-align: center;
+}
+.product-container ul {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-gap: 30px;
+  margin-top: 50px;
+}
+.product-container ul li {
+  display: flex;
+  flex-direction: column;
+}
+.product-container ul img {
+  max-width: 100%;
+}
+.product-container ul li footer {
+  flex: 1;
+  background: #ffffff;
+  border: 1px solid #eeeeee;
+  padding: 15px 20px;
+  text-align: left;
+  border-radius: 0 0 5px 5px;
+}
+.product-container ul li footer p {
+  font-size: 14px;
+  line-height: 20px;
+  color: #999999;
+  margin-top: 5px;
+}
+.product-container ul li .buttons {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-gap: 10px;
+}
+.product-container ul li .buttons button {
+  height: 50px;
+  box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.5);
+  border: 0;
+  border-radius: 4px;
+  background: #ffffff;
+  cursor: pointer;
+}
+.product-container ul li .buttons button:hover img {
+  transform: translateY(-5px);
+  transition: all 0.2s;
+}
+.product-container .empty {
+  font-size: 32px;
+  color: #999999;
+  font-weight: bold;
+  margin-top: 300px;
+}
+
+.product-flexbox {
+  display: flex;
+  flex-direction: column;
+  align-content: center;
+  justify-items: center;
+}
+.product-flexbox button {
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 4px;
+  height: 48px;
+  font-size: 16px;
+  background: #3483fa;
+  font-weight: bold;
+  color: #fff;
+  cursor: pointer;
+}
+.product-flexbox input{
+  justify-content: center;
+  text-align: center;
+  align-items: center;
+  align-self: center;
+  width: 100%;
+  max-width: 300px;
+  display: flex;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 4px;
+  height: 48px;
+}
