@@ -24,11 +24,10 @@ export default function Products({ history }) {
         setProduto(event.target.value)
         if (event.target.value.length > 1) {
             setNewProducts(products.filter(p => console.log(stringSimilarity.compareTwoStrings(p.name, produto)) || stringSimilarity.compareTwoStrings(p.name, produto) > 0.1))
-            console.log(newProducts)
         } else if (event.target.value.length === 0) {
             setNewProducts(products)
         }
-    }, [newProducts, produto, products])
+    }, [produto, products])
 
     return (
         <div className="product-flexbox">
@@ -41,17 +40,25 @@ export default function Products({ history }) {
 
 
             <div className="product-container">
-                <ul>
-                    {newProducts.length > 0 ? newProducts.map(product => (
-                        <li key={product._id}>
-                            <img src="https://www.gsuplementos.com.br/upload/produto/imagem/creatina-250g-creapure-growth-supplements.jpg" alt="produto" />
-                            <div>
-                                <p>{product.name}</p>
-                                <p>{product.description}</p>
-                            </div>
-                        </li>
-                    )) : (<h1>Nenhum produto encontrado :(</h1>)}
-                </ul>
+                {newProducts.length > 0 ? (
+                    <ul>
+                        {newProducts.map(product => (
+                            <li key={product._id}>
+                                <img src="https://www.gsuplementos.com.br/upload/produto/imagem/creatina-250g-creapure-growth-supplements.jpg" alt="produto" />
+                                <div>
+                                    <p>{product.name}</p>
+                                    <p>{product.description}</p>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                        <div className="empty">
+                            <h1>Nenhum produto encontrado :(</h1>
+                        </div>
+                    )}
+
+
             </div>
         </div>
     );
