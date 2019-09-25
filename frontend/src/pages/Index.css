@@ -41,6 +41,9 @@
   color: #fff;
   cursor: pointer;
 }
+.login-container input {
+  font-size: 16px;
+}
 
 /*
     CSS dos produtos
@@ -51,6 +54,16 @@
   margin: 0 auto;
   padding: 50px 0;
   text-align: center;
+}
+.product-container .title {
+  white-space: nowrap;
+  overflow: hidden;
+}
+.product-container .description {
+  width: 223px;
+  height: 56px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .product-container ul {
   list-style: none;
@@ -66,45 +79,11 @@
 .product-container ul img {
   max-width: 100%;
 }
-.product-container ul li footer {
-  flex: 1;
-  background: #ffffff;
-  border: 1px solid #eeeeee;
-  padding: 15px 20px;
-  text-align: left;
-  border-radius: 0 0 5px 5px;
-}
-.product-container ul li footer p {
-  font-size: 14px;
-  line-height: 20px;
-  color: #999999;
-  margin-top: 5px;
-}
-.product-container ul li .buttons {
-  margin-top: 10px;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-gap: 10px;
-}
-.product-container ul li .buttons button {
-  height: 50px;
-  box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.5);
-  border: 0;
-  border-radius: 4px;
-  background: #ffffff;
-  cursor: pointer;
-}
-.product-container ul li .buttons button:hover img {
-  transform: translateY(-5px);
-  transition: all 0.2s;
-}
 .product-container .empty {
   font-size: 32px;
   color: #999999;
   font-weight: bold;
-  margin-top: 300px;
 }
-
 .product-flexbox {
   display: flex;
   flex-direction: column;
@@ -128,7 +107,7 @@
   color: #fff;
   cursor: pointer;
 }
-.product-flexbox input{
+.product-flexbox input {
   justify-content: center;
   text-align: center;
   align-items: center;

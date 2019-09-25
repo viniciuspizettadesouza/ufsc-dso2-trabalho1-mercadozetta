@@ -23,35 +23,50 @@ export default function Products({ history }) {
     const procure = useCallback(event => {
         setProduto(event.target.value)
         if (event.target.value.length > 1) {
-            setNewProducts(products.filter(p => console.log(stringSimilarity.compareTwoStrings(p.name, produto)) || stringSimilarity.compareTwoStrings(p.name, produto) > 0.1))
-            console.log(newProducts)
+            setNewProducts(products.filter(p => stringSimilarity.compareTwoStrings(p.name, produto) || stringSimilarity.compareTwoStrings(p.name, produto) > 0.1))
         } else if (event.target.value.length === 0) {
             setNewProducts(products)
         }
-    }, [newProducts, produto, products])
+    }, [produto, products])
 
     return (
         <div className="product-flexbox">
             <div className="login-container">
-                <button type="submit" placeholder="Procure um produto" value={produto} onClick={procure}>
+                <button type="submit" placeholder="Buscar Produtos" value={produto} onClick={procure}>
                     Buscar Produtos
                 </button>
             </div>
-            <input type="text" placeholder="Procure um produto" value={produto} onChange={procure} />
-
+            <div className="login-container">
+                <input type="text" placeholder="Procure um produto" value={produto} onChange={procure} />
+            </div>
 
             <div className="product-container">
-                <ul>
-                    {newProducts.length > 0 ? newProducts.map(product => (
-                        <li key={product._id}>
-                            <img src="https://www.gsuplementos.com.br/upload/produto/imagem/creatina-250g-creapure-growth-supplements.jpg" alt="produto" />
-                            <div>
-                                <p>{product.name}</p>
-                                <p>{product.description}</p>
-                            </div>
-                        </li>
-                    )) : (<h1>Nenhum produto encontrado :(</h1>)}
-                </ul>
+                {newProducts.length > 0 ? (
+                    <ul>
+                        {newProducts.map(product => (
+                            <li key={product._id}>
+                                <img src={product.image} alt="produto" />
+                                <div>
+                                    <p className="title">
+                                        {product.name}
+                                    </p>
+                                    <p className="description">
+                                        Descrição do produto:
+                                    </p>
+                                    <p className="description">
+                                        {product.description}
+                                    </p>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                        <div className="empty">
+                            <h1>Nenhum produto encontrado :(</h1>
+                        </div>
+                    )}
+
+
             </div>
         </div>
     );
