@@ -32,12 +32,13 @@ export default function Products({ history }) {
     return (
         <div className="product-flexbox">
             <div className="login-container">
-                <button type="submit" placeholder="Procure um produto" value={produto} onClick={procure}>
+                <button type="submit" placeholder="Buscar Produtos" value={produto} onClick={procure}>
                     Buscar Produtos
                 </button>
             </div>
-            <input type="text" placeholder="Procure um produto" value={produto} onChange={procure} />
-
+            <div className="login-container">
+                <input type="text" placeholder="Procure um produto" value={produto} onChange={procure} />
+            </div>
 
             <div className="product-container">
                 {newProducts.length > 0 ? (

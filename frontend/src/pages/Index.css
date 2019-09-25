@@ -41,6 +41,9 @@
   color: #fff;
   cursor: pointer;
 }
+.login-container input {
+  font-size: 16px;
+}
 
 /*
     CSS dos produtos
