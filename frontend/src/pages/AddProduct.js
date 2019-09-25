@@ -8,13 +8,13 @@ export default function Login({ history }) {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [quant, setQuant] = useState('');
-    const [img, setImage] = useState('');
+    const [image, setImage] = useState('');
 
     async function handleSubmit(e) {
         e.preventDefault();
 
-        const response = await api.post('/add-product', {
-            name, description, quant, img
+        await api.post('/add-product', {
+            name, description, quant, image
         });
         history.push(`/`);
     }
@@ -47,7 +47,7 @@ export default function Login({ history }) {
                     <input
                         type="text"
                         placeholder="URL da Imagem"
-                        value={img}
+                        value={image}
                         onChange={e => setImage(e.target.value)}
                     />
                     <button type="submit">Inserir Anúncio</button>

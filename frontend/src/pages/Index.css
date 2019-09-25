@@ -52,6 +52,16 @@
   padding: 50px 0;
   text-align: center;
 }
+.product-container .title {
+  white-space: nowrap;
+  overflow: hidden;
+}
+.product-container .description {
+  width: 223px;
+  height: 56px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .product-container ul {
   list-style: none;
   display: grid;

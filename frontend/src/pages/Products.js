@@ -46,8 +46,15 @@ export default function Products({ history }) {
                             <li key={product._id}>
                                 <img src={product.image} alt="produto" />
                                 <div>
-                                    <p>{product.name}</p>
-                                    <p>{product.description}</p>
+                                    <p className="title">
+                                        {product.name}
+                                    </p>
+                                    <p className="description">
+                                        Descrição do produto:
+                                    </p>
+                                    <p className="description">
+                                        {product.description}
+                                    </p>
                                 </div>
                             </li>
                         ))}
