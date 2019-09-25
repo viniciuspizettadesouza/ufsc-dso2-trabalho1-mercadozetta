@@ -16,7 +16,6 @@ export default function Login({ history }) {
         const response = await api.post('/add-product', {
             name, description, quant, img
         });
-        console.log(response.data);
         history.push(`/`);
     }
 

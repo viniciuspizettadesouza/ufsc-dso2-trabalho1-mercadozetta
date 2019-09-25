@@ -23,7 +23,7 @@ export default function Products({ history }) {
     const procure = useCallback(event => {
         setProduto(event.target.value)
         if (event.target.value.length > 1) {
-            setNewProducts(products.filter(p => console.log(stringSimilarity.compareTwoStrings(p.name, produto)) || stringSimilarity.compareTwoStrings(p.name, produto) > 0.1))
+            setNewProducts(products.filter(p => stringSimilarity.compareTwoStrings(p.name, produto) || stringSimilarity.compareTwoStrings(p.name, produto) > 0.1))
         } else if (event.target.value.length === 0) {
             setNewProducts(products)
         }
@@ -44,7 +44,7 @@ export default function Products({ history }) {
                     <ul>
                         {newProducts.map(product => (
                             <li key={product._id}>
-                                <img src="https://www.gsuplementos.com.br/upload/produto/imagem/creatina-250g-creapure-growth-supplements.jpg" alt="produto" />
+                                <img src={product.image} alt="produto" />
                                 <div>
                                     <p>{product.name}</p>
                                     <p>{product.description}</p>

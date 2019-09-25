@@ -17,7 +17,6 @@ export default function Login({ history }) {
             username, telephone, email, password
 
         });
-        console.log(response.data);
 
         history.push(`/`);
     }
