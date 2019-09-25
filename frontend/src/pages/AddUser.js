@@ -13,7 +13,7 @@ export default function Login({ history }) {
     async function handleSubmit(e) {
         e.preventDefault();
 
-        const response = await api.post('/add-user', {
+        await api.post('/add-user', {
             username, telephone, email, password
 
         });
