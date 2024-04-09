@@ -5,6 +5,10 @@ const ProductController = require('./controller/productController');
 
 const routes = express.Router();
 
+routes.get("/", (req, res) => {
+    res.json({ message: "Welcome to zetta2k app" });
+});
+
 routes.get('/products', ProductController.index);
 
 routes.post('/login', AuthController.authenticate);
