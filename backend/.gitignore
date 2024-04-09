@@ -1,0 +1,12 @@
+# Node dependencies
+node_modules
+
+npm-debug.log
+*.log
+*.pid
+*.lock
+
+# Local env files
+.env
+.env.*
+!.env.example
