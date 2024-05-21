@@ -12,23 +12,23 @@ import Index from './pages/Index';
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Index history={undefined} />,
+    element: <Index />,
   },
   {
     path: "/user/:id",
-    element: <Index history={undefined} />,
+    element: <Index />,
   },
   {
     path: "/login",
-    element: <Login history={undefined} />,
+    element: <Login />,
   },
   {
     path: "/add-user",
-    element: <AddUser history={undefined} />,
+    element: <AddUser />,
   },
   {
     path: "/add-product",
-    element: <AddProduct history={undefined} />,
+    element: <AddProduct />,
   },
 ]);
 

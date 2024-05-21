@@ -1,21 +1,23 @@
-import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Index.css';
 
 import Header from './header/index';
 import Product from './Products';
 
-export default function Login({ history }) {
+export default function Login() {
+    const navigate = useNavigate();
+
     async function handleLogin(e) {
         e.preventDefault();
-        history.push(`/login`);
+        navigate('/login');
     }
     async function handleAccount(e) {
         e.preventDefault();
-        history.push(`/add-user`);
+        navigate('/add-user');
     }
     async function handleProdutos(e) {
         e.preventDefault();
-        history.push(`/add-product`);
+        navigate('/add-product');
     }
 
     return (

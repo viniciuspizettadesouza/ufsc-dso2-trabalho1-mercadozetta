@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Index.css';
 
 import Header from './header';
 import api from '../services/api';
 
-export default function Login({ history }) {
+export default function Login() {
+    const navigate = useNavigate();
+
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [quant, setQuant] = useState('');
@@ -16,7 +19,7 @@ export default function Login({ history }) {
         await api.post('/add-product', {
             name, description, quant, image
         });
-        history.push(`/`);
+        navigate('/');
     }
 
     return (

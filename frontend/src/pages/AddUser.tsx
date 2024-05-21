@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Index.css';
 
 import Header from './header';
 import api from '../services/api';
 
-export default function Login({ history }) {
+export default function Login() {
+    const navigate = useNavigate();
+
     const [username, setUsername] = useState('');
     const [telephone, setTelephone] = useState('');
     const [email, setEmail] = useState('');
@@ -18,7 +21,7 @@ export default function Login({ history }) {
 
         });
 
-        history.push(`/`);
+        navigate('/');
     }
 
     return (

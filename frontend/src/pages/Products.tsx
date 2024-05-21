@@ -1,14 +1,13 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import './Index.css';
 import stringSimilarity from 'string-similarity'
 
 import api from '../services/api';
 
-export default function Products({ history }) {
+export default function Products() {
     const [products, setProducts] = useState([]);
     const [newProducts, setNewProducts] = useState([]);
     const [produto, setProduto] = useState('');
-
 
     useEffect(() => {
         async function loadProducts() {
@@ -61,12 +60,10 @@ export default function Products({ history }) {
                         ))}
                     </ul>
                 ) : (
-                        <div className="empty">
-                            <h1>Nenhum produto encontrado :(</h1>
-                        </div>
-                    )}
-
-
+                    <div className="empty">
+                        <h1>Nenhum produto encontrado :(</h1>
+                    </div>
+                )}
             </div>
         </div>
     );
