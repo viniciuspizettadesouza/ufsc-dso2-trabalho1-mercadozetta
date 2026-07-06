@@ -4,11 +4,16 @@
 
 - Active branch: `feature/login-flow`
 - Last commit: `2a8a96a feat: protect product creation`
-- Working tree has backend configuration/validation changes in progress.
+- Working tree has minimal backend/frontend test coverage in progress.
 - Frontend validation passed:
   - `npm run build`
   - `npm run lint`
+- Frontend tests passed:
+  - `npm test`
+- Backend tests passed:
+  - `npm test`
 - Backend syntax validation passed:
+  - `node -c backend/src/app.js`
   - `node -c backend/src/controller/authController.js`
   - `node -c backend/src/controller/productController.js`
   - `node -c backend/src/controller/userController.js`
@@ -45,6 +50,10 @@
   - `GET /users/:userID/products`
   - `GET /user/:userID/products`
 - Updated `/user/:id` frontend view to load only that seller's products.
+- Split the Express app setup into `backend/src/app.js` so the server startup remains isolated.
+- Added backend Vitest + Supertest tests for login success/failure, user creation, product auth requirement, and authenticated product creation.
+- Added Vitest and Testing Library to the frontend.
+- Added frontend login tests for API success/navigation/storage and API failure messaging.
 
 ## Environment Setup
 
@@ -64,11 +73,7 @@ VITE_API_URL=http://localhost:3333
 
 ## Next Recommended Work
 
-1. Add minimal tests.
-   - Backend: login success/failure, user creation, product creation auth requirement.
-   - Frontend: login form calls API and handles failure.
-
-2. Review dependency vulnerabilities.
+1. Review dependency vulnerabilities.
    - `npm audit` currently reports vulnerabilities in both backend and frontend dependency trees.
    - Handle separately from feature work to avoid mixing risky upgrades with auth changes.
 
@@ -77,11 +82,13 @@ VITE_API_URL=http://localhost:3333
 ```bash
 cd backend
 npm run dev
+npm test
 ```
 
 ```bash
 cd frontend
 npm run dev
+npm test
 npm run build
 npm run lint
 ```
