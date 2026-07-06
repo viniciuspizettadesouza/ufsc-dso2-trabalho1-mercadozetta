@@ -1,60 +1,121 @@
-# trabalho1-dso2
+# MercadoZetta
 
-    INE5612-04238A (20192) - Desenvolvimento de Sistemas Orientados a Objetos II
+MercadoZetta is a marketplace project for INE5612 - Desenvolvimento de Sistemas Orientados a Objetos II.
 
-## Descrição do Sistema
+The app lets users search products, create an account, log in with email and password, and create products for sale. Product creation is protected by JWT authentication, and each created product is linked to the authenticated seller.
 
-Identifique uma categoria de produtos que você considera útil criar um sistema de vendas (ex: materiais esportivos, informática, livros, etc).
+## Stack
 
-Em sua página inicial, o sistema deve permitir buscar produtos, especificando a descrição do mesmo. Também será possível, a partir da página inicial, acessar a página de login no sistema e a página de cadastramento de um novo usuário. Devem ser usados e-mail e senha para acesso ao sistema.
+- Backend: Node.js, Express, MongoDB, Mongoose, JWT, bcryptjs
+- Frontend: React, TypeScript, Vite, React Router, Axios
+- Tests: Vitest, Supertest, Testing Library
 
-Os usuários deverão cadastrar-se no sistema, especificando os dados para contato (e-mail, telefone, etc.), dentre outras informações que você considere necessárias.
-Os usuários cadastrados poderão cadastrar produtos para venda e também vender produtos.
+## Project Structure
 
-## Para testar a aplicação
+```text
+backend/    Express API and MongoDB models
+frontend/   React + Vite web app
+images/     Project images used by this README
+```
 
-Após clonar o repositório, executar um dos comandos abaixo para carregar os modulos do node.
+## Environment Setup
 
-    yarn install Ou
-    npm install
+Create a backend environment file from the example:
 
-Para rodar o backend da aplicação:
+```bash
+cd backend
+cp .env.example .env
+```
 
-Dentro da pasta backend, execute o comando abaixo para subir o servidor na porta 3333.
+Set these values in `backend/.env`:
 
-    yarn dev Ou
-    npm run-script dev
-    onde "dev" é o script criado no arquivo package.json
+```env
+MONGODB_URI=mongodb+srv://user:password@cluster.example.mongodb.net/mercadozetta?retryWrites=true&w=majority
+JWT_SECRET=replace_with_a_long_random_secret
+PORT=3333
+```
 
-Para rodar o frontend da aplicação:
+Create a frontend environment file from the example:
 
-Dentro da pasta frontend, execute o comando abaixo para iniciar a aplicação na porta 3000.
+```bash
+cd frontend
+cp .env.example .env
+```
 
-    yarn start
+Set the API URL in `frontend/.env`:
+
+```env
+VITE_API_URL=http://localhost:3333
+```
+
+## Install
+
+Install dependencies separately in each app:
+
+```bash
+cd backend
+npm install
+```
+
+```bash
+cd frontend
+npm install
+```
+
+## Run
+
+Start the backend:
+
+```bash
+cd backend
+npm run dev
+```
+
+Start the frontend:
+
+```bash
+cd frontend
+npm run dev
+```
+
+The backend defaults to `http://localhost:3333`. Vite will print the frontend URL in the terminal, usually `http://localhost:5173`.
+
+## Main Features
+
+- Product search on the home page
+- User registration
+- Login with email and password
+- JWT token storage in the frontend
+- Authenticated product creation
+- Seller-specific product listing on `/user/:id`
+
+## Useful Commands
+
+Backend:
+
+```bash
+cd backend
+npm test
+npm audit
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm test
+npm run build
+npm run lint
+npm audit
+```
+
+## Manual Smoke Test
+
+After configuring the `.env` files and starting both servers:
+
+1. Create a user at `/add-user`.
+2. Log in at `/login`.
+3. Create a product at `/add-product`.
+4. Confirm the logged-in seller page shows only that seller's products.
 
 <img src="images/mercadozetta.jpg" width="400">
-
-## Rotas
-
-    (ok) cadastrar usuario
-    (ok) autenticação de login
-    (ok) lista produtos de usuario especifico
-    (ok) cadastro de produto n funciona
-
-## Problemas
-
-if(tamanho do input > 0) {
-filter(nome do input === produto.name)
-}
-
-busca produtos na pagina inicial
-
-css das outras paginas
-
-achar no video backend para que serve o cors
-
-## Extra
-
-Fazer token de autenticação se der tempo a partir de 6:30
-
-https://www.youtube.com/watch?v=KKTX1l3sZGk

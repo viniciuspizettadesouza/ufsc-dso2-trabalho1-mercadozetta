@@ -1,30 +1,66 @@
-# React + TypeScript + Vite
+# MercadoZetta Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript + Vite frontend for MercadoZetta.
 
-Currently, two official plugins are available:
+The frontend lets users browse and search products, create accounts, log in, create authenticated products, and view seller-specific product lists.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Stack
 
-## Expanding the ESLint configuration
+- React
+- TypeScript
+- Vite
+- React Router
+- Axios
+- Testing Library
+- Vitest
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+## Environment
 
-- Configure the top-level `parserOptions` property like this:
+Create a local `.env` file:
 
-```js
-export default {
-  // other rules...
-  parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-  },
-}
+```bash
+cp .env.example .env
 ```
 
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+Set the backend API URL:
+
+```env
+VITE_API_URL=http://localhost:3333
+```
+
+## Install
+
+```bash
+npm install
+```
+
+## Run
+
+```bash
+npm run dev
+```
+
+Vite will print the local frontend URL in the terminal, usually `http://localhost:5173`.
+
+## Test, Build, Lint, And Audit
+
+```bash
+npm test
+npm run build
+npm run lint
+npm audit
+```
+
+## Routes
+
+| Route | Description |
+| --- | --- |
+| `/` | Home page with product search and product list |
+| `/user/:id` | Seller page with products for that seller |
+| `/login` | Login form |
+| `/add-user` | User registration form |
+| `/add-product` | Authenticated product creation form |
+
+## Authentication Flow
+
+On successful login, the app stores the returned `token` and `user` in `localStorage`. The API service attaches the token to outgoing requests as a Bearer token, which allows authenticated product creation.
