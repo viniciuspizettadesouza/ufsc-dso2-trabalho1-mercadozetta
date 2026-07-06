@@ -8,6 +8,9 @@
 - Frontend validation passed:
   - `npm run build`
   - `npm run lint`
+- Dependency audits passed:
+  - `cd backend && npm audit`
+  - `cd frontend && npm audit`
 - Frontend tests passed:
   - `npm test`
 - Backend tests passed:
@@ -54,6 +57,8 @@
 - Added backend Vitest + Supertest tests for login success/failure, user creation, product auth requirement, and authenticated product creation.
 - Added Vitest and Testing Library to the frontend.
 - Added frontend login tests for API success/navigation/storage and API failure messaging.
+- Resolved backend dependency vulnerabilities by updating Express, Mongoose, and Nodemon.
+- Resolved frontend dependency vulnerabilities by updating Axios, React Router, Vite, and the Vite React plugin.
 
 ## Environment Setup
 
@@ -73,9 +78,9 @@ VITE_API_URL=http://localhost:3333
 
 ## Next Recommended Work
 
-1. Review dependency vulnerabilities.
-   - `npm audit` currently reports vulnerabilities in both backend and frontend dependency trees.
-   - Handle separately from feature work to avoid mixing risky upgrades with auth changes.
+1. Run a manual smoke test with real local `.env` files.
+   - Start the backend and frontend dev servers.
+   - Create a user, log in, create a product, and confirm the seller product list only shows that seller's products.
 
 ## Useful Commands
 
