@@ -16,7 +16,7 @@ export default function Login() {
     async function handleSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
 
-        await api.post('/add-product', {
+        await api.post('/products', {
             name, description, quant, image
         });
         navigate('/');
