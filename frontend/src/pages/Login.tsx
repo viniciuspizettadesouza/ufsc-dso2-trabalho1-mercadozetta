@@ -1,20 +1,35 @@
-import { useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Index.css';
 
 import Header from './header';
+import api from '../services/api';
 
 export default function Login() {
     const navigate = useNavigate();
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
 
-    async function handleSubmit(e) {
+    async function handleSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
 
-        navigate(`/user/${email}`);
-        //history.push(`/`);
+        try {
+            setError('');
+
+            const response = await api.post('/login', {
+                email,
+                password,
+            });
+
+            localStorage.setItem('token', response.data.token);
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+
+            navigate(`/user/${response.data.user._id}`);
+        } catch {
+            setError('E-mail ou senha inválidos');
+        }
     }
 
     return (
@@ -34,6 +49,7 @@ export default function Login() {
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                     />
+                    {error && <p>{error}</p>}
                     <button type="submit">Login</button>
                 </form>
             </div>

@@ -1,12 +1,18 @@
-import { useEffect, useState, useCallback } from 'react';
+import { ChangeEvent, MouseEvent, useEffect, useState, useCallback } from 'react';
 import './Index.css';
-import stringSimilarity from 'string-similarity'
 
 import api from '../services/api';
 
+type Product = {
+    _id: string;
+    name: string;
+    description: string;
+    image: string;
+};
+
 export default function Products() {
-    const [products, setProducts] = useState([]);
-    const [newProducts, setNewProducts] = useState([]);
+    const [products, setProducts] = useState<Product[]>([]);
+    const [newProducts, setNewProducts] = useState<Product[]>([]);
     const [produto, setProduto] = useState('');
 
     useEffect(() => {
@@ -15,23 +21,26 @@ export default function Products() {
 
             })
             setProducts(response.data)
+            setNewProducts(response.data)
         }
         loadProducts();
-    });
+    }, []);
 
-    const procure = useCallback(event => {
-        setProduto(event.target.value)
-        if (event.target.value.length > 1) {
-            setNewProducts(products.filter(p => stringSimilarity.compareTwoStrings(p.name, produto) || stringSimilarity.compareTwoStrings(p.name, produto) > 0.1))
-        } else if (event.target.value.length === 0) {
+    const procure = useCallback((event: ChangeEvent<HTMLInputElement> | MouseEvent<HTMLButtonElement>) => {
+        const value = event.currentTarget.value;
+
+        setProduto(value)
+        if (value.length > 1) {
+            setNewProducts(products.filter(p => p.name.toLowerCase().includes(value.toLowerCase())))
+        } else if (value.length === 0) {
             setNewProducts(products)
         }
-    }, [produto, products])
+    }, [products])
 
     return (
         <div className="product-flexbox">
             <div className="login-container">
-                <button type="submit" placeholder="Buscar Produtos" value={produto} onClick={procure}>
+                <button type="submit" value={produto} onClick={procure}>
                     Buscar Produtos
                 </button>
             </div>

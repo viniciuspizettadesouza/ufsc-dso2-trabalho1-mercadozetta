@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Index.css';
 
@@ -13,7 +13,7 @@ export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
-    async function handleSubmit(e) {
+    async function handleSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
 
         await api.post('/add-user', {

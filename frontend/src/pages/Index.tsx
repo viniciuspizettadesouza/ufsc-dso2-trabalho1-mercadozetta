@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { FormEvent } from 'react';
 import './Index.css';
 
 import Header from './header/index';
@@ -7,15 +8,15 @@ import Product from './Products';
 export default function Login() {
     const navigate = useNavigate();
 
-    async function handleLogin(e) {
+    async function handleLogin(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
         navigate('/login');
     }
-    async function handleAccount(e) {
+    async function handleAccount(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
         navigate('/add-user');
     }
-    async function handleProdutos(e) {
+    async function handleProdutos(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
         navigate('/add-product');
     }
