@@ -4,7 +4,9 @@ const User = require('../model/user');
 
 module.exports = {
     async authenticate(req, res) {
-        const { email, password } = req.body;
+        const body = req.body || {};
+        const email = String(body.email || '').trim().toLowerCase();
+        const password = String(body.password || '');
 
         if (!email || !password)
             return res.status(400).send({ error: 'Email and password are required' });

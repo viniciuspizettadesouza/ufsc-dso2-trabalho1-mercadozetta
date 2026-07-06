@@ -3,13 +3,17 @@
 ## Current State
 
 - Active branch: `feature/login-flow`
-- Last commit: `a817258 feat: implement login flow`
-- Working tree was clean when this plan was created.
+- Last commit: `2a8a96a feat: protect product creation`
+- Working tree has backend configuration/validation changes in progress.
 - Frontend validation passed:
   - `npm run build`
   - `npm run lint`
 - Backend syntax validation passed:
   - `node -c backend/src/controller/authController.js`
+  - `node -c backend/src/controller/productController.js`
+  - `node -c backend/src/controller/userController.js`
+  - `node -c backend/src/routes.js`
+  - `node -c backend/src/server.js`
 
 ## Completed In This Branch
 
@@ -30,14 +34,26 @@
 - Updated frontend product creation to call `POST /products`.
 - Updated the frontend API service to attach the stored token to requests.
 - Related created products to the authenticated seller.
+- Replaced hardcoded MongoDB connection parts with `MONGODB_URI`.
+- Added optional backend `PORT` configuration.
+- Updated `backend/.env.example` for `MONGODB_URI`, `JWT_SECRET`, and `PORT`.
+- Added request validation for login, user creation, and product creation payloads.
+- Avoided passing raw `req.body` directly to Mongoose creates in user/product creation.
+- Improved creation status codes to return `201`.
+- Standardized validation/auth failures around `{ error: string }` responses.
+- Added seller product listing endpoints:
+  - `GET /users/:userID/products`
+  - `GET /user/:userID/products`
+- Updated `/user/:id` frontend view to load only that seller's products.
 
 ## Environment Setup
 
 Backend `.env` should be created from `backend/.env.example`:
 
 ```env
-MONGODB_PASSWORD=your_mongodb_password
+MONGODB_URI=mongodb+srv://user:password@cluster.example.mongodb.net/mercadozetta?retryWrites=true&w=majority
 JWT_SECRET=replace_with_a_long_random_secret
+PORT=3333
 ```
 
 Frontend `.env` should be created from `frontend/.env.example`:
@@ -48,48 +64,11 @@ VITE_API_URL=http://localhost:3333
 
 ## Next Recommended Work
 
-1. Configure signed commits.
-   - Generate or locate an SSH key.
-   - Add the public key to GitHub as a `Signing Key`.
-   - Configure Git:
-
-```bash
-git config --global gpg.format ssh
-git config --global user.signingkey ~/.ssh/id_ed25519.pub
-git config --global commit.gpgsign true
-```
-
-   - Re-sign the latest commit if needed:
-
-```bash
-git commit --amend --no-edit -S
-git push --force-with-lease
-```
-
-2. Add endpoint to list products by seller if still required.
-
-3. Improve backend configuration.
-   - Replace hardcoded MongoDB connection parts with a full `MONGODB_URI`.
-   - Update `backend/.env.example` accordingly.
-   - Optionally add `PORT=3333`.
-
-4. Add request validation.
-   - Validate login payload.
-   - Validate user creation payload.
-   - Validate product creation payload.
-   - Avoid passing raw `req.body` directly to Mongoose creates.
-
-5. Improve API status codes and error consistency.
-   - Use `201` for creation.
-   - Use `401` for invalid auth.
-   - Use `400` for validation failures.
-   - Return consistent `{ error: string }` responses.
-
-6. Add minimal tests.
+1. Add minimal tests.
    - Backend: login success/failure, user creation, product creation auth requirement.
    - Frontend: login form calls API and handles failure.
 
-7. Review dependency vulnerabilities.
+2. Review dependency vulnerabilities.
    - `npm audit` currently reports vulnerabilities in both backend and frontend dependency trees.
    - Handle separately from feature work to avoid mixing risky upgrades with auth changes.
 
@@ -118,4 +97,4 @@ git log --oneline --decorate -5
 - Product creation is protected and uses the authenticated user as `seller`.
 - The token is stored in `localStorage`, and the API service attaches it to requests.
 - The backend uses a development fallback for `JWT_SECRET`; production should always define it.
-- The current MongoDB connection still hardcodes user, cluster, database, and app name in `backend/src/server.js`.
+- The backend now requires `MONGODB_URI`; local `.env` files must be updated from `backend/.env.example`.

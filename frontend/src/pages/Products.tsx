@@ -1,4 +1,5 @@
 import { ChangeEvent, MouseEvent, useEffect, useState, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 import './Index.css';
 
 import api from '../services/api';
@@ -11,20 +12,20 @@ type Product = {
 };
 
 export default function Products() {
+    const { id } = useParams();
     const [products, setProducts] = useState<Product[]>([]);
     const [newProducts, setNewProducts] = useState<Product[]>([]);
     const [produto, setProduto] = useState('');
 
     useEffect(() => {
         async function loadProducts() {
-            const response = await api.get('/products', {
-
-            })
+            const path = id ? `/users/${id}/products` : '/products';
+            const response = await api.get(path)
             setProducts(response.data)
             setNewProducts(response.data)
         }
         loadProducts();
-    }, []);
+    }, [id]);
 
     const procure = useCallback((event: ChangeEvent<HTMLInputElement> | MouseEvent<HTMLButtonElement>) => {
         const value = event.currentTarget.value;

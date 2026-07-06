@@ -1,18 +1,27 @@
 const Product = require('../model/product');
+const mongoose = require('mongoose');
 
 module.exports = {
     async index(req, res) {
-
-        const products = await Product.find({}, function (err, name) {
-            return (null, name)
-        });
-        return res.status(200).send(products);
+        try {
+            const products = await Product.find({});
+            return res.status(200).send(products);
+        } catch (err) {
+            return res.status(400).send({ error: 'Failed to list products' });
+        }
     },
 
     async add(req, res) {
-        try {
-            const { name, description, quant, image } = req.body;
+        const body = req.body || {};
+        const name = String(body.name || '').trim();
+        const description = String(body.description || '').trim();
+        const quant = String(body.quant || '').trim();
+        const image = String(body.image || '').trim();
 
+        if (!name || !quant || !image)
+            return res.status(400).send({ error: 'Name, quantity and image are required' });
+
+        try {
             const newProduct = await Product.create({
                 name,
                 description,
@@ -24,6 +33,20 @@ module.exports = {
             return res.status(201).send({ newProduct });
         } catch (err) {
             return res.status(400).send({ error: 'Product registration failed' });
+        }
+    },
+
+    async listBySeller(req, res) {
+        const { userID } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(userID))
+            return res.status(400).send({ error: 'Invalid seller id' });
+
+        try {
+            const products = await Product.find({ seller: userID });
+            return res.status(200).send(products);
+        } catch (err) {
+            return res.status(400).send({ error: 'Failed to list seller products' });
         }
     }
 };
