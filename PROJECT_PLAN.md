@@ -82,6 +82,19 @@ VITE_API_URL=http://localhost:3333
    - Start the backend and frontend dev servers.
    - Create a user, log in, create a product, and confirm the seller product list only shows that seller's products.
 
+## Database Notes
+
+- MongoDB remains a practical choice for the current project scope because the data model is simple:
+  - users
+  - products
+  - one seller reference per product
+- PostgreSQL would likely be a stronger option if the app grows into a fuller marketplace with orders, payments, inventory movements, carts, reviews, refunds, and stricter transactional consistency needs.
+- Recommended MongoDB schema improvements:
+  - Add a unique index for `User.email`.
+  - Add an index for `Product.seller`.
+  - Consider changing `Product.quant` from `String` to `Number`.
+  - Consider adding marketplace fields such as price, category, status, and availability.
+
 ## Useful Commands
 
 ```bash
