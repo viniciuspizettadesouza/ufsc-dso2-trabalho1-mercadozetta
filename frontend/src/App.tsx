@@ -2,7 +2,6 @@ import {
   createBrowserRouter,
   RouterProvider
 } from "react-router-dom";
-import "./index.css";
 
 import AddProduct from './pages/AddProduct';
 import AddUser from './pages/AddUser';
