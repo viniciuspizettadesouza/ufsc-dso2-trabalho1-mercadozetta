@@ -1,6 +1,5 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './Index.css';
 
 import Header from './header';
 import api from '../services/api';
@@ -34,23 +33,30 @@ export default function Login() {
 
     return (
         <div>
-            <Header />
-            <div className="login-container">
-                <form onSubmit={handleSubmit}>
+            <Header hideLoginAction />
+            <div className="flex h-full items-center justify-center">
+                <form className="flex w-full max-w-[300px] flex-col" onSubmit={handleSubmit}>
                     <input
+                        className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
                         type="email"
                         placeholder="E-mail"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
                     />
                     <input
+                        className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
                         type="password"
                         placeholder="Senha"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                     />
                     {error && <p>{error}</p>}
-                    <button type="submit">Login</button>
+                    <button
+                        className="mt-2.5 h-12 cursor-pointer rounded border-0 bg-[#3483fa] text-base font-bold text-white"
+                        type="submit"
+                    >
+                        Login
+                    </button>
                 </form>
             </div>
         </div>
