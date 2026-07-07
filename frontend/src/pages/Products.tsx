@@ -1,58 +1,78 @@
-import { useEffect, useState, useCallback } from 'react';
-import './Index.css';
-import stringSimilarity from 'string-similarity'
+import { ChangeEvent, MouseEvent, useEffect, useState, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
 
 import api from '../services/api';
 
+type Product = {
+    _id: string;
+    name: string;
+    description: string;
+    image: string;
+};
+
 export default function Products() {
-    const [products, setProducts] = useState([]);
-    const [newProducts, setNewProducts] = useState([]);
+    const { id } = useParams();
+    const [products, setProducts] = useState<Product[]>([]);
+    const [newProducts, setNewProducts] = useState<Product[]>([]);
     const [produto, setProduto] = useState('');
 
     useEffect(() => {
         async function loadProducts() {
-            const response = await api.get('/products', {
-
-            })
+            const path = id ? `/users/${id}/products` : '/products';
+            const response = await api.get(path)
             setProducts(response.data)
+            setNewProducts(response.data)
         }
         loadProducts();
-    });
+    }, [id]);
 
-    const procure = useCallback(event => {
-        setProduto(event.target.value)
-        if (event.target.value.length > 1) {
-            setNewProducts(products.filter(p => stringSimilarity.compareTwoStrings(p.name, produto) || stringSimilarity.compareTwoStrings(p.name, produto) > 0.1))
-        } else if (event.target.value.length === 0) {
+    const procure = useCallback((event: ChangeEvent<HTMLInputElement> | MouseEvent<HTMLButtonElement>) => {
+        const value = event.currentTarget.value;
+
+        setProduto(value)
+        if (value.length > 1) {
+            setNewProducts(products.filter(p => p.name.toLowerCase().includes(value.toLowerCase())))
+        } else if (value.length === 0) {
             setNewProducts(products)
         }
-    }, [produto, products])
+    }, [products])
 
     return (
-        <div className="product-flexbox">
-            <div className="login-container">
-                <button type="submit" placeholder="Buscar Produtos" value={produto} onClick={procure}>
+        <div className="flex flex-col content-center justify-items-center">
+            <div className="flex h-full items-center justify-center">
+                <button
+                    className="mt-2.5 flex h-12 w-full max-w-[300px] cursor-pointer flex-col items-center justify-center rounded border-0 bg-[#3483fa] text-base font-bold text-white"
+                    type="submit"
+                    value={produto}
+                    onClick={procure}
+                >
                     Buscar Produtos
                 </button>
             </div>
-            <div className="login-container">
-                <input type="text" placeholder="Procure um produto" value={produto} onChange={procure} />
+            <div className="flex h-full items-center justify-center">
+                <input
+                    className="mt-2.5 flex h-12 w-full max-w-[300px] self-center rounded border-0 text-center"
+                    type="text"
+                    placeholder="Procure um produto"
+                    value={produto}
+                    onChange={procure}
+                />
             </div>
 
-            <div className="product-container">
+            <div className="mx-auto max-w-[980px] px-0 py-[50px] text-center">
                 {newProducts.length > 0 ? (
-                    <ul>
+                    <ul className="mt-[50px] grid list-none grid-cols-4 gap-[30px] max-[900px]:grid-cols-2 max-[520px]:grid-cols-1">
                         {newProducts.map(product => (
-                            <li key={product._id}>
-                                <img src={product.image} alt="produto" />
+                            <li className="flex flex-col" key={product._id}>
+                                <img className="max-w-full" src={product.image} alt="produto" />
                                 <div>
-                                    <p className="title">
+                                    <p className="overflow-hidden whitespace-nowrap">
                                         {product.name}
                                     </p>
-                                    <p className="description">
+                                    <p className="h-14 w-[223px] overflow-hidden text-ellipsis">
                                         Descrição do produto:
                                     </p>
-                                    <p className="description">
+                                    <p className="h-14 w-[223px] overflow-hidden text-ellipsis">
                                         {product.description}
                                     </p>
                                 </div>
@@ -60,7 +80,7 @@ export default function Products() {
                         ))}
                     </ul>
                 ) : (
-                    <div className="empty">
+                    <div className="text-[32px] font-bold text-[#999]">
                         <h1>Nenhum produto encontrado :(</h1>
                     </div>
                 )}

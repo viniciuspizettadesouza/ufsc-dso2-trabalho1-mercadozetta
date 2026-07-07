@@ -1,19 +1,18 @@
-const express = require('express');
 const mongoose = require('mongoose');
-const cors = require('cors');
-const routes = require('./routes');
-const server = express();
+const app = require('./app');
 require('dotenv').config();
 
-const mongoPassword = process.env.MONGODB_PASSWORD;
+const mongoUri = process.env.MONGODB_URI;
+const port = process.env.PORT || 3333;
 
-mongoose.connect(`mongodb+srv://viniciuspzt:${mongoPassword}@clusterzetta.gmwttyd.mongodb.net/mercadozetta?retryWrites=true&w=majority&appName=ClusterZetta`, {
+if (!mongoUri) {
+    console.error('MONGODB_URI environment variable is required');
+    process.exit(1);
+}
+
+mongoose.connect(mongoUri, {
     useUnifiedTopology: true, useNewUrlParser: true
 }).then(() => console.log('MongoDB connected'))
 .catch((err) => console.log(err));
 
-server.use(cors());
-server.use(express.json());
-server.use(routes);
-
-server.listen(3333);
+app.listen(port, () => console.log(`Server running on port ${port}`));

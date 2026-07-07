@@ -2,7 +2,6 @@ import {
   createBrowserRouter,
   RouterProvider
 } from "react-router-dom";
-import "./index.css";
 
 import AddProduct from './pages/AddProduct';
 import AddUser from './pages/AddUser';
@@ -33,7 +32,7 @@ const router = createBrowserRouter([
 ]);
 
 export default function App() {
-  return <RouterProvider router={router} fallbackElement={<p>Loading...</p>} />;
+  return <RouterProvider router={router} />;
 }
 
 if (import.meta.hot) {
