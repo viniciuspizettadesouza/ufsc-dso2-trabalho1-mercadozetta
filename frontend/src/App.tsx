@@ -33,7 +33,7 @@ const router = createBrowserRouter([
 ]);
 
 export default function App() {
-  return <RouterProvider router={router} fallbackElement={<p>Loading...</p>} />;
+  return <RouterProvider router={router} />;
 }
 
 if (import.meta.hot) {

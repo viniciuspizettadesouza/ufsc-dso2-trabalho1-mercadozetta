@@ -81,6 +81,19 @@ VITE_API_URL=http://localhost:3333
 1. Run a manual smoke test with real local `.env` files.
    - Start the backend and frontend dev servers.
    - Create a user, log in, create a product, and confirm the seller product list only shows that seller's products.
+2. Plan a future React Router v8 upgrade.
+   - Upgrade the runtime baseline to Node `22.22+`.
+   - Upgrade `react` and `react-dom` to `19.2.7+`.
+   - Replace `react-router-dom` imports with `react-router` or `react-router/dom` imports because the re-export package is removed in v8.
+   - Install React Router v8 after the prerequisites are in place and rerun frontend tests/build.
+3. Apply low-risk dependency maintenance updates.
+   - Frontend: update `@types/react`, `@types/react-dom`, `@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `autoprefixer`, `eslint`, `eslint-plugin-react-refresh`, `tailwindcss`, and `typescript` within their current major versions.
+   - Backend: update `cors` and `dotenv` within their current major versions.
+   - Rerun `npm audit`, tests, lint, and frontend build after the updates.
+4. Plan larger dependency upgrades as separate work items.
+   - Frontend: evaluate React `19.2.7+`, Tailwind CSS `4.x`, ESLint `10.x`, TypeScript `6.x`, `@typescript-eslint` `8.x`, and `eslint-plugin-react-hooks` `7.x`.
+   - Backend: evaluate `bcryptjs` `3.x`, Express `5.x`, Dotenv `17.x`, and Mongoose `9.x`.
+   - Treat these as migration tasks because they may require code, config, runtime, or CI changes.
 
 ## Database Notes
 
