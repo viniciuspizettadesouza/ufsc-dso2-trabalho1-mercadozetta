@@ -25,7 +25,7 @@ images/     Images used by the documentation
 
 Before installing the project, make sure you have:
 
-- Node.js
+- Node.js 22.22 or newer
 - npm
 - Docker, if you want to use a local MongoDB for development
 - Git
@@ -33,6 +33,7 @@ Before installing the project, make sure you have:
 Check that Node.js and npm are available:
 
 ```bash
+nvm use
 node -v
 npm -v
 ```

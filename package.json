@@ -1,6 +1,9 @@
 {
   "name": "ufsc-dso2-trabalho1-mercadozetta",
   "private": true,
+  "engines": {
+    "node": ">=22.22.0"
+  },
   "scripts": {
     "prepare": "husky",
     "test": "npm run test:backend && npm run test:frontend",

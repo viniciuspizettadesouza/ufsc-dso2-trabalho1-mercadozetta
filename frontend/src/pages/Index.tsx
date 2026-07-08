@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import { FormEvent } from 'react';
 
 import Header from './header/index';
