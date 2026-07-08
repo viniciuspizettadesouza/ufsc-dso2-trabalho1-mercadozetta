@@ -1,34 +1,13 @@
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const User = require('../model/user');
+const sendError = require('../errors/sendError');
+const AuthService = require('../services/authService');
 
 module.exports = {
     async authenticate(req, res) {
-        const body = req.body || {};
-        const email = String(body.email || '').trim().toLowerCase();
-        const password = String(body.password || '');
-
-        if (!email || !password)
-            return res.status(400).send({ error: 'Email and password are required' });
-
-        const user = await User.findOne({ email }).select('+password email username telephone');
-        if (!user)
-            return res.status(401).send({ error: 'Invalid credentials' });
-
-        if (!await bcrypt.compare(password, user.password))
-            return res.status(401).send({ error: 'Invalid credentials' });
-
-        user.password = undefined;
-
-        const token = jwt.sign(
-            { id: user._id },
-            process.env.JWT_SECRET || 'mercadozetta-dev-secret',
-            { expiresIn: '1d' }
-        );
-
-        return res.send({
-            user,
-            token,
-        });
+        try {
+            const result = await AuthService.authenticate(req.body);
+            return res.send(result);
+        } catch (err) {
+            return sendError(res, err, 'Authentication failed');
+        }
     },
 };
