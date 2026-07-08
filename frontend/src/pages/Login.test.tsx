@@ -1,6 +1,6 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Login from './Login';
@@ -14,8 +14,8 @@ vi.mock('../services/api', () => ({
     },
 }));
 
-vi.mock('react-router-dom', async () => {
-    const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+vi.mock('react-router', async () => {
+    const actual = await vi.importActual<typeof import('react-router')>('react-router');
 
     return {
         ...actual,
