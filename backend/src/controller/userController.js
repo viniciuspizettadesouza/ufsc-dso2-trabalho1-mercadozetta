@@ -1,52 +1,13 @@
-const User = require('../model/user');
-
-function isValidEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-function getDuplicateField(err) {
-    if (err.code !== 11000)
-        return null;
-
-    const fields = Object.keys(err.keyPattern || err.keyValue || {});
-
-    return fields[0] || null;
-}
+const sendError = require('../errors/sendError');
+const UserService = require('../services/userService');
 
 module.exports = {
     async add(req, res) {
-        const body = req.body || {};
-        const email = String(body.email || '').trim().toLowerCase();
-        const password = String(body.password || '');
-        const username = String(body.username || '').trim();
-        const telephone = String(body.telephone || '').trim();
-
-        if (!email || !password || !username || !telephone)
-            return res.status(400).send({ error: 'Email, password, username and telephone are required' });
-
-        if (!isValidEmail(email))
-            return res.status(400).send({ error: 'Invalid email' });
-
         try {
-            if (await User.findOne({ email }))
-                return res.status(400).send({ error: 'User already exists' });
-
-            const newUser = await User.create({
-                email,
-                password,
-                username,
-                telephone,
-            });
-
-            newUser.password = undefined;
+            const newUser = await UserService.createUser(req.body);
             return res.status(201).send({ newUser });
         } catch (err) {
-            const duplicateField = getDuplicateField(err);
-
-            if (duplicateField === 'email')
-                return res.status(400).send({ error: 'User already exists' });
-
-            return res.status(400).send({ error: 'Registration failed' });
+            return sendError(res, err, 'Registration failed');
         }
     }
 };
