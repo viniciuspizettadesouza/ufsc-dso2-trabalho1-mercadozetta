@@ -3,17 +3,18 @@ import { FormEvent } from 'react';
 
 import Header from './header/index';
 import Product from './Products';
+import { appRoutes } from '../routes';
 
-export default function Login() {
+export default function Index() {
     const navigate = useNavigate();
 
     async function handleAccount(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
-        navigate('/add-user');
+        navigate(appRoutes.register);
     }
     async function handleProdutos(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
-        navigate('/add-product');
+        navigate(appRoutes.newProduct);
     }
 
     return (

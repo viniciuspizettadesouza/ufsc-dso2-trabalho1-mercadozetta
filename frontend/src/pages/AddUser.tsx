@@ -4,6 +4,7 @@ import { isAxiosError } from 'axios';
 
 import Header from './header';
 import api from '../services/api';
+import { apiRoutes, appRoutes } from '../routes';
 
 export default function AddUser() {
     const navigate = useNavigate();
@@ -20,11 +21,11 @@ export default function AddUser() {
         try {
             setError('');
 
-            await api.post('/add-user', {
+            await api.post(apiRoutes.users, {
                 username, telephone, email, password
             });
 
-            navigate('/');
+            navigate(appRoutes.home);
         } catch (err) {
             if (isAxiosError<{ error?: string }>(err) && err.response?.data.error) {
                 setError(err.response.data.error);

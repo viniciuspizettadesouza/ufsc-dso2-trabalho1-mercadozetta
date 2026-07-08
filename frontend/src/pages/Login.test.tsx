@@ -60,7 +60,7 @@ describe('Login', () => {
         await userEvent.click(screen.getByRole('button', { name: 'Login' }));
 
         await waitFor(() => {
-            expect(api.post).toHaveBeenCalledWith('/login', {
+            expect(api.post).toHaveBeenCalledWith('/auth/login', {
                 email: 'seller@example.com',
                 password: 'secret123',
             });
@@ -70,7 +70,7 @@ describe('Login', () => {
             _id: 'user-1',
             email: 'seller@example.com',
         }));
-        expect(navigate).toHaveBeenCalledWith('/user/user-1');
+        expect(navigate).toHaveBeenCalledWith('/sellers/user-1');
     });
 
     it('shows an error when login fails', async () => {

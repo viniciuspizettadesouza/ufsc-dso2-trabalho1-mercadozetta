@@ -58,10 +58,10 @@ npm audit
 | Route | Description |
 | --- | --- |
 | `/` | Home page with product search and product list |
-| `/user/:id` | Seller page with products for that seller |
+| `/sellers/:sellerId` | Seller page with products for that seller |
 | `/login` | Login form |
-| `/add-user` | User registration form |
-| `/add-product` | Authenticated product creation form |
+| `/register` | User registration form |
+| `/products/new` | Authenticated product creation form |
 
 ## Authentication Flow
 

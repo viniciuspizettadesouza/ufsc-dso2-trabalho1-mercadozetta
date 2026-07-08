@@ -57,13 +57,10 @@ npm audit
 | --- | --- | --- | --- |
 | `GET` | `/` | No | API welcome response |
 | `GET` | `/products` | No | List all products |
-| `GET` | `/users/:userID/products` | No | List products for one seller |
-| `GET` | `/user/:userID/products` | No | Alias for seller product listing |
-| `POST` | `/add-user` | No | Create a user |
-| `POST` | `/login` | No | Authenticate and return `{ user, token }` |
+| `GET` | `/users/:userId/products` | No | List products for one seller |
+| `POST` | `/users` | No | Create a user |
+| `POST` | `/auth/login` | No | Authenticate and return `{ user, token }` |
 | `POST` | `/products` | Yes | Create a product for the authenticated seller |
-| `POST` | `/add-product` | Yes | Legacy alias for product creation |
-| `POST` | `/user/:userID/addproduct` | Yes | Legacy alias for product creation |
 
 Authenticated routes expect:
 

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 
 import Header from './header';
 import api from '../services/api';
+import { apiRoutes, appRoutes } from '../routes';
 
 export default function Login() {
     const navigate = useNavigate();
@@ -17,7 +18,7 @@ export default function Login() {
         try {
             setError('');
 
-            const response = await api.post('/login', {
+            const response = await api.post(apiRoutes.login, {
                 email,
                 password,
             });
@@ -25,7 +26,7 @@ export default function Login() {
             localStorage.setItem('token', response.data.token);
             localStorage.setItem('user', JSON.stringify(response.data.user));
 
-            navigate(`/user/${response.data.user._id}`);
+            navigate(appRoutes.sellerProducts(response.data.user._id));
         } catch {
             setError('E-mail ou senha inválidos');
         }

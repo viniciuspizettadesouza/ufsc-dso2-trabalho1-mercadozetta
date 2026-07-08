@@ -187,12 +187,12 @@ Open that URL in your browser.
 With the backend, frontend, and MongoDB running:
 
 1. Open `http://localhost:5173`.
-2. Go to `/add-user`.
+2. Go to `/register`.
 3. Create a user with email and password.
 4. Go to `/login`.
 5. Log in with the user you created.
-6. Confirm that you are redirected to a page like `/user/:id`.
-7. Go to `/add-product`.
+6. Confirm that you are redirected to a page like `/sellers/:sellerId`.
+7. Go to `/products/new`.
 8. Create a product.
 9. Return to the logged-in user's page.
 10. Confirm that the product appears in that seller's product list.
@@ -229,10 +229,10 @@ npm audit
 ## 11. Main Application Routes
 
 - `/` - home page and product search
-- `/add-user` - user registration
+- `/register` - user registration
 - `/login` - login
-- `/add-product` - authenticated product creation
-- `/user/:id` - seller page with that seller's products
+- `/products/new` - authenticated product creation
+- `/sellers/:sellerId` - seller page with that seller's products
 
 ## 12. Important Notes
 
