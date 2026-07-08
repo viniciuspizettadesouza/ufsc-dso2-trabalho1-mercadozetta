@@ -4,6 +4,10 @@ function isValidEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function isStrongPassword(password) {
+    return password.length >= 8;
+}
+
 function validateCreateUserPayload(body = {}) {
     const email = String(body.email || '').trim().toLowerCase();
     const password = String(body.password || '');
@@ -15,6 +19,9 @@ function validateCreateUserPayload(body = {}) {
 
     if (!isValidEmail(email))
         throw new AppError(400, 'INVALID_EMAIL', 'Invalid email');
+
+    if (!isStrongPassword(password))
+        throw new AppError(400, 'WEAK_PASSWORD', 'Password must be at least 8 characters long');
 
     return {
         email,

@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { getJwtSecret } = require('../config/security');
 
 module.exports = function authMiddleware(req, res, next) {
     const authHeader = req.headers.authorization;
@@ -14,7 +15,7 @@ module.exports = function authMiddleware(req, res, next) {
     try {
         const decoded = jwt.verify(
             token,
-            process.env.JWT_SECRET || 'mercadozetta-dev-secret'
+            getJwtSecret()
         );
 
         if (decoded.tenantId && req.tenant && decoded.tenantId !== req.tenant.id)

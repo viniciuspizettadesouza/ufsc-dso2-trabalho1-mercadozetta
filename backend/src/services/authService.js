@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { getJwtSecret } = require('../config/security');
 const AppError = require('../errors/AppError');
 const User = require('../model/user');
 const { defaultTenantId } = require('../tenants');
@@ -19,7 +20,7 @@ async function authenticate(body, tenantId = defaultTenantId) {
 
     const token = jwt.sign(
         { id: user._id, tenantId },
-        process.env.JWT_SECRET || 'mercadozetta-dev-secret',
+        getJwtSecret(),
         { expiresIn: '1d' }
     );
 

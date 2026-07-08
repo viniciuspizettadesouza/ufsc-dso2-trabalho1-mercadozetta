@@ -42,6 +42,8 @@ describe('app and route composition', () => {
 
     it('exposes canonical public and authenticated routes', () => {
         expect(findRoute('/', 'get')).toBeDefined();
+        expect(findRoute('/health', 'get')).toBeDefined();
+        expect(findRoute('/ready', 'get')).toBeDefined();
         expect(findRoute('/products', 'get')).toBeDefined();
         expect(findRoute('/products/:productId', 'get')).toBeDefined();
         expect(findRoute('/users/:userId', 'get')).toBeDefined();

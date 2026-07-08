@@ -8,7 +8,11 @@ const authControllerPath = require.resolve('../src/controller/authController');
 const userControllerPath = require.resolve('../src/controller/userController');
 const productControllerPath = require.resolve('../src/controller/productController');
 const authMiddlewarePath = require.resolve('../src/middleware/auth');
+const errorHandlerPath = require.resolve('../src/middleware/errorHandler');
+const rateLimitPath = require.resolve('../src/middleware/rateLimit');
+const requestContextPath = require.resolve('../src/middleware/requestContext');
 const tenantMiddlewarePath = require.resolve('../src/middleware/tenant');
+const securityConfigPath = require.resolve('../src/config/security');
 const authServicePath = require.resolve('../src/services/authService');
 const userServicePath = require.resolve('../src/services/userService');
 const productServicePath = require.resolve('../src/services/productService');
@@ -29,7 +33,11 @@ function resetModules() {
         userControllerPath,
         productControllerPath,
         authMiddlewarePath,
+        errorHandlerPath,
+        rateLimitPath,
+        requestContextPath,
         tenantMiddlewarePath,
+        securityConfigPath,
         authServicePath,
         userServicePath,
         productServicePath,
@@ -253,6 +261,22 @@ describe('auth, user, and product routes', () => {
 
         expect(response.status).toBe(400);
         expect(response.body).toEqual({ error: 'Invalid email' });
+    });
+
+    it('rejects user creation with weak passwords', async () => {
+        const app = loadApp();
+
+        const response = await request(app)
+            .post('/users')
+            .send({
+                email: 'buyer@example.com',
+                password: 'short',
+                username: 'Buyer',
+                telephone: '999',
+            });
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({ error: 'Password must be at least 8 characters long' });
     });
 
     it('rejects user creation when email already exists', async () => {

@@ -10,7 +10,35 @@ if (!mongoUri) {
     process.exit(1);
 }
 
-mongoose.connect(mongoUri).then(() => console.log('MongoDB connected'))
-.catch((err) => console.log(err));
+let server;
 
-app.listen(port, () => console.log(`Server running on port ${port}`));
+async function shutdown(signal) {
+    console.log(`${signal} received, shutting down gracefully`);
+
+    if (server)
+        await new Promise((resolve, reject) => {
+            server.close((err) => {
+                if (err)
+                    return reject(err);
+
+                console.log('HTTP server closed');
+                return resolve();
+            });
+        });
+
+    await mongoose.connection.close();
+    process.exit(0);
+}
+
+mongoose.connect(mongoUri)
+    .then(() => {
+        console.log('MongoDB connected');
+        server = app.listen(port, () => console.log(`Server running on port ${port}`));
+    })
+    .catch((err) => {
+        console.error('MongoDB connection failed', err);
+        process.exit(1);
+    });
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));

@@ -62,6 +62,20 @@ Implementation notes:
 - Add dependency vulnerability checks in CI.
 - Add `.env.example` updates whenever config changes.
 
+Completed in current Phase 6 branch:
+
+- JWT signing/verifying now uses a central secret resolver and fails fast outside
+  development/test when `JWT_SECRET` is missing.
+- User registration rejects passwords shorter than 8 characters.
+- Login and account creation routes have configurable in-memory rate limits.
+- Express uses Helmet security headers and environment-configured CORS origins.
+- Requests receive/preserve an `X-Request-Id`, and non-test responses are logged
+  as structured JSON with method, path, status code, and duration.
+- `GET /health` and `GET /ready` endpoints were added.
+- The server closes the HTTP server and MongoDB connection on `SIGINT`/`SIGTERM`.
+- Malformed JSON requests now receive a consistent API error response.
+- Backend docs and `.env.example` include the new CORS and rate-limit settings.
+
 ## Phase 7 - Architecture and DX Modernization
 
 - Introduce feature-based folder structure.

@@ -115,10 +115,17 @@ To use the local MongoDB Docker container, set `backend/.env` to:
 MONGODB_URI=mongodb://localhost:27017/mercadozetta
 JWT_SECRET=local_dev_secret_please_change_later
 PORT=3333
+CORS_ORIGIN=http://localhost:5173
+RATE_LIMIT_AUTH_WINDOW_MS=900000
+RATE_LIMIT_AUTH_MAX=5
+RATE_LIMIT_REGISTER_WINDOW_MS=900000
+RATE_LIMIT_REGISTER_MAX=10
 ```
 
 `JWT_SECRET` is used to sign JWT tokens. For local development, it can be any
 long string. In production, use a strong secret and never commit it to Git.
+`CORS_ORIGIN` accepts one or more comma-separated frontend origins. The rate
+limit variables control the login and account creation windows in milliseconds.
 
 If you use MongoDB Atlas instead of local MongoDB, replace `MONGODB_URI` with
 your Atlas connection string:
@@ -127,6 +134,11 @@ your Atlas connection string:
 MONGODB_URI=mongodb+srv://user:password@cluster.example.mongodb.net/mercadozetta?retryWrites=true&w=majority
 JWT_SECRET=replace_with_a_long_random_secret
 PORT=3333
+CORS_ORIGIN=https://your-frontend.example.com
+RATE_LIMIT_AUTH_WINDOW_MS=900000
+RATE_LIMIT_AUTH_MAX=5
+RATE_LIMIT_REGISTER_WINDOW_MS=900000
+RATE_LIMIT_REGISTER_MAX=10
 ```
 
 ### Frontend
@@ -250,6 +262,9 @@ npm audit
 
 - `.env` files are local and should not be committed.
 - The backend needs `MONGODB_URI` to start correctly.
+- The backend requires `JWT_SECRET` outside development and test environments.
+- The backend exposes `GET /health` and `GET /ready` for uptime and dependency
+  readiness checks.
 - Product creation requires login.
 - The frontend sends the JWT token stored in `localStorage` on authenticated
   requests.

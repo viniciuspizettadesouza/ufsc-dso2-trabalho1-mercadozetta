@@ -26,9 +26,17 @@ Required values:
 MONGODB_URI=mongodb+srv://user:password@cluster.example.mongodb.net/mercadozetta?retryWrites=true&w=majority
 JWT_SECRET=replace_with_a_long_random_secret
 PORT=3333
+CORS_ORIGIN=http://localhost:5173
+RATE_LIMIT_AUTH_WINDOW_MS=900000
+RATE_LIMIT_AUTH_MAX=5
+RATE_LIMIT_REGISTER_WINDOW_MS=900000
+RATE_LIMIT_REGISTER_MAX=10
 ```
 
-`MONGODB_URI` is required when starting the server. `PORT` defaults to `3333` when omitted. `JWT_SECRET` should always be set outside local development.
+`MONGODB_URI` is required when starting the server. `PORT` defaults to `3333`
+when omitted. `JWT_SECRET` is required outside development and test.
+`CORS_ORIGIN` accepts one or more comma-separated frontend origins. The rate
+limit variables control login and account creation attempts.
 
 ## Install
 
@@ -56,6 +64,8 @@ npm audit
 | Method | Route | Auth | Description |
 | --- | --- | --- | --- |
 | `GET` | `/` | No | API welcome response |
+| `GET` | `/health` | No | Liveness check |
+| `GET` | `/ready` | No | MongoDB readiness check |
 | `GET` | `/products` | No | List all products |
 | `GET` | `/users/:userId/products` | No | List products for one seller |
 | `POST` | `/users` | No | Create a user |
