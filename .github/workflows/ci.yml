@@ -46,6 +46,9 @@ jobs:
       - name: Audit frontend dependencies
         run: npm --prefix frontend audit --audit-level=high
 
+      - name: Typecheck backend
+        run: npm run typecheck
+
       - name: Test backend
         run: npm run test:backend
 
