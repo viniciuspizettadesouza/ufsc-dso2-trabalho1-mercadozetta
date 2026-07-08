@@ -96,7 +96,7 @@ Create product:
 {
   "name": "Coffee",
   "description": "Fresh beans",
-  "quant": "10",
+  "inventory": 10,
   "image": "https://example.com/coffee.jpg"
 }
 ```

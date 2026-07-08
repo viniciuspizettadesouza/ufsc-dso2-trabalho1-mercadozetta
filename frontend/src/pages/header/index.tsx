@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router';
 
-import { useBrand } from '../../brands/BrandProvider';
+import { useBrand } from '../../brands/brandContext';
 import { appRoutes } from '../../routes';
 
 type StoredUser = {

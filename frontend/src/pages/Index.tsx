@@ -3,7 +3,7 @@ import { FormEvent } from 'react';
 
 import Header from './header/index';
 import Product from './Products';
-import { useBrand } from '../brands/BrandProvider';
+import { useBrand } from '../brands/brandContext';
 import { appRoutes } from '../routes';
 
 export default function Index() {

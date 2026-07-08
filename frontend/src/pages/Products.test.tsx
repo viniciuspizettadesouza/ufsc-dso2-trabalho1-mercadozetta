@@ -18,12 +18,14 @@ const products = [
         name: 'Coffee',
         description: 'Fresh beans',
         image: 'coffee.jpg',
+        inventory: 3,
     },
     {
         _id: 'product-2',
         name: 'Tea',
         description: 'Green leaves',
         image: 'tea.jpg',
+        inventory: 0,
     },
 ];
 
@@ -54,6 +56,8 @@ describe('Products', () => {
         expect(screen.getByRole('status')).toHaveTextContent('Loading products...');
         expect(await screen.findByText('Coffee')).toBeInTheDocument();
         expect(screen.getByText('Tea')).toBeInTheDocument();
+        expect(screen.getByText('Available: 3')).toBeInTheDocument();
+        expect(screen.getByText('Sold out')).toBeInTheDocument();
         expect(api.get).toHaveBeenCalledWith('/products');
     });
 

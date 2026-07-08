@@ -16,9 +16,10 @@ const ProductSchema = new Schema({
     description: {
         type: String,
     },
-    quant: {
-        type: String,
+    inventory: {
+        type: Number,
         required: true,
+        min: 0,
     },
     image: {
         type: String,
