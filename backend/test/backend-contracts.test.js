@@ -43,6 +43,8 @@ describe('app and route composition', () => {
     it('exposes canonical public and authenticated routes', () => {
         expect(findRoute('/', 'get')).toBeDefined();
         expect(findRoute('/products', 'get')).toBeDefined();
+        expect(findRoute('/products/:productId', 'get')).toBeDefined();
+        expect(findRoute('/users/:userId', 'get')).toBeDefined();
         expect(findRoute('/users/:userId/products', 'get')).toBeDefined();
         expect(findRoute('/users', 'post')).toBeDefined();
         expect(findRoute('/auth/login', 'post')).toBeDefined();
@@ -223,9 +225,24 @@ describe('model contracts', () => {
         });
     });
 
+    it('restricts products to known statuses', () => {
+        expect(Product.schema.path('status').enumValues).toEqual([
+            'draft',
+            'active',
+            'paused',
+            'sold_out',
+            'archived',
+        ]);
+        expect(Product.schema.path('status').defaultValue).toBe('active');
+    });
+
     it('keeps product tenant indexes and timestamps', () => {
         expect(Product.schema.indexes()).toContainEqual([
             { tenantId: 1, seller: 1 },
+            expect.any(Object),
+        ]);
+        expect(Product.schema.indexes()).toContainEqual([
+            { tenantId: 1, category: 1, subcategory: 1 },
             expect.any(Object),
         ]);
         expect(Product.schema.indexes()).toContainEqual([

@@ -45,7 +45,8 @@ function resetModules() {
             findOne(query) {
                 const user = users.find(item => (
                     item.tenantId === query.tenantId
-                    && item.email === query.email
+                    && (!query.email || item.email === query.email)
+                    && (!query._id || item._id === query._id)
                 ));
                 const foundUser = user ? { ...user } : null;
 
@@ -80,6 +81,15 @@ function resetModules() {
                     (!query.tenantId || product.tenantId === query.tenantId)
                     && (!query.seller || product.seller === query.seller)
                 ));
+            },
+            async findOne(query = {}) {
+                if (findProductsError)
+                    throw findProductsError;
+
+                return products.find(product => (
+                    (!query.tenantId || product.tenantId === query.tenantId)
+                    && (!query._id || product._id === query._id)
+                )) || null;
             },
             async create(product) {
                 if (createProductError)
@@ -356,6 +366,8 @@ describe('auth, user, and product routes', () => {
             .send({
                 name: 'Coffee',
                 description: 'Fresh beans',
+                category: 'drinks',
+                subcategory: 'coffee',
                 inventory: 3,
                 image: 'coffee.jpg',
             });
@@ -364,7 +376,28 @@ describe('auth, user, and product routes', () => {
         expect(response.body.newProduct.seller).toBe('user-1');
         expect(response.body.newProduct.tenantId).toBe('mercadozetta');
         expect(response.body.newProduct.inventory).toBe(3);
+        expect(response.body.newProduct.status).toBe('active');
+        expect(response.body.newProduct.category).toBe('drinks');
+        expect(response.body.newProduct.subcategory).toBe('coffee');
         expect(response.body.newProduct.name).toBe('Coffee');
+    });
+
+    it('creates products with an explicit status', async () => {
+        const app = loadApp();
+        const token = jwt.sign({ id: 'user-1' }, process.env.JWT_SECRET);
+
+        const response = await request(app)
+            .post('/products')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+                name: 'Coffee',
+                inventory: 3,
+                image: 'coffee.jpg',
+                status: 'draft',
+            });
+
+        expect(response.status).toBe(201);
+        expect(response.body.newProduct.status).toBe('draft');
     });
 
     it('normalizes legacy quant payloads into numeric inventory', async () => {
@@ -435,6 +468,24 @@ describe('auth, user, and product routes', () => {
         expect(response.body).toEqual({ error: 'Quantity must be a non-negative integer' });
     });
 
+    it('rejects product creation with invalid status', async () => {
+        const app = loadApp();
+        const token = jwt.sign({ id: 'user-1' }, process.env.JWT_SECRET);
+
+        const response = await request(app)
+            .post('/products')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+                name: 'Coffee',
+                inventory: 3,
+                image: 'coffee.jpg',
+                status: 'deleted',
+            });
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({ error: 'Product status must be draft, active, paused, sold_out, or archived' });
+    });
+
     it('returns a friendly error when product creation fails', async () => {
         createProductError = new Error('database offline');
         const app = loadApp();
@@ -468,6 +519,208 @@ describe('auth, user, and product routes', () => {
 
         expect(response.status).toBe(200);
         expect(response.body).toEqual(products);
+    });
+
+    it('filters and sorts products from query params', async () => {
+        products = [
+            {
+                _id: 'product-1',
+                tenantId: 'mercadozetta',
+                name: 'Coffee',
+                description: 'Fresh beans',
+                category: 'drinks',
+                inventory: 3,
+                image: 'coffee.jpg',
+                seller: 'user-1',
+                createdAt: '2024-01-01T00:00:00.000Z',
+            },
+            {
+                _id: 'product-2',
+                tenantId: 'mercadozetta',
+                name: 'Tea',
+                description: 'Green leaves',
+                category: 'drinks',
+                inventory: 0,
+                image: 'tea.jpg',
+                seller: 'user-1',
+                createdAt: '2024-01-02T00:00:00.000Z',
+            },
+        ];
+        const app = loadApp();
+
+        const response = await request(app)
+            .get('/products')
+            .query({ q: 'tea', category: 'drinks', availability: 'sold_out', sort: 'name_asc' });
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual([products[1]]);
+    });
+
+    it('supports alternative filters and sort modes', async () => {
+        products = [
+            {
+                _id: 'product-1',
+                tenantId: 'mercadozetta',
+                name: 'Coffee',
+                description: 'Fresh beans',
+                category: 'drinks',
+                subcategory: 'beans',
+                status: 'active',
+                inventory: 3,
+                image: 'coffee.jpg',
+                seller: 'user-1',
+                createdAt: '2024-01-01T00:00:00.000Z',
+            },
+            {
+                _id: 'product-2',
+                tenantId: 'mercadozetta',
+                name: 'Notebook',
+                description: 'Paper',
+                category: 'school',
+                subcategory: 'paper',
+                status: 'paused',
+                inventory: 8,
+                image: 'notebook.jpg',
+                seller: 'user-2',
+                createdAt: '2024-01-02T00:00:00.000Z',
+            },
+        ];
+        const app = loadApp();
+
+        const inStockResponse = await request(app)
+            .get('/products')
+            .query({ availability: 'in_stock', seller: 'user-1', status: 'active', subcategory: 'beans', sort: 'created_asc' });
+        const inventoryResponse = await request(app)
+            .get('/products')
+            .query({ availability: 'in_stock', sort: 'inventory_desc' });
+
+        expect(inStockResponse.status).toBe(200);
+        expect(inStockResponse.body).toEqual([products[0]]);
+        expect(inventoryResponse.status).toBe(200);
+        expect(inventoryResponse.body.map(product => product._id)).toEqual(['product-2', 'product-1']);
+    });
+
+    it('supports search aliases and missing optional product fields', async () => {
+        products = [
+            {
+                _id: 'product-1',
+                tenantId: 'mercadozetta',
+                name: 'Coffee',
+                inventory: 0,
+                image: 'coffee.jpg',
+                createdAt: '2024-01-02T00:00:00.000Z',
+            },
+            {
+                _id: 'product-2',
+                tenantId: 'mercadozetta',
+                name: 'Notebook',
+                description: 'Paper',
+                inventory: 1,
+                image: 'notebook.jpg',
+                createdAt: '2024-01-01T00:00:00.000Z',
+            },
+        ];
+        const app = loadApp();
+
+        const response = await request(app)
+            .get('/products')
+            .query({ search: 'paper', sort: 'created_asc' });
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual([products[1]]);
+    });
+
+    it('loads product details with seller information', async () => {
+        products = [{
+            _id: 'product-1',
+            tenantId: 'mercadozetta',
+            name: 'Coffee',
+            description: 'Fresh beans',
+            category: 'drinks',
+            inventory: 3,
+            image: 'coffee.jpg',
+            seller: 'user-1',
+        }];
+        const app = loadApp();
+
+        const response = await request(app).get('/products/product-1');
+
+        expect(response.status).toBe(200);
+        expect(response.body.name).toBe('Coffee');
+        expect(response.body.sellerProfile).toEqual(expect.objectContaining({
+            _id: 'user-1',
+            email: 'seller@example.com',
+            storeName: 'seller store',
+        }));
+    });
+
+    it('loads product details when seller enrichment is unavailable', async () => {
+        products = [{
+            _id: 'product-1',
+            tenantId: 'mercadozetta',
+            name: 'Coffee',
+            inventory: 3,
+            image: 'coffee.jpg',
+            seller: 'missing-user',
+        }];
+        const app = loadApp();
+
+        const response = await request(app).get('/products/product-1');
+
+        expect(response.status).toBe(200);
+        expect(response.body.name).toBe('Coffee');
+        expect(response.body.sellerProfile).toBeUndefined();
+    });
+
+    it('returns not found for missing product details', async () => {
+        const app = loadApp();
+
+        const response = await request(app).get('/products/missing-product');
+
+        expect(response.status).toBe(404);
+        expect(response.body).toEqual({ error: 'Product not found' });
+    });
+
+    it('returns a friendly error when product detail loading fails', async () => {
+        findProductsError = new Error('database offline');
+        const app = loadApp();
+
+        const response = await request(app).get('/products/product-1');
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({ error: 'Failed to load product' });
+    });
+
+    it('loads public seller profiles', async () => {
+        const app = loadApp();
+
+        const response = await request(app).get('/users/user-1');
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual(expect.objectContaining({
+            _id: 'user-1',
+            username: 'seller',
+            telephone: '123',
+        }));
+    });
+
+    it('uses fallback store branding for unnamed sellers', async () => {
+        users[0].username = '';
+        const app = loadApp();
+
+        const response = await request(app).get('/users/user-1');
+
+        expect(response.status).toBe(200);
+        expect(response.body.storeName).toBe('Seller store');
+    });
+
+    it('returns not found for missing seller profiles', async () => {
+        const app = loadApp();
+
+        const response = await request(app).get('/users/missing-user');
+
+        expect(response.status).toBe(404);
+        expect(response.body).toEqual({ error: 'Seller not found' });
     });
 
     it('lists only products for the active tenant', async () => {

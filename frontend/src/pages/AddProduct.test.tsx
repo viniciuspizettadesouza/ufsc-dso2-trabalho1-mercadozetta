@@ -75,11 +75,59 @@ describe('AddProduct', () => {
             expect(api.post).toHaveBeenCalledWith('/products', {
                 name: 'Coffee',
                 description: 'Fresh beans',
+                category: 'general',
+                subcategory: '',
                 inventory: 3,
                 image: 'coffee.jpg',
+                status: 'active',
             });
         });
         expect(navigate).toHaveBeenCalledWith('/sellers/user-1');
+    });
+
+    it('submits the selected product status', async () => {
+        localStorage.setItem('token', 'token-123');
+        localStorage.setItem('user', JSON.stringify({ _id: 'user-1' }));
+        vi.mocked(api.post).mockResolvedValueOnce({ data: { newProduct: { _id: 'product-1' } } });
+
+        renderAddProduct();
+
+        await fillProductForm();
+        await userEvent.selectOptions(screen.getByLabelText('Product status'), 'draft');
+        await userEvent.click(screen.getByRole('button', { name: 'Create listing' }));
+
+        await waitFor(() => {
+            expect(api.post).toHaveBeenCalledWith('/products', expect.objectContaining({
+                status: 'draft',
+            }));
+        });
+    });
+
+    it('shows a generic error when product creation fails without an API message', async () => {
+        localStorage.setItem('token', 'token-123');
+        localStorage.setItem('user', JSON.stringify({ _id: 'user-1' }));
+        vi.mocked(api.post).mockRejectedValueOnce(new Error('network error'));
+
+        renderAddProduct();
+
+        await fillProductForm();
+        await userEvent.click(screen.getByRole('button', { name: 'Create listing' }));
+
+        expect(await screen.findByRole('alert')).toHaveTextContent('Unable to create the listing. Try again.');
+        expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it('handles corrupted stored users as logged out', async () => {
+        localStorage.setItem('token', 'token-123');
+        localStorage.setItem('user', '{');
+
+        renderAddProduct();
+
+        await fillProductForm();
+        await userEvent.click(screen.getByRole('button', { name: 'Create listing' }));
+
+        expect(await screen.findByRole('alert')).toHaveTextContent('Sign in to create a listing.');
+        expect(localStorage.getItem('user')).toBeNull();
     });
 
     it('shows the API error when product creation fails', async () => {

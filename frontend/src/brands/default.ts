@@ -31,6 +31,17 @@ export const defaultBrand: BrandConfig = {
             descriptionLabel: 'Product description:',
             inventoryLabel: 'Available:',
             soldOutLabel: 'Sold out',
+            categoryLabel: 'Category:',
+            subcategoryLabel: 'Subcategory:',
+            sellerLabel: 'Seller:',
+            statusLabel: 'Status:',
+            statusLabels: {
+                draft: 'Draft',
+                active: 'Active',
+                paused: 'Paused',
+                sold_out: 'Sold out',
+                archived: 'Archived',
+            },
         },
         home: {
             createAccountAction: 'Create account',
@@ -40,6 +51,10 @@ export const defaultBrand: BrandConfig = {
             createAccountAction: 'Create account',
             loginAction: 'Login',
             createProductAction: 'Create listing',
+            productStatusLabel: 'Product status',
+            categoryLabel: 'Category',
+            subcategoryLabel: 'Subcategory',
+            uploadImageLabel: 'Upload image',
         },
         validation: {
             loginRequiredForProduct: 'Sign in to create a listing.',

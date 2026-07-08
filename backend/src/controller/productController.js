@@ -4,10 +4,23 @@ const ProductService = require('../services/productService');
 module.exports = {
     async index(req, res) {
         try {
-            const products = await ProductService.listProducts(req.tenant.id);
+            const products = await ProductService.listProducts(req.tenant.id, req.query);
             return res.status(200).send(products);
         } catch (err) {
             return sendError(res, err, 'Failed to list products');
+        }
+    },
+
+    async detail(req, res) {
+        try {
+            const product = await ProductService.getProductById(req.params.productId, req.tenant.id);
+
+            if (!product)
+                return res.status(404).send({ error: 'Product not found' });
+
+            return res.status(200).send(product);
+        } catch (err) {
+            return sendError(res, err, 'Failed to load product');
         }
     },
 
@@ -24,7 +37,7 @@ module.exports = {
         const userId = req.params.userId || req.params.userID;
 
         try {
-            const products = await ProductService.listProductsBySeller(userId, req.tenant.id);
+            const products = await ProductService.listProductsBySeller(userId, req.tenant.id, req.query);
             return res.status(200).send(products);
         } catch (err) {
             return sendError(res, err, 'Failed to list seller products');

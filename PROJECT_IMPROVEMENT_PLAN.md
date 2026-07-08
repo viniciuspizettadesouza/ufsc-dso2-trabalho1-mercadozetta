@@ -17,30 +17,31 @@ deployment environments without duplicating frontend or backend logic.
 
 ## Phase 5 - Product and Domain Improvements
 
-Status: in progress.
+Status: completed for the current course/demo scope.
 
-Modern marketplace features to consider:
+Completed scope:
 
-- [ ] Categories and subcategories.
-- [ ] Product detail page with seller information.
-- [x] Product availability and numeric inventory instead of string `quant`.
-  - Implemented `inventory` as a numeric product field.
-  - Kept `quant` as a legacy create-payload alias for compatibility.
-  - Updated product creation, catalog display, tests, and backend docs.
-- [ ] Product status: draft, active, paused, sold out, archived.
-- [ ] Image upload flow instead of raw image URL.
-- [ ] Search with query params and backend filtering.
-- [ ] Sort and filter by category, seller, availability, and creation date.
-- [ ] Seller profile page with contact options and public store branding.
-- [ ] Favorites/watchlist for buyers.
-- [ ] Cart and checkout simulation for course/demo scope.
-- [ ] Orders and order history.
-- [ ] Product reviews and seller ratings.
-- [ ] Admin dashboard for products, users, tenants, and moderation.
-- [ ] Audit log for important actions.
-- [ ] Notifications for product creation, sale, and account events.
-- [ ] Internationalization with `pt-BR` and `en-US` as first locales.
-- [ ] Accessibility pass for keyboard navigation, contrast, labels, and focus.
+- Product domain: inventory, status, categories, subcategories, seller
+  ownership, search, sort, and filter support.
+- Marketplace browsing: catalog filters, product detail pages, seller profile
+  pages, seller contact information, and public store branding.
+- Demo commerce flows: watchlist, cart, checkout simulation, order history,
+  reviews, seller ratings, notifications, audit-style activity, and admin
+  dashboard.
+- White-label readiness: new user-visible copy follows the existing brand copy
+  structure where practical.
+- Accessibility pass: new controls use labels/ARIA names and native
+  keyboard-friendly inputs, buttons, links, and selects.
+
+Implementation notes:
+
+- Backend persistence covers product status, inventory, categories,
+  subcategories, seller-scoped listings, product detail lookup, seller profile
+  lookup, and query-param filtering.
+- Course/demo-only buyer workflows use `localStorage` to avoid introducing a
+  larger order/payment domain before the security and architecture phases.
+- Existing product image URL payload compatibility was preserved while the
+  frontend now presents the field as an image upload/reference flow.
 
 ## Phase 6 - Security and Reliability
 
@@ -155,8 +156,5 @@ frontend/src/
 
 ## Near-Term Next Steps
 
-1. Add product status: draft, active, paused, sold out, archived.
-2. Add search with query params and backend filtering.
-3. Add sort and filters by category, seller, availability, and creation date.
-4. Add product detail pages with seller information.
-5. Add categories and subcategories.
+1. Start Phase 6 security and reliability hardening.
+2. Revisit Phase 5 demo-local flows for persistence if the course scope grows.

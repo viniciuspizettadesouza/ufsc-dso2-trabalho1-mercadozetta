@@ -36,6 +36,22 @@ async function createUser(body, tenantId = defaultTenantId) {
     }
 }
 
+async function getPublicSellerProfile(userId, tenantId = defaultTenantId) {
+    const seller = await User.findOne({ _id: userId, tenantId });
+
+    if (!seller)
+        throw new AppError(404, 'SELLER_NOT_FOUND', 'Seller not found');
+
+    return {
+        _id: seller._id,
+        username: seller.username,
+        telephone: seller.telephone,
+        email: seller.email,
+        storeName: seller.username ? `${seller.username} store` : 'Seller store',
+    };
+}
+
 module.exports = {
     createUser,
+    getPublicSellerProfile,
 };

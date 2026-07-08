@@ -1,5 +1,6 @@
 const { Schema, model } = require('mongoose');
 const { defaultTenantId } = require('../tenants');
+const { productStatuses } = require('../productStatus');
 
 const ProductSchema = new Schema({
     tenantId: {
@@ -16,6 +17,18 @@ const ProductSchema = new Schema({
     description: {
         type: String,
     },
+    category: {
+        type: String,
+        trim: true,
+        lowercase: true,
+        default: 'general',
+    },
+    subcategory: {
+        type: String,
+        trim: true,
+        lowercase: true,
+        default: '',
+    },
     inventory: {
         type: Number,
         required: true,
@@ -23,6 +36,12 @@ const ProductSchema = new Schema({
     },
     image: {
         type: String,
+        required: true,
+    },
+    status: {
+        type: String,
+        enum: productStatuses,
+        default: 'active',
         required: true,
     },
     seller: {
@@ -35,6 +54,7 @@ const ProductSchema = new Schema({
 });
 
 ProductSchema.index({ tenantId: 1, seller: 1 });
+ProductSchema.index({ tenantId: 1, category: 1, subcategory: 1 });
 ProductSchema.index({ tenantId: 1, name: 'text', description: 'text' });
 
 module.exports = model('product', ProductSchema);
