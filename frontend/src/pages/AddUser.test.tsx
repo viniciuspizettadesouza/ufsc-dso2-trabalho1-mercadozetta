@@ -61,11 +61,11 @@ describe('AddUser', () => {
 
         renderAddUser();
 
-        await userEvent.type(screen.getByPlaceholderText('Nome'), 'Smoke User');
-        await userEvent.type(screen.getByPlaceholderText('Telefone'), '48999999999');
-        await userEvent.type(screen.getByPlaceholderText('E-mail'), 'smoke@example.com');
-        await userEvent.type(screen.getByPlaceholderText('Senha'), 'secret123');
-        await userEvent.click(screen.getByRole('button', { name: 'Criar conta' }));
+        await userEvent.type(screen.getByPlaceholderText('Name'), 'Smoke User');
+        await userEvent.type(screen.getByPlaceholderText('Phone'), '48999999999');
+        await userEvent.type(screen.getByPlaceholderText('Email'), 'smoke@example.com');
+        await userEvent.type(screen.getByPlaceholderText('Password'), 'secret123');
+        await userEvent.click(screen.getByRole('button', { name: 'Create account' }));
 
         expect(await screen.findByRole('alert')).toHaveTextContent('User already exists');
         expect(navigate).not.toHaveBeenCalled();

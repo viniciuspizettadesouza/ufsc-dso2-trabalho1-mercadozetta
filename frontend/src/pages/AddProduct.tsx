@@ -72,28 +72,28 @@ export default function AddProduct() {
                     <input
                         className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
                         type="text"
-                        placeholder="Nome do Produto"
+                        placeholder="Product name"
                         value={name}
                         onChange={e => setName(e.target.value)}
                     />
                     <input
                         className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
                         type="text"
-                        placeholder="Descrição do Produto"
+                        placeholder="Product description"
                         value={description}
                         onChange={e => setDescription(e.target.value)}
                     />
                     <input
                         className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
                         type="number"
-                        placeholder="Quantidade"
+                        placeholder="Quantity"
                         value={quant}
                         onChange={e => setQuant(e.target.value)}
                     />
                     <input
                         className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
                         type="text"
-                        placeholder="URL da Imagem"
+                        placeholder="Image URL"
                         value={image}
                         onChange={e => setImage(e.target.value)}
                     />

@@ -33,10 +33,10 @@ function renderAddProduct() {
 }
 
 async function fillProductForm() {
-    await userEvent.type(screen.getByPlaceholderText('Nome do Produto'), 'Coffee');
-    await userEvent.type(screen.getByPlaceholderText('Descrição do Produto'), 'Fresh beans');
-    await userEvent.type(screen.getByPlaceholderText('Quantidade'), '3');
-    await userEvent.type(screen.getByPlaceholderText('URL da Imagem'), 'coffee.jpg');
+    await userEvent.type(screen.getByPlaceholderText('Product name'), 'Coffee');
+    await userEvent.type(screen.getByPlaceholderText('Product description'), 'Fresh beans');
+    await userEvent.type(screen.getByPlaceholderText('Quantity'), '3');
+    await userEvent.type(screen.getByPlaceholderText('Image URL'), 'coffee.jpg');
 }
 
 describe('AddProduct', () => {
@@ -54,9 +54,9 @@ describe('AddProduct', () => {
         renderAddProduct();
 
         await fillProductForm();
-        await userEvent.click(screen.getByRole('button', { name: 'Inserir Anúncio' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Create listing' }));
 
-        expect(await screen.findByRole('alert')).toHaveTextContent('Faça login para inserir um anúncio.');
+        expect(await screen.findByRole('alert')).toHaveTextContent('Sign in to create a listing.');
         expect(api.post).not.toHaveBeenCalled();
         expect(navigate).not.toHaveBeenCalled();
     });
@@ -69,7 +69,7 @@ describe('AddProduct', () => {
         renderAddProduct();
 
         await fillProductForm();
-        await userEvent.click(screen.getByRole('button', { name: 'Inserir Anúncio' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Create listing' }));
 
         await waitFor(() => {
             expect(api.post).toHaveBeenCalledWith('/products', {
@@ -105,7 +105,7 @@ describe('AddProduct', () => {
         renderAddProduct();
 
         await fillProductForm();
-        await userEvent.click(screen.getByRole('button', { name: 'Inserir Anúncio' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Create listing' }));
 
         expect(await screen.findByRole('alert')).toHaveTextContent('Name, quantity and image are required');
         expect(navigate).not.toHaveBeenCalled();

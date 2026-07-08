@@ -1,4 +1,4 @@
-import logo from '../assets/logo.svg';
+import logo from '../assets/mercadozetta-logo.png';
 import type { BrandConfig } from './schema';
 
 export const defaultBrand: BrandConfig = {
@@ -14,7 +14,7 @@ export const defaultBrand: BrandConfig = {
     textColor: '#333333',
     currency: 'BRL',
     locale: 'pt-BR',
-    supportEmail: 'suporte@mercadozetta.example',
+    supportEmail: 'support@mercadozetta.example',
     legalName: 'MercadoZetta',
     copy: {
         header: {
@@ -23,27 +23,27 @@ export const defaultBrand: BrandConfig = {
             loggedUserFallback: 'Logged user',
         },
         catalog: {
-            searchAction: 'Buscar Produtos',
-            searchPlaceholder: 'Procure um produto',
-            loading: 'Carregando produtos...',
-            loadError: 'Não foi possível carregar os produtos.',
-            empty: 'Nenhum produto encontrado :(',
-            descriptionLabel: 'Descrição do produto:',
+            searchAction: 'Search products',
+            searchPlaceholder: 'Search for a product',
+            loading: 'Loading products...',
+            loadError: 'Unable to load products.',
+            empty: 'No products found :(',
+            descriptionLabel: 'Product description:',
         },
         home: {
-            createAccountAction: 'Criar conta',
-            createProductAction: 'Inserir Produtos',
+            createAccountAction: 'Create account',
+            createProductAction: 'Add products',
         },
         forms: {
-            createAccountAction: 'Criar conta',
+            createAccountAction: 'Create account',
             loginAction: 'Login',
-            createProductAction: 'Inserir Anúncio',
+            createProductAction: 'Create listing',
         },
         validation: {
-            loginRequiredForProduct: 'Faça login para inserir um anúncio.',
-            accountCreateError: 'Não foi possível criar a conta. Tente novamente.',
-            productCreateError: 'Não foi possível inserir o anúncio. Tente novamente.',
-            invalidCredentials: 'E-mail ou senha inválidos',
+            loginRequiredForProduct: 'Sign in to create a listing.',
+            accountCreateError: 'Unable to create the account. Try again.',
+            productCreateError: 'Unable to create the listing. Try again.',
+            invalidCredentials: 'Invalid email or password',
         },
     },
     features: {

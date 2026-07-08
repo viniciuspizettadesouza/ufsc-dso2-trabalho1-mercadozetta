@@ -14,7 +14,7 @@ export default function Index() {
         e.preventDefault();
         navigate(appRoutes.register);
     }
-    async function handleProdutos(e: FormEvent<HTMLFormElement>) {
+    async function handleProducts(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
         navigate(appRoutes.newProduct);
     }
@@ -34,7 +34,7 @@ export default function Index() {
 
             </div>
             <div className="flex h-full items-center justify-center">
-                <form className="flex w-full max-w-[300px] flex-col" onSubmit={handleProdutos}>
+                <form className="flex w-full max-w-[300px] flex-col" onSubmit={handleProducts}>
                     <button
                         className="mt-2.5 h-12 cursor-pointer rounded border-0 bg-[var(--brand-secondary)] text-base font-bold text-white"
                         type="submit"

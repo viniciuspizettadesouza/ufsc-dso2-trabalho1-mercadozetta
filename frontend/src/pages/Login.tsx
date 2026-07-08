@@ -42,14 +42,14 @@ export default function Login() {
                     <input
                         className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
                         type="email"
-                        placeholder="E-mail"
+                        placeholder="Email"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
                     />
                     <input
                         className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
                         type="password"
-                        placeholder="Senha"
+                        placeholder="Password"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                     />

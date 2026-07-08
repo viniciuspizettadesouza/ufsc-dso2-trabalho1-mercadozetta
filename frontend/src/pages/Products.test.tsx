@@ -51,7 +51,7 @@ describe('Products', () => {
 
         renderProducts();
 
-        expect(screen.getByRole('status')).toHaveTextContent('Carregando produtos...');
+        expect(screen.getByRole('status')).toHaveTextContent('Loading products...');
         expect(await screen.findByText('Coffee')).toBeInTheDocument();
         expect(screen.getByText('Tea')).toBeInTheDocument();
         expect(api.get).toHaveBeenCalledWith('/products');
@@ -71,7 +71,7 @@ describe('Products', () => {
 
         renderProducts();
 
-        expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível carregar os produtos.');
+        expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load products.');
     });
 
     it('filters products case-insensitively and handles no results', async () => {
@@ -80,16 +80,16 @@ describe('Products', () => {
         renderProducts();
 
         await screen.findByText('Coffee');
-        await userEvent.type(screen.getByPlaceholderText('Procure um produto'), 'TE');
+        await userEvent.type(screen.getByPlaceholderText('Search for a product'), 'TE');
 
         expect(screen.getByText('Tea')).toBeInTheDocument();
         expect(screen.queryByText('Coffee')).not.toBeInTheDocument();
 
-        await userEvent.clear(screen.getByPlaceholderText('Procure um produto'));
+        await userEvent.clear(screen.getByPlaceholderText('Search for a product'));
         expect(screen.getByText('Coffee')).toBeInTheDocument();
 
-        await userEvent.type(screen.getByPlaceholderText('Procure um produto'), 'zz');
-        expect(screen.getByText('Nenhum produto encontrado :(')).toBeInTheDocument();
+        await userEvent.type(screen.getByPlaceholderText('Search for a product'), 'zz');
+        expect(screen.getByText('No products found :(')).toBeInTheDocument();
     });
 
     it('renders image alt text from product name', async () => {
