@@ -223,6 +223,17 @@ describe('model contracts', () => {
         });
     });
 
+    it('restricts products to known statuses', () => {
+        expect(Product.schema.path('status').enumValues).toEqual([
+            'draft',
+            'active',
+            'paused',
+            'sold_out',
+            'archived',
+        ]);
+        expect(Product.schema.path('status').defaultValue).toBe('active');
+    });
+
     it('keeps product tenant indexes and timestamps', () => {
         expect(Product.schema.indexes()).toContainEqual([
             { tenantId: 1, seller: 1 },

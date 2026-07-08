@@ -19,6 +19,7 @@ const products = [
         description: 'Fresh beans',
         image: 'coffee.jpg',
         inventory: 3,
+        status: 'active' as const,
     },
     {
         _id: 'product-2',
@@ -26,6 +27,7 @@ const products = [
         description: 'Green leaves',
         image: 'tea.jpg',
         inventory: 0,
+        status: 'paused' as const,
     },
 ];
 
@@ -58,6 +60,8 @@ describe('Products', () => {
         expect(screen.getByText('Tea')).toBeInTheDocument();
         expect(screen.getByText('Available: 3')).toBeInTheDocument();
         expect(screen.getByText('Sold out')).toBeInTheDocument();
+        expect(screen.getByText('Status: Active')).toBeInTheDocument();
+        expect(screen.getByText('Status: Paused')).toBeInTheDocument();
         expect(api.get).toHaveBeenCalledWith('/products');
     });
 

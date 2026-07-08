@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const AppError = require('../errors/AppError');
+const { productStatuses } = require('../productStatus');
 
 function validateCreateProductPayload(body = {}) {
     const name = String(body.name || '').trim();
@@ -7,6 +8,9 @@ function validateCreateProductPayload(body = {}) {
     const rawInventory = body.inventory ?? body.quant;
     const image = String(body.image || '').trim();
     const inventory = Number(rawInventory);
+    const status = body.status === undefined || body.status === null || body.status === ''
+        ? 'active'
+        : String(body.status).trim();
 
     if (!name || rawInventory === undefined || rawInventory === null || rawInventory === '' || !image)
         throw new AppError(400, 'MISSING_PRODUCT_FIELDS', 'Name, quantity and image are required');
@@ -14,11 +18,15 @@ function validateCreateProductPayload(body = {}) {
     if (!Number.isInteger(inventory) || inventory < 0)
         throw new AppError(400, 'INVALID_PRODUCT_INVENTORY', 'Quantity must be a non-negative integer');
 
+    if (!productStatuses.includes(status))
+        throw new AppError(400, 'INVALID_PRODUCT_STATUS', 'Product status must be draft, active, paused, sold_out, or archived');
+
     return {
         name,
         description,
         inventory,
         image,
+        status,
     };
 }
 

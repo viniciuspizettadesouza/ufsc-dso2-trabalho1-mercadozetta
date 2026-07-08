@@ -27,7 +27,10 @@ Modern marketplace features to consider:
   - Implemented `inventory` as a numeric product field.
   - Kept `quant` as a legacy create-payload alias for compatibility.
   - Updated product creation, catalog display, tests, and backend docs.
-- [ ] Product status: draft, active, paused, sold out, archived.
+- [x] Product status: draft, active, paused, sold out, archived.
+  - Added a persisted product `status` enum with `active` as the default.
+  - Added create-payload validation, frontend status selection, catalog status
+    badges, and regression tests.
 - [ ] Image upload flow instead of raw image URL.
 - [ ] Search with query params and backend filtering.
 - [ ] Sort and filter by category, seller, availability, and creation date.

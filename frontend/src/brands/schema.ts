@@ -13,6 +13,14 @@ export type BrandCopy = {
         descriptionLabel: string;
         inventoryLabel: string;
         soldOutLabel: string;
+        statusLabel: string;
+        statusLabels: {
+            draft: string;
+            active: string;
+            paused: string;
+            sold_out: string;
+            archived: string;
+        };
     };
     home: {
         createAccountAction: string;
@@ -22,6 +30,7 @@ export type BrandCopy = {
         createAccountAction: string;
         loginAction: string;
         createProductAction: string;
+        productStatusLabel: string;
     };
     validation: {
         loginRequiredForProduct: string;

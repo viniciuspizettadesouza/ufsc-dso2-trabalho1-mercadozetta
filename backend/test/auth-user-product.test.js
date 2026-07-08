@@ -364,7 +364,26 @@ describe('auth, user, and product routes', () => {
         expect(response.body.newProduct.seller).toBe('user-1');
         expect(response.body.newProduct.tenantId).toBe('mercadozetta');
         expect(response.body.newProduct.inventory).toBe(3);
+        expect(response.body.newProduct.status).toBe('active');
         expect(response.body.newProduct.name).toBe('Coffee');
+    });
+
+    it('creates products with an explicit status', async () => {
+        const app = loadApp();
+        const token = jwt.sign({ id: 'user-1' }, process.env.JWT_SECRET);
+
+        const response = await request(app)
+            .post('/products')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+                name: 'Coffee',
+                inventory: 3,
+                image: 'coffee.jpg',
+                status: 'draft',
+            });
+
+        expect(response.status).toBe(201);
+        expect(response.body.newProduct.status).toBe('draft');
     });
 
     it('normalizes legacy quant payloads into numeric inventory', async () => {
@@ -433,6 +452,24 @@ describe('auth, user, and product routes', () => {
 
         expect(response.status).toBe(400);
         expect(response.body).toEqual({ error: 'Quantity must be a non-negative integer' });
+    });
+
+    it('rejects product creation with invalid status', async () => {
+        const app = loadApp();
+        const token = jwt.sign({ id: 'user-1' }, process.env.JWT_SECRET);
+
+        const response = await request(app)
+            .post('/products')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+                name: 'Coffee',
+                inventory: 3,
+                image: 'coffee.jpg',
+                status: 'deleted',
+            });
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({ error: 'Product status must be draft, active, paused, sold_out, or archived' });
     });
 
     it('returns a friendly error when product creation fails', async () => {

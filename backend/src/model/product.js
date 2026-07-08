@@ -1,5 +1,6 @@
 const { Schema, model } = require('mongoose');
 const { defaultTenantId } = require('../tenants');
+const { productStatuses } = require('../productStatus');
 
 const ProductSchema = new Schema({
     tenantId: {
@@ -23,6 +24,12 @@ const ProductSchema = new Schema({
     },
     image: {
         type: String,
+        required: true,
+    },
+    status: {
+        type: String,
+        enum: productStatuses,
+        default: 'active',
         required: true,
     },
     seller: {

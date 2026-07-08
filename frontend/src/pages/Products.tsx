@@ -11,6 +11,7 @@ type Product = {
     description: string;
     image: string;
     inventory?: number;
+    status?: 'draft' | 'active' | 'paused' | 'sold_out' | 'archived';
 };
 
 export default function Products() {
@@ -104,6 +105,11 @@ export default function Products() {
                                             {product.inventory > 0
                                                 ? `${brand.copy.catalog.inventoryLabel} ${product.inventory}`
                                                 : brand.copy.catalog.soldOutLabel}
+                                        </p>
+                                    )}
+                                    {product.status && (
+                                        <p className="h-8 w-[223px] overflow-hidden text-ellipsis text-sm font-bold text-[#666]">
+                                            {brand.copy.catalog.statusLabel} {brand.copy.catalog.statusLabels[product.status]}
                                         </p>
                                     )}
                                 </div>

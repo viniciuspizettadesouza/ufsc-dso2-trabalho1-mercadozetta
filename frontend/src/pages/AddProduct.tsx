@@ -11,6 +11,10 @@ type StoredUser = {
     _id?: string;
 };
 
+type ProductStatus = 'draft' | 'active' | 'paused' | 'sold_out' | 'archived';
+
+const productStatusOptions: ProductStatus[] = ['draft', 'active', 'paused', 'sold_out', 'archived'];
+
 function getStoredUser(): StoredUser | null {
     const storedUser = localStorage.getItem('user');
 
@@ -34,6 +38,7 @@ export default function AddProduct() {
     const [description, setDescription] = useState('');
     const [inventory, setInventory] = useState('');
     const [image, setImage] = useState('');
+    const [status, setStatus] = useState<ProductStatus>('active');
     const [error, setError] = useState('');
 
     async function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -50,7 +55,7 @@ export default function AddProduct() {
             setError('');
 
             await api.post(apiRoutes.products, {
-                name, description, inventory: Number(inventory), image
+                name, description, inventory: Number(inventory), image, status
             });
 
             navigate(appRoutes.sellerProducts(user._id));
@@ -99,6 +104,21 @@ export default function AddProduct() {
                         value={image}
                         onChange={e => setImage(e.target.value)}
                     />
+                    <label className="mt-5 text-sm font-medium text-[#666]" htmlFor="product-status">
+                        {brand.copy.forms.productStatusLabel}
+                    </label>
+                    <select
+                        id="product-status"
+                        className="mt-2 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666]"
+                        value={status}
+                        onChange={e => setStatus(e.target.value as ProductStatus)}
+                    >
+                        {productStatusOptions.map(option => (
+                            <option key={option} value={option}>
+                                {brand.copy.catalog.statusLabels[option]}
+                            </option>
+                        ))}
+                    </select>
                     {error && (
                         <p className="mt-3 text-sm font-medium text-red-600" role="alert">
                             {error}
