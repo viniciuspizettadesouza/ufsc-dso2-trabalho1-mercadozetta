@@ -1,8 +1,20 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const AuthController = require('./controller/authController');
 const UserController = require('./controller/userController');
 const ProductController = require('./controller/productController');
 const authMiddleware = require('./middleware/auth');
+const asyncHandler = require('./middleware/asyncHandler');
+const { authRateLimiter, registerRateLimiter } = require('./middleware/rateLimit');
+const validateRequest = require('./middleware/validateRequest');
+const { validateLoginPayload } = require('./validators/authValidator');
+const {
+    validateCreateProductPayload,
+    validateProductFilters,
+    validateProductId,
+    validateSellerId,
+} = require('./validators/productValidator');
+const { validateCreateUserPayload } = require('./validators/userValidator');
 
 const routes = express.Router();
 
@@ -10,18 +22,65 @@ routes.get('/', (req, res) => {
     res.json({ message: 'Welcome to zetta2k app' });
 });
 
-routes.get('/products', ProductController.index);
+routes.get('/health', (req, res) => {
+    res.status(200).send({ status: 'ok' });
+});
 
-routes.get('/products/:productId', ProductController.detail);
+routes.get('/ready', (req, res) => {
+    const isReady = mongoose.connection.readyState === 1;
 
-routes.get('/users/:userId', UserController.sellerProfile);
+    return res.status(isReady ? 200 : 503).send({
+        status: isReady ? 'ready' : 'not_ready',
+        checks: {
+            mongodb: isReady ? 'connected' : 'disconnected',
+        },
+    });
+});
 
-routes.get('/users/:userId/products', ProductController.listBySeller);
+routes.get(
+    '/products',
+    validateRequest({ query: validateProductFilters }),
+    asyncHandler(ProductController.index)
+);
 
-routes.post('/users', UserController.add);
+routes.get(
+    '/products/:productId',
+    validateRequest({
+        params: params => ({ productId: validateProductId(params.productId) }),
+    }),
+    asyncHandler(ProductController.detail)
+);
 
-routes.post('/auth/login', AuthController.authenticate);
+routes.get('/users/:userId', asyncHandler(UserController.sellerProfile));
 
-routes.post('/products', authMiddleware, ProductController.add);
+routes.get(
+    '/users/:userId/products',
+    validateRequest({
+        params: params => ({ userId: validateSellerId(params.userId || params.userID) }),
+        query: validateProductFilters,
+    }),
+    asyncHandler(ProductController.listBySeller)
+);
+
+routes.post(
+    '/users',
+    registerRateLimiter,
+    validateRequest({ body: validateCreateUserPayload }),
+    asyncHandler(UserController.add)
+);
+
+routes.post(
+    '/auth/login',
+    authRateLimiter,
+    validateRequest({ body: validateLoginPayload }),
+    asyncHandler(AuthController.authenticate)
+);
+
+routes.post(
+    '/products',
+    authMiddleware,
+    validateRequest({ body: validateCreateProductPayload }),
+    asyncHandler(ProductController.add)
+);
 
 module.exports = routes;

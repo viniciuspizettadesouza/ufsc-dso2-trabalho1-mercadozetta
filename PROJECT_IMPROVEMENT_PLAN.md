@@ -45,6 +45,8 @@ Implementation notes:
 
 ## Phase 6 - Security and Reliability
 
+Status: completed for the current course/demo scope.
+
 - Require `JWT_SECRET` outside test/development; avoid silent production
   fallback secrets.
 - Add password policy and password length validation.
@@ -61,6 +63,29 @@ Implementation notes:
 - Add API response contracts and status-code consistency.
 - Add dependency vulnerability checks in CI.
 - Add `.env.example` updates whenever config changes.
+
+Completed in current Phase 6 branch:
+
+- JWT signing/verifying now uses a central secret resolver and fails fast outside
+  development/test when `JWT_SECRET` is missing.
+- User registration rejects passwords shorter than 8 characters.
+- Login and account creation routes have configurable in-memory rate limits.
+- Express uses Helmet security headers and environment-configured CORS origins.
+- Requests receive/preserve an `X-Request-Id`, and non-test responses are logged
+  as structured JSON with method, path, status code, and duration.
+- `GET /health` and `GET /ready` endpoints were added.
+- The server closes the HTTP server and MongoDB connection on `SIGINT`/`SIGTERM`.
+- Malformed JSON requests now receive a consistent API error response.
+- Backend docs and `.env.example` include the new CORS and rate-limit settings.
+- Routes now use centralized request validation middleware for body, params, and
+  product query filters before controller execution.
+- API error responses now include both a user-readable `error` string and a
+  stable machine-readable `code`.
+- Unexpected backend failures now consistently return HTTP `500` with
+  `INTERNAL_SERVER_ERROR` instead of being reported as bad requests.
+- GitHub Actions CI now installs all dependency trees, runs high-severity
+  dependency audits, tests backend/frontend, lints frontend, and builds
+  frontend.
 
 ## Phase 7 - Architecture and DX Modernization
 
@@ -156,5 +181,5 @@ frontend/src/
 
 ## Near-Term Next Steps
 
-1. Start Phase 6 security and reliability hardening.
+1. Start Phase 7 architecture and DX modernization.
 2. Revisit Phase 5 demo-local flows for persistence if the course scope grows.

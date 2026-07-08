@@ -1,46 +1,32 @@
-const sendError = require('../errors/sendError');
+const AppError = require('../errors/AppError');
 const ProductService = require('../services/productService');
 
 module.exports = {
     async index(req, res) {
-        try {
-            const products = await ProductService.listProducts(req.tenant.id, req.query);
-            return res.status(200).send(products);
-        } catch (err) {
-            return sendError(res, err, 'Failed to list products');
-        }
+        const products = await ProductService.listProducts(req.tenant.id, req.validated.query);
+        return res.status(200).send(products);
     },
 
     async detail(req, res) {
-        try {
-            const product = await ProductService.getProductById(req.params.productId, req.tenant.id);
+        const product = await ProductService.getProductById(req.validated.params.productId, req.tenant.id);
 
-            if (!product)
-                return res.status(404).send({ error: 'Product not found' });
+        if (!product)
+            throw new AppError(404, 'PRODUCT_NOT_FOUND', 'Product not found');
 
-            return res.status(200).send(product);
-        } catch (err) {
-            return sendError(res, err, 'Failed to load product');
-        }
+        return res.status(200).send(product);
     },
 
     async add(req, res) {
-        try {
-            const newProduct = await ProductService.createProduct(req.body, req.userId, req.tenant.id);
-            return res.status(201).send({ newProduct });
-        } catch (err) {
-            return sendError(res, err, 'Product registration failed');
-        }
+        const newProduct = await ProductService.createProduct(req.validated.body, req.userId, req.tenant.id);
+        return res.status(201).send({ newProduct });
     },
 
     async listBySeller(req, res) {
-        const userId = req.params.userId || req.params.userID;
-
-        try {
-            const products = await ProductService.listProductsBySeller(userId, req.tenant.id, req.query);
-            return res.status(200).send(products);
-        } catch (err) {
-            return sendError(res, err, 'Failed to list seller products');
-        }
+        const products = await ProductService.listProductsBySeller(
+            req.validated.params.userId,
+            req.tenant.id,
+            req.validated.query
+        );
+        return res.status(200).send(products);
     }
 };
