@@ -2,8 +2,9 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "CommonJS",
-    "rootDir": "src",
+    "rootDir": ".",
     "outDir": "dist",
+    "noEmit": true,
     "strict": true,
     "esModuleInterop": true,
     "allowJs": true,
@@ -12,8 +13,8 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "resolveJsonModule": true,
-    "types": ["node"]
+    "types": ["node", "vitest/globals"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "test/**/*", "vitest.setup.ts"],
   "exclude": ["node_modules", "dist"]
 }

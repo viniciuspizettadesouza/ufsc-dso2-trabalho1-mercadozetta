@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const request = require('supertest');
@@ -149,7 +151,9 @@ describe('auth middleware', () => {
 
     it('sets req.userId and calls next for valid tokens', () => {
         const token = jwt.sign({ id: 'user-123' }, process.env.JWT_SECRET);
-        const req = { headers: { authorization: `Bearer ${token}` } };
+        const req: { headers: { authorization: string }; userId?: string } = {
+            headers: { authorization: `Bearer ${token}` },
+        };
         const res = createResponse();
         const next = vi.fn();
 

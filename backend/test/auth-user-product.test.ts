@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const request = require('supertest');
@@ -21,18 +23,34 @@ const productServicePath = require.resolve('../src/services/productService');
 const userModelPath = require.resolve('../src/model/user');
 const productModelPath = require.resolve('../src/model/product');
 
-let users;
-let products;
-let createUserError;
-let findProductsError;
-let createProductError;
-function createDocument(item) {
+type MockDocument = {
+    _id?: string;
+    tenantId?: string;
+    seller?: string;
+    email?: string;
+    [key: string]: unknown;
+};
+
+type MockQuery = {
+    tenantId?: string;
+    seller?: string;
+    email?: string;
+    _id?: string;
+};
+
+let users: MockDocument[];
+let products: MockDocument[];
+let createUserError: Error | { code?: number; keyPattern?: Record<string, unknown> } | null;
+let findProductsError: Error | null;
+let createProductError: Error | null;
+
+function createDocument<T extends MockDocument>(item: T): T & { toObject(): T } {
     return {
         ...item,
         toObject() {
             return { ...item };
         },
-    };
+    } as T & { toObject(): T };
 }
 
 function resetModules() {
@@ -57,13 +75,15 @@ function resetModules() {
         delete require.cache[path];
     });
 
-    require.cache[userModelPath] = {
+    const moduleCache = require.cache as Record<string, NodeModule>;
+
+    moduleCache[userModelPath] = {
         id: userModelPath,
         filename: userModelPath,
         loaded: true,
         exports: {
-            findOne(query) {
-                const user = users.find(item => (
+            findOne(query: MockQuery) {
+                const user = users.find((item: MockDocument) => (
                     item.tenantId === query.tenantId
                     && (!query.email || item.email === query.email)
                     && (!query._id || item._id === query._id)
@@ -72,12 +92,12 @@ function resetModules() {
 
                 return {
                     select: async () => foundUser,
-                    then(resolve, reject) {
+                    then(resolve: (value: unknown) => void, reject: (reason?: unknown) => void) {
                         return Promise.resolve(foundUser).then(resolve, reject);
                     },
                 };
             },
-            async create(user) {
+            async create(user: MockDocument) {
                 if (createUserError)
                     throw createUserError;
 
@@ -86,36 +106,36 @@ function resetModules() {
                 return { ...newUser };
             },
         },
-    };
+    } as NodeModule;
 
-    require.cache[productModelPath] = {
+    moduleCache[productModelPath] = {
         id: productModelPath,
         filename: productModelPath,
         loaded: true,
         exports: {
-            async find(query = {}) {
+            async find(query: MockQuery = {}) {
                 if (findProductsError)
                     throw findProductsError;
 
                 return products
-                    .filter(product => (
+                    .filter((product: MockDocument) => (
                         (!query.tenantId || product.tenantId === query.tenantId)
                         && (!query.seller || product.seller === query.seller)
                     ))
                     .map(createDocument);
             },
-            async findOne(query = {}) {
+            async findOne(query: MockQuery = {}) {
                 if (findProductsError)
                     throw findProductsError;
 
-                const product = products.find(item => (
+                const product = products.find((item: MockDocument) => (
                     (!query.tenantId || item.tenantId === query.tenantId)
                     && (!query._id || item._id === query._id)
                 ));
 
                 return product ? createDocument(product) : null;
             },
-            async create(product) {
+            async create(product: MockDocument) {
                 if (createProductError)
                     throw createProductError;
 
@@ -124,7 +144,7 @@ function resetModules() {
                 return { ...newProduct };
             },
         },
-    };
+    } as NodeModule;
 }
 
 function loadApp() {
