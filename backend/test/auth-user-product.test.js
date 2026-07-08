@@ -14,6 +14,8 @@ const productModelPath = require.resolve('../src/model/product');
 let users;
 let products;
 let createUserError;
+let findProductsError;
+let createProductError;
 
 function resetModules() {
     [
@@ -59,10 +61,19 @@ function resetModules() {
         filename: productModelPath,
         loaded: true,
         exports: {
-            async find() {
+            async find(query = {}) {
+                if (findProductsError)
+                    throw findProductsError;
+
+                if (query.seller)
+                    return products.filter(product => product.seller === query.seller);
+
                 return products;
             },
             async create(product) {
+                if (createProductError)
+                    throw createProductError;
+
                 const newProduct = { _id: `product-${products.length + 1}`, ...product };
                 products.push(newProduct);
                 return { ...newProduct };
@@ -87,9 +98,20 @@ beforeEach(async () => {
     }];
     products = [];
     createUserError = null;
+    findProductsError = null;
+    createProductError = null;
 });
 
 describe('auth, user, and product routes', () => {
+    it('returns the root welcome response', async () => {
+        const app = loadApp();
+
+        const response = await request(app).get('/');
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual({ message: 'Welcome to zetta2k app' });
+    });
+
     it('logs in with valid credentials', async () => {
         const app = loadApp();
 
@@ -120,6 +142,31 @@ describe('auth, user, and product routes', () => {
         expect(response.body).toEqual({ error: 'Invalid credentials' });
     });
 
+    it('rejects login when credentials are missing', async () => {
+        const app = loadApp();
+
+        const response = await request(app)
+            .post('/auth/login')
+            .send({ email: 'seller@example.com' });
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({ error: 'Email and password are required' });
+    });
+
+    it('rejects login for unknown users', async () => {
+        const app = loadApp();
+
+        const response = await request(app)
+            .post('/auth/login')
+            .send({
+                email: 'missing@example.com',
+                password: 'secret123',
+            });
+
+        expect(response.status).toBe(401);
+        expect(response.body).toEqual({ error: 'Invalid credentials' });
+    });
+
     it('creates users with valid payloads', async () => {
         const app = loadApp();
 
@@ -137,12 +184,37 @@ describe('auth, user, and product routes', () => {
         expect(response.body.newUser.password).toBeUndefined();
     });
 
-    it('returns a friendly error when user creation violates the unique email index', async () => {
-        createUserError = {
-            code: 11000,
-            keyPattern: { email: 1 },
-        };
+    it('rejects user creation when required fields are missing', async () => {
+        const app = loadApp();
 
+        const response = await request(app)
+            .post('/users')
+            .send({
+                email: 'buyer@example.com',
+                password: 'secret123',
+            });
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({ error: 'Email, password, username and telephone are required' });
+    });
+
+    it('rejects user creation with invalid email', async () => {
+        const app = loadApp();
+
+        const response = await request(app)
+            .post('/users')
+            .send({
+                email: 'invalid-email',
+                password: 'secret123',
+                username: 'Buyer',
+                telephone: '999',
+            });
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({ error: 'Invalid email' });
+    });
+
+    it('rejects user creation when email already exists', async () => {
         const app = loadApp();
 
         const response = await request(app)
@@ -158,6 +230,44 @@ describe('auth, user, and product routes', () => {
         expect(response.body).toEqual({ error: 'User already exists' });
     });
 
+    it('returns a friendly error when user creation violates the unique email index', async () => {
+        createUserError = {
+            code: 11000,
+            keyPattern: { email: 1 },
+        };
+
+        const app = loadApp();
+
+        const response = await request(app)
+            .post('/users')
+            .send({
+                email: 'new-user@example.com',
+                password: 'secret123',
+                username: 'Buyer',
+                telephone: '999',
+            });
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({ error: 'User already exists' });
+    });
+
+    it('returns a generic error when user creation fails for another reason', async () => {
+        createUserError = new Error('database offline');
+        const app = loadApp();
+
+        const response = await request(app)
+            .post('/users')
+            .send({
+                email: 'new-user@example.com',
+                password: 'secret123',
+                username: 'Buyer',
+                telephone: '999',
+            });
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({ error: 'Registration failed' });
+    });
+
     it('requires authentication to create products', async () => {
         const app = loadApp();
 
@@ -171,6 +281,38 @@ describe('auth, user, and product routes', () => {
 
         expect(response.status).toBe(401);
         expect(response.body).toEqual({ error: 'Authorization token is required' });
+    });
+
+    it('rejects product creation with invalid bearer format', async () => {
+        const app = loadApp();
+
+        const response = await request(app)
+            .post('/products')
+            .set('Authorization', 'Token abc')
+            .send({
+                name: 'Coffee',
+                quant: '3',
+                image: 'coffee.jpg',
+            });
+
+        expect(response.status).toBe(401);
+        expect(response.body).toEqual({ error: 'Invalid authorization format' });
+    });
+
+    it('rejects product creation with invalid token', async () => {
+        const app = loadApp();
+
+        const response = await request(app)
+            .post('/products')
+            .set('Authorization', 'Bearer invalid-token')
+            .send({
+                name: 'Coffee',
+                quant: '3',
+                image: 'coffee.jpg',
+            });
+
+        expect(response.status).toBe(401);
+        expect(response.body).toEqual({ error: 'Invalid authorization token' });
     });
 
     it('creates products for the authenticated seller', async () => {
@@ -190,5 +332,108 @@ describe('auth, user, and product routes', () => {
         expect(response.status).toBe(201);
         expect(response.body.newProduct.seller).toBe('user-1');
         expect(response.body.newProduct.name).toBe('Coffee');
+    });
+
+    it('rejects product creation with missing required fields', async () => {
+        const app = loadApp();
+        const token = jwt.sign({ id: 'user-1' }, process.env.JWT_SECRET);
+
+        const response = await request(app)
+            .post('/products')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+                description: 'Fresh beans',
+            });
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({ error: 'Name, quantity and image are required' });
+    });
+
+    it('returns a friendly error when product creation fails', async () => {
+        createProductError = new Error('database offline');
+        const app = loadApp();
+        const token = jwt.sign({ id: 'user-1' }, process.env.JWT_SECRET);
+
+        const response = await request(app)
+            .post('/products')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+                name: 'Coffee',
+                quant: '3',
+                image: 'coffee.jpg',
+            });
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({ error: 'Product registration failed' });
+    });
+
+    it('lists all products', async () => {
+        products = [{
+            _id: 'product-1',
+            name: 'Coffee',
+            quant: '3',
+            image: 'coffee.jpg',
+            seller: 'user-1',
+        }];
+        const app = loadApp();
+
+        const response = await request(app).get('/products');
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual(products);
+    });
+
+    it('returns a friendly error when product listing fails', async () => {
+        findProductsError = new Error('database offline');
+        const app = loadApp();
+
+        const response = await request(app).get('/products');
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({ error: 'Failed to list products' });
+    });
+
+    it('lists products by seller', async () => {
+        products = [
+            {
+                _id: 'product-1',
+                name: 'Coffee',
+                quant: '3',
+                image: 'coffee.jpg',
+                seller: '507f1f77bcf86cd799439011',
+            },
+            {
+                _id: 'product-2',
+                name: 'Tea',
+                quant: '2',
+                image: 'tea.jpg',
+                seller: '507f1f77bcf86cd799439012',
+            },
+        ];
+        const app = loadApp();
+
+        const response = await request(app).get('/users/507f1f77bcf86cd799439011/products');
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual([products[0]]);
+    });
+
+    it('rejects seller product listing with invalid seller id', async () => {
+        const app = loadApp();
+
+        const response = await request(app).get('/users/not-an-id/products');
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({ error: 'Invalid seller id' });
+    });
+
+    it('returns a friendly error when seller product listing fails', async () => {
+        findProductsError = new Error('database offline');
+        const app = loadApp();
+
+        const response = await request(app).get('/users/507f1f77bcf86cd799439011/products');
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({ error: 'Failed to list seller products' });
     });
 });
