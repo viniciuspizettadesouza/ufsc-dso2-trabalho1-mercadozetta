@@ -8,6 +8,10 @@ const authControllerPath = require.resolve('../src/controller/authController');
 const userControllerPath = require.resolve('../src/controller/userController');
 const productControllerPath = require.resolve('../src/controller/productController');
 const authMiddlewarePath = require.resolve('../src/middleware/auth');
+const tenantMiddlewarePath = require.resolve('../src/middleware/tenant');
+const authServicePath = require.resolve('../src/services/authService');
+const userServicePath = require.resolve('../src/services/userService');
+const productServicePath = require.resolve('../src/services/productService');
 const userModelPath = require.resolve('../src/model/user');
 const productModelPath = require.resolve('../src/model/product');
 
@@ -25,6 +29,10 @@ function resetModules() {
         userControllerPath,
         productControllerPath,
         authMiddlewarePath,
+        tenantMiddlewarePath,
+        authServicePath,
+        userServicePath,
+        productServicePath,
     ].forEach(path => {
         delete require.cache[path];
     });
@@ -35,7 +43,10 @@ function resetModules() {
         loaded: true,
         exports: {
             findOne(query) {
-                const user = users.find(item => item.email === query.email);
+                const user = users.find(item => (
+                    item.tenantId === query.tenantId
+                    && item.email === query.email
+                ));
                 const foundUser = user ? { ...user } : null;
 
                 return {
@@ -65,10 +76,10 @@ function resetModules() {
                 if (findProductsError)
                     throw findProductsError;
 
-                if (query.seller)
-                    return products.filter(product => product.seller === query.seller);
-
-                return products;
+                return products.filter(product => (
+                    (!query.tenantId || product.tenantId === query.tenantId)
+                    && (!query.seller || product.seller === query.seller)
+                ));
             },
             async create(product) {
                 if (createProductError)
@@ -91,6 +102,7 @@ beforeEach(async () => {
     process.env.JWT_SECRET = 'test-secret';
     users = [{
         _id: 'user-1',
+        tenantId: 'mercadozetta',
         email: 'seller@example.com',
         password: await bcrypt.hash('secret123', 4),
         username: 'seller',
@@ -181,7 +193,26 @@ describe('auth, user, and product routes', () => {
 
         expect(response.status).toBe(201);
         expect(response.body.newUser.email).toBe('buyer@example.com');
+        expect(response.body.newUser.tenantId).toBe('mercadozetta');
         expect(response.body.newUser.password).toBeUndefined();
+    });
+
+    it('allows the same email in different tenants', async () => {
+        const app = loadApp();
+
+        const response = await request(app)
+            .post('/users')
+            .set('X-Tenant-Id', 'campus-market')
+            .send({
+                email: 'seller@example.com',
+                password: 'secret123',
+                username: 'Campus Seller',
+                telephone: '999',
+            });
+
+        expect(response.status).toBe(201);
+        expect(response.body.newUser.email).toBe('seller@example.com');
+        expect(response.body.newUser.tenantId).toBe('campus-market');
     });
 
     it('rejects user creation when required fields are missing', async () => {
@@ -331,7 +362,26 @@ describe('auth, user, and product routes', () => {
 
         expect(response.status).toBe(201);
         expect(response.body.newProduct.seller).toBe('user-1');
+        expect(response.body.newProduct.tenantId).toBe('mercadozetta');
         expect(response.body.newProduct.name).toBe('Coffee');
+    });
+
+    it('creates products for the active tenant', async () => {
+        const app = loadApp();
+        const token = jwt.sign({ id: 'user-1' }, process.env.JWT_SECRET);
+
+        const response = await request(app)
+            .post('/products')
+            .set('X-Tenant-Id', 'campus-market')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+                name: 'Notebook',
+                quant: '1',
+                image: 'notebook.jpg',
+            });
+
+        expect(response.status).toBe(201);
+        expect(response.body.newProduct.tenantId).toBe('campus-market');
     });
 
     it('rejects product creation with missing required fields', async () => {
@@ -370,6 +420,7 @@ describe('auth, user, and product routes', () => {
     it('lists all products', async () => {
         products = [{
             _id: 'product-1',
+            tenantId: 'mercadozetta',
             name: 'Coffee',
             quant: '3',
             image: 'coffee.jpg',
@@ -381,6 +432,46 @@ describe('auth, user, and product routes', () => {
 
         expect(response.status).toBe(200);
         expect(response.body).toEqual(products);
+    });
+
+    it('lists only products for the active tenant', async () => {
+        products = [
+            {
+                _id: 'product-1',
+                tenantId: 'mercadozetta',
+                name: 'Coffee',
+                quant: '3',
+                image: 'coffee.jpg',
+                seller: 'user-1',
+            },
+            {
+                _id: 'product-2',
+                tenantId: 'campus-market',
+                name: 'Notebook',
+                quant: '1',
+                image: 'notebook.jpg',
+                seller: 'user-2',
+            },
+        ];
+        const app = loadApp();
+
+        const response = await request(app)
+            .get('/products')
+            .set('X-Tenant-Id', 'campus-market');
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual([products[1]]);
+    });
+
+    it('rejects unknown tenants', async () => {
+        const app = loadApp();
+
+        const response = await request(app)
+            .get('/products')
+            .set('X-Tenant-Id', 'missing-tenant');
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({ error: 'Invalid tenant' });
     });
 
     it('returns a friendly error when product listing fails', async () => {
@@ -397,6 +488,7 @@ describe('auth, user, and product routes', () => {
         products = [
             {
                 _id: 'product-1',
+                tenantId: 'mercadozetta',
                 name: 'Coffee',
                 quant: '3',
                 image: 'coffee.jpg',
@@ -404,6 +496,7 @@ describe('auth, user, and product routes', () => {
             },
             {
                 _id: 'product-2',
+                tenantId: 'campus-market',
                 name: 'Tea',
                 quant: '2',
                 image: 'tea.jpg',
@@ -416,6 +509,35 @@ describe('auth, user, and product routes', () => {
 
         expect(response.status).toBe(200);
         expect(response.body).toEqual([products[0]]);
+    });
+
+    it('keeps seller listings tenant-scoped', async () => {
+        products = [
+            {
+                _id: 'product-1',
+                tenantId: 'mercadozetta',
+                name: 'Coffee',
+                quant: '3',
+                image: 'coffee.jpg',
+                seller: '507f1f77bcf86cd799439011',
+            },
+            {
+                _id: 'product-2',
+                tenantId: 'campus-market',
+                name: 'Tea',
+                quant: '2',
+                image: 'tea.jpg',
+                seller: '507f1f77bcf86cd799439011',
+            },
+        ];
+        const app = loadApp();
+
+        const response = await request(app)
+            .get('/users/507f1f77bcf86cd799439011/products')
+            .set('X-Tenant-Id', 'campus-market');
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual([products[1]]);
     });
 
     it('rejects seller product listing with invalid seller id', async () => {

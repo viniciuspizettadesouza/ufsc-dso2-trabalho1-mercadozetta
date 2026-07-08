@@ -2,11 +2,12 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const AppError = require('../errors/AppError');
 const User = require('../model/user');
+const { defaultTenantId } = require('../tenants');
 const { validateLoginPayload } = require('../validators/authValidator');
 
-async function authenticate(body) {
+async function authenticate(body, tenantId = defaultTenantId) {
     const { email, password } = validateLoginPayload(body);
-    const user = await User.findOne({ email }).select('+password email username telephone');
+    const user = await User.findOne({ tenantId, email }).select('+password email username telephone tenantId');
 
     if (!user)
         throw new AppError(401, 'INVALID_CREDENTIALS', 'Invalid credentials');
@@ -17,7 +18,7 @@ async function authenticate(body) {
     user.password = undefined;
 
     const token = jwt.sign(
-        { id: user._id },
+        { id: user._id, tenantId },
         process.env.JWT_SECRET || 'mercadozetta-dev-secret',
         { expiresIn: '1d' }
     );

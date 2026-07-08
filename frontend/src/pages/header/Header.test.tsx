@@ -4,6 +4,8 @@ import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Header from './index';
+import { BrandProvider } from '../../brands/BrandProvider';
+import { campusMarketBrand, type BrandConfig } from '../../brands';
 
 const navigate = vi.fn();
 
@@ -16,11 +18,13 @@ vi.mock('react-router', async () => {
     };
 });
 
-function renderHeader(route = '/', hideLoginAction = false) {
+function renderHeader(route = '/', hideLoginAction = false, brand?: BrandConfig) {
     return render(
-        <MemoryRouter initialEntries={[route]}>
-            <Header hideLoginAction={hideLoginAction} />
-        </MemoryRouter>
+        <BrandProvider brand={brand}>
+            <MemoryRouter initialEntries={[route]}>
+                <Header hideLoginAction={hideLoginAction} />
+            </MemoryRouter>
+        </BrandProvider>
     );
 }
 
@@ -37,7 +41,14 @@ describe('Header', () => {
     it('shows the brand logo', () => {
         renderHeader();
 
-        expect(screen.getByRole('img', { name: 'logo' })).toBeInTheDocument();
+        expect(screen.getByRole('img', { name: 'MercadoZetta logo' })).toBeInTheDocument();
+    });
+
+    it('renders a second brand config', () => {
+        renderHeader('/', false, campusMarketBrand);
+
+        expect(screen.getByRole('img', { name: 'CampusMarket logo' })).toBeInTheDocument();
+        expect(document.title).toBe('CampusMarket');
     });
 
     it('shows login action for anonymous users', async () => {

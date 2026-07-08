@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router';
 
 import Header from './header';
 import api from '../services/api';
+import { useBrand } from '../brands/BrandProvider';
 import { apiRoutes, appRoutes } from '../routes';
 
 export default function Login() {
+    const brand = useBrand();
     const navigate = useNavigate();
 
     const [email, setEmail] = useState('');
@@ -28,7 +30,7 @@ export default function Login() {
 
             navigate(appRoutes.sellerProducts(response.data.user._id));
         } catch {
-            setError('E-mail ou senha inválidos');
+            setError(brand.copy.validation.invalidCredentials);
         }
     }
 
@@ -53,10 +55,10 @@ export default function Login() {
                     />
                     {error && <p>{error}</p>}
                     <button
-                        className="mt-2.5 h-12 cursor-pointer rounded border-0 bg-[#3483fa] text-base font-bold text-white"
+                        className="mt-2.5 h-12 cursor-pointer rounded border-0 bg-[var(--brand-secondary)] text-base font-bold text-white"
                         type="submit"
                     >
-                        Login
+                        {brand.copy.forms.loginAction}
                     </button>
                 </form>
             </div>
