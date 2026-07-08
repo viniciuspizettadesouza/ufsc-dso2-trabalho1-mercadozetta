@@ -58,9 +58,7 @@ VITE_API_URL=http://localhost:3333
   - products
   - one seller reference per product
 - PostgreSQL would likely be a stronger option if the app grows into a fuller marketplace with orders, payments, inventory movements, carts, reviews, refunds, and stricter transactional consistency needs.
-- Recommended MongoDB schema improvements:
-  - Add a unique index for `User.email`.
-  - Add an index for `Product.seller`.
+- Remaining MongoDB schema improvements to evaluate:
   - Consider changing `Product.quant` from `String` to `Number`.
   - Consider adding marketplace fields such as price, category, status, and availability.
 
