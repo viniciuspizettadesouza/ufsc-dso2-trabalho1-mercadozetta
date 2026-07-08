@@ -208,11 +208,18 @@ Run all automated tests from the project root:
 npm test
 ```
 
+Run all automated tests with coverage thresholds from the project root:
+
+```bash
+npm run test:coverage
+```
+
 Backend:
 
 ```bash
 cd backend
 npm test
+npm run test:coverage
 npm audit
 ```
 
@@ -221,6 +228,7 @@ Frontend:
 ```bash
 cd frontend
 npm test
+npm run test:coverage
 npm run build
 npm run lint
 npm audit

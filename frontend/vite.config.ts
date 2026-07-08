@@ -9,5 +9,22 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: './src/setupTests.ts',
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'json'],
+      exclude: [
+        'src/main.tsx',
+        'src/vite-env.d.ts',
+        'coverage/**',
+        'dist/**',
+        'node_modules/**',
+      ],
+      thresholds: {
+        statements: 75,
+        branches: 75,
+        functions: 75,
+        lines: 75,
+      },
+    },
   },
 })
