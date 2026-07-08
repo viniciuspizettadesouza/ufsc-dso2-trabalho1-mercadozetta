@@ -57,7 +57,7 @@ describe('app and route composition', () => {
         const productPostRoute = findRoute('/products', 'post');
         const handlers = productPostRoute.route.stack.map(layer => layer.handle.name);
 
-        expect(handlers).toEqual(['authMiddleware', 'add']);
+        expect(handlers).toEqual(['authMiddleware', 'requestValidator', 'wrappedHandler']);
     });
 });
 
@@ -73,9 +73,12 @@ describe('auth middleware', () => {
 
         authMiddleware(req, res, next);
 
-        expect(res.statusCode).toBe(401);
-        expect(res.body).toEqual({ error: 'Authorization token is required' });
-        expect(next).not.toHaveBeenCalled();
+        expect(res.statusCode).toBeNull();
+        expect(next).toHaveBeenCalledWith(expect.objectContaining({
+            statusCode: 401,
+            code: 'AUTH_TOKEN_REQUIRED',
+            message: 'Authorization token is required',
+        }));
     });
 
     it('rejects invalid bearer format', () => {
@@ -85,9 +88,12 @@ describe('auth middleware', () => {
 
         authMiddleware(req, res, next);
 
-        expect(res.statusCode).toBe(401);
-        expect(res.body).toEqual({ error: 'Invalid authorization format' });
-        expect(next).not.toHaveBeenCalled();
+        expect(res.statusCode).toBeNull();
+        expect(next).toHaveBeenCalledWith(expect.objectContaining({
+            statusCode: 401,
+            code: 'INVALID_AUTH_FORMAT',
+            message: 'Invalid authorization format',
+        }));
     });
 
     it('rejects bearer headers without a token', () => {
@@ -97,9 +103,12 @@ describe('auth middleware', () => {
 
         authMiddleware(req, res, next);
 
-        expect(res.statusCode).toBe(401);
-        expect(res.body).toEqual({ error: 'Invalid authorization format' });
-        expect(next).not.toHaveBeenCalled();
+        expect(res.statusCode).toBeNull();
+        expect(next).toHaveBeenCalledWith(expect.objectContaining({
+            statusCode: 401,
+            code: 'INVALID_AUTH_FORMAT',
+            message: 'Invalid authorization format',
+        }));
     });
 
     it('rejects invalid tokens', () => {
@@ -109,9 +118,12 @@ describe('auth middleware', () => {
 
         authMiddleware(req, res, next);
 
-        expect(res.statusCode).toBe(401);
-        expect(res.body).toEqual({ error: 'Invalid authorization token' });
-        expect(next).not.toHaveBeenCalled();
+        expect(res.statusCode).toBeNull();
+        expect(next).toHaveBeenCalledWith(expect.objectContaining({
+            statusCode: 401,
+            code: 'INVALID_AUTH_TOKEN',
+            message: 'Invalid authorization token',
+        }));
     });
 
     it('rejects expired tokens', () => {
@@ -126,9 +138,12 @@ describe('auth middleware', () => {
 
         authMiddleware(req, res, next);
 
-        expect(res.statusCode).toBe(401);
-        expect(res.body).toEqual({ error: 'Invalid authorization token' });
-        expect(next).not.toHaveBeenCalled();
+        expect(res.statusCode).toBeNull();
+        expect(next).toHaveBeenCalledWith(expect.objectContaining({
+            statusCode: 401,
+            code: 'INVALID_AUTH_TOKEN',
+            message: 'Invalid authorization token',
+        }));
     });
 
     it('sets req.userId and calls next for valid tokens', () => {
@@ -158,9 +173,12 @@ describe('auth middleware', () => {
 
         authMiddleware(req, res, next);
 
-        expect(res.statusCode).toBe(401);
-        expect(res.body).toEqual({ error: 'Invalid authorization token' });
-        expect(next).not.toHaveBeenCalled();
+        expect(res.statusCode).toBeNull();
+        expect(next).toHaveBeenCalledWith(expect.objectContaining({
+            statusCode: 401,
+            code: 'INVALID_AUTH_TOKEN',
+            message: 'Invalid authorization token',
+        }));
     });
 });
 

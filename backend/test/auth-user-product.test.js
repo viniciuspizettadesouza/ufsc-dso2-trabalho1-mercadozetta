@@ -7,11 +7,13 @@ const routesPath = require.resolve('../src/routes');
 const authControllerPath = require.resolve('../src/controller/authController');
 const userControllerPath = require.resolve('../src/controller/userController');
 const productControllerPath = require.resolve('../src/controller/productController');
+const asyncHandlerPath = require.resolve('../src/middleware/asyncHandler');
 const authMiddlewarePath = require.resolve('../src/middleware/auth');
 const errorHandlerPath = require.resolve('../src/middleware/errorHandler');
 const rateLimitPath = require.resolve('../src/middleware/rateLimit');
 const requestContextPath = require.resolve('../src/middleware/requestContext');
 const tenantMiddlewarePath = require.resolve('../src/middleware/tenant');
+const validateRequestPath = require.resolve('../src/middleware/validateRequest');
 const securityConfigPath = require.resolve('../src/config/security');
 const authServicePath = require.resolve('../src/services/authService');
 const userServicePath = require.resolve('../src/services/userService');
@@ -32,11 +34,13 @@ function resetModules() {
         authControllerPath,
         userControllerPath,
         productControllerPath,
+        asyncHandlerPath,
         authMiddlewarePath,
         errorHandlerPath,
         rateLimitPath,
         requestContextPath,
         tenantMiddlewarePath,
+        validateRequestPath,
         securityConfigPath,
         authServicePath,
         userServicePath,
@@ -169,7 +173,7 @@ describe('auth, user, and product routes', () => {
             });
 
         expect(response.status).toBe(401);
-        expect(response.body).toEqual({ error: 'Invalid credentials' });
+        expect(response.body).toMatchObject({ error: 'Invalid credentials' });
     });
 
     it('rejects login when credentials are missing', async () => {
@@ -180,7 +184,7 @@ describe('auth, user, and product routes', () => {
             .send({ email: 'seller@example.com' });
 
         expect(response.status).toBe(400);
-        expect(response.body).toEqual({ error: 'Email and password are required' });
+        expect(response.body).toMatchObject({ error: 'Email and password are required' });
     });
 
     it('rejects login for unknown users', async () => {
@@ -194,7 +198,7 @@ describe('auth, user, and product routes', () => {
             });
 
         expect(response.status).toBe(401);
-        expect(response.body).toEqual({ error: 'Invalid credentials' });
+        expect(response.body).toMatchObject({ error: 'Invalid credentials' });
     });
 
     it('creates users with valid payloads', async () => {
@@ -244,7 +248,7 @@ describe('auth, user, and product routes', () => {
             });
 
         expect(response.status).toBe(400);
-        expect(response.body).toEqual({ error: 'Email, password, username and telephone are required' });
+        expect(response.body).toMatchObject({ error: 'Email, password, username and telephone are required' });
     });
 
     it('rejects user creation with invalid email', async () => {
@@ -260,7 +264,7 @@ describe('auth, user, and product routes', () => {
             });
 
         expect(response.status).toBe(400);
-        expect(response.body).toEqual({ error: 'Invalid email' });
+        expect(response.body).toMatchObject({ error: 'Invalid email' });
     });
 
     it('rejects user creation with weak passwords', async () => {
@@ -276,7 +280,7 @@ describe('auth, user, and product routes', () => {
             });
 
         expect(response.status).toBe(400);
-        expect(response.body).toEqual({ error: 'Password must be at least 8 characters long' });
+        expect(response.body).toMatchObject({ error: 'Password must be at least 8 characters long' });
     });
 
     it('rejects user creation when email already exists', async () => {
@@ -292,7 +296,7 @@ describe('auth, user, and product routes', () => {
             });
 
         expect(response.status).toBe(400);
-        expect(response.body).toEqual({ error: 'User already exists' });
+        expect(response.body).toMatchObject({ error: 'User already exists' });
     });
 
     it('returns a friendly error when user creation violates the unique email index', async () => {
@@ -313,7 +317,7 @@ describe('auth, user, and product routes', () => {
             });
 
         expect(response.status).toBe(400);
-        expect(response.body).toEqual({ error: 'User already exists' });
+        expect(response.body).toMatchObject({ error: 'User already exists' });
     });
 
     it('returns a generic error when user creation fails for another reason', async () => {
@@ -329,8 +333,8 @@ describe('auth, user, and product routes', () => {
                 telephone: '999',
             });
 
-        expect(response.status).toBe(400);
-        expect(response.body).toEqual({ error: 'Registration failed' });
+        expect(response.status).toBe(500);
+        expect(response.body).toMatchObject({ error: 'Internal server error' });
     });
 
     it('requires authentication to create products', async () => {
@@ -345,7 +349,7 @@ describe('auth, user, and product routes', () => {
             });
 
         expect(response.status).toBe(401);
-        expect(response.body).toEqual({ error: 'Authorization token is required' });
+        expect(response.body).toMatchObject({ error: 'Authorization token is required' });
     });
 
     it('rejects product creation with invalid bearer format', async () => {
@@ -361,7 +365,7 @@ describe('auth, user, and product routes', () => {
             });
 
         expect(response.status).toBe(401);
-        expect(response.body).toEqual({ error: 'Invalid authorization format' });
+        expect(response.body).toMatchObject({ error: 'Invalid authorization format' });
     });
 
     it('rejects product creation with invalid token', async () => {
@@ -377,7 +381,7 @@ describe('auth, user, and product routes', () => {
             });
 
         expect(response.status).toBe(401);
-        expect(response.body).toEqual({ error: 'Invalid authorization token' });
+        expect(response.body).toMatchObject({ error: 'Invalid authorization token' });
     });
 
     it('creates products for the authenticated seller', async () => {
@@ -472,7 +476,7 @@ describe('auth, user, and product routes', () => {
             });
 
         expect(response.status).toBe(400);
-        expect(response.body).toEqual({ error: 'Name, quantity and image are required' });
+        expect(response.body).toMatchObject({ error: 'Name, quantity and image are required' });
     });
 
     it('rejects product creation with invalid inventory', async () => {
@@ -489,7 +493,7 @@ describe('auth, user, and product routes', () => {
             });
 
         expect(response.status).toBe(400);
-        expect(response.body).toEqual({ error: 'Quantity must be a non-negative integer' });
+        expect(response.body).toMatchObject({ error: 'Quantity must be a non-negative integer' });
     });
 
     it('rejects product creation with invalid status', async () => {
@@ -507,7 +511,7 @@ describe('auth, user, and product routes', () => {
             });
 
         expect(response.status).toBe(400);
-        expect(response.body).toEqual({ error: 'Product status must be draft, active, paused, sold_out, or archived' });
+        expect(response.body).toMatchObject({ error: 'Product status must be draft, active, paused, sold_out, or archived' });
     });
 
     it('returns a friendly error when product creation fails', async () => {
@@ -524,8 +528,8 @@ describe('auth, user, and product routes', () => {
                 image: 'coffee.jpg',
             });
 
-        expect(response.status).toBe(400);
-        expect(response.body).toEqual({ error: 'Product registration failed' });
+        expect(response.status).toBe(500);
+        expect(response.body).toMatchObject({ error: 'Internal server error' });
     });
 
     it('lists all products', async () => {
@@ -578,6 +582,20 @@ describe('auth, user, and product routes', () => {
 
         expect(response.status).toBe(200);
         expect(response.body).toEqual([products[1]]);
+    });
+
+    it('rejects unsupported product sort query params', async () => {
+        const app = loadApp();
+
+        const response = await request(app)
+            .get('/products')
+            .query({ sort: 'price_desc' });
+
+        expect(response.status).toBe(400);
+        expect(response.body).toMatchObject({
+            error: 'Product sort must be created_asc, created_desc, name_asc, or inventory_desc',
+            code: 'INVALID_PRODUCT_SORT',
+        });
     });
 
     it('supports alternative filters and sort modes', async () => {
@@ -702,7 +720,7 @@ describe('auth, user, and product routes', () => {
         const response = await request(app).get('/products/missing-product');
 
         expect(response.status).toBe(404);
-        expect(response.body).toEqual({ error: 'Product not found' });
+        expect(response.body).toMatchObject({ error: 'Product not found' });
     });
 
     it('returns a friendly error when product detail loading fails', async () => {
@@ -711,8 +729,8 @@ describe('auth, user, and product routes', () => {
 
         const response = await request(app).get('/products/product-1');
 
-        expect(response.status).toBe(400);
-        expect(response.body).toEqual({ error: 'Failed to load product' });
+        expect(response.status).toBe(500);
+        expect(response.body).toMatchObject({ error: 'Internal server error' });
     });
 
     it('loads public seller profiles', async () => {
@@ -744,7 +762,7 @@ describe('auth, user, and product routes', () => {
         const response = await request(app).get('/users/missing-user');
 
         expect(response.status).toBe(404);
-        expect(response.body).toEqual({ error: 'Seller not found' });
+        expect(response.body).toMatchObject({ error: 'Seller not found' });
     });
 
     it('lists only products for the active tenant', async () => {
@@ -784,7 +802,7 @@ describe('auth, user, and product routes', () => {
             .set('X-Tenant-Id', 'missing-tenant');
 
         expect(response.status).toBe(400);
-        expect(response.body).toEqual({ error: 'Invalid tenant' });
+        expect(response.body).toMatchObject({ error: 'Invalid tenant' });
     });
 
     it('returns a friendly error when product listing fails', async () => {
@@ -793,8 +811,8 @@ describe('auth, user, and product routes', () => {
 
         const response = await request(app).get('/products');
 
-        expect(response.status).toBe(400);
-        expect(response.body).toEqual({ error: 'Failed to list products' });
+        expect(response.status).toBe(500);
+        expect(response.body).toMatchObject({ error: 'Internal server error' });
     });
 
     it('lists products by seller', async () => {
@@ -859,7 +877,7 @@ describe('auth, user, and product routes', () => {
         const response = await request(app).get('/users/not-an-id/products');
 
         expect(response.status).toBe(400);
-        expect(response.body).toEqual({ error: 'Invalid seller id' });
+        expect(response.body).toMatchObject({ error: 'Invalid seller id' });
     });
 
     it('returns a friendly error when seller product listing fails', async () => {
@@ -868,7 +886,7 @@ describe('auth, user, and product routes', () => {
 
         const response = await request(app).get('/users/507f1f77bcf86cd799439011/products');
 
-        expect(response.status).toBe(400);
-        expect(response.body).toEqual({ error: 'Failed to list seller products' });
+        expect(response.status).toBe(500);
+        expect(response.body).toMatchObject({ error: 'Internal server error' });
     });
 });

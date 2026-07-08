@@ -34,6 +34,31 @@ function validateCreateProductPayload(body = {}) {
     };
 }
 
+function validateProductFilters(query = {}) {
+    const sortModes = ['created_asc', 'created_desc', 'name_asc', 'inventory_desc'];
+    const availabilityModes = ['in_stock', 'sold_out'];
+    const filters = {
+        q: String(query.q || query.search || '').trim(),
+        category: String(query.category || '').trim().toLowerCase(),
+        subcategory: String(query.subcategory || '').trim().toLowerCase(),
+        seller: String(query.seller || '').trim(),
+        status: String(query.status || '').trim(),
+        availability: String(query.availability || '').trim(),
+        sort: String(query.sort || 'created_desc').trim(),
+    };
+
+    if (filters.status && !productStatuses.includes(filters.status))
+        throw new AppError(400, 'INVALID_PRODUCT_STATUS_FILTER', 'Product status filter must be draft, active, paused, sold_out, or archived');
+
+    if (filters.availability && !availabilityModes.includes(filters.availability))
+        throw new AppError(400, 'INVALID_PRODUCT_AVAILABILITY_FILTER', 'Product availability filter must be in_stock or sold_out');
+
+    if (!sortModes.includes(filters.sort))
+        throw new AppError(400, 'INVALID_PRODUCT_SORT', 'Product sort must be created_asc, created_desc, name_asc, or inventory_desc');
+
+    return filters;
+}
+
 function validateProductId(productId) {
     const id = String(productId || '').trim();
 
@@ -52,6 +77,7 @@ function validateSellerId(userId) {
 
 module.exports = {
     validateCreateProductPayload,
+    validateProductFilters,
     validateProductId,
     validateSellerId,
 };

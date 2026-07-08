@@ -230,6 +230,9 @@ Run all automated tests with coverage thresholds from the project root:
 npm run test:coverage
 ```
 
+CI validates pull requests and supported branch pushes with dependency audits,
+backend tests, frontend tests, frontend lint, and frontend build.
+
 Backend:
 
 ```bash

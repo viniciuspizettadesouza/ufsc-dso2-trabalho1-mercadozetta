@@ -5,11 +5,13 @@ const modulePaths = [
     '../src/app',
     '../src/routes',
     '../src/config/security',
+    '../src/middleware/asyncHandler',
     '../src/middleware/auth',
     '../src/middleware/errorHandler',
     '../src/middleware/rateLimit',
     '../src/middleware/requestContext',
     '../src/middleware/tenant',
+    '../src/middleware/validateRequest',
 ];
 
 const originalEnv = { ...process.env };
@@ -116,6 +118,7 @@ describe('security and reliability middleware', () => {
         expect(thirdResponse.status).toBe(429);
         expect(thirdResponse.body).toEqual({
             error: 'Too many login attempts, please try again later',
+            code: 'AUTH_RATE_LIMITED',
         });
     });
 
@@ -144,6 +147,6 @@ describe('security and reliability middleware', () => {
             .send('{"email":');
 
         expect(response.status).toBe(400);
-        expect(response.body).toEqual({ error: 'Invalid JSON payload' });
+        expect(response.body).toMatchObject({ error: 'Invalid JSON payload' });
     });
 });

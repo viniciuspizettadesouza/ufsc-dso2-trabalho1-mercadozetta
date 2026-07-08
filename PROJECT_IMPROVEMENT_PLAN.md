@@ -45,6 +45,8 @@ Implementation notes:
 
 ## Phase 6 - Security and Reliability
 
+Status: completed for the current course/demo scope.
+
 - Require `JWT_SECRET` outside test/development; avoid silent production
   fallback secrets.
 - Add password policy and password length validation.
@@ -75,6 +77,15 @@ Completed in current Phase 6 branch:
 - The server closes the HTTP server and MongoDB connection on `SIGINT`/`SIGTERM`.
 - Malformed JSON requests now receive a consistent API error response.
 - Backend docs and `.env.example` include the new CORS and rate-limit settings.
+- Routes now use centralized request validation middleware for body, params, and
+  product query filters before controller execution.
+- API error responses now include both a user-readable `error` string and a
+  stable machine-readable `code`.
+- Unexpected backend failures now consistently return HTTP `500` with
+  `INTERNAL_SERVER_ERROR` instead of being reported as bad requests.
+- GitHub Actions CI now installs all dependency trees, runs high-severity
+  dependency audits, tests backend/frontend, lints frontend, and builds
+  frontend.
 
 ## Phase 7 - Architecture and DX Modernization
 
@@ -170,5 +181,5 @@ frontend/src/
 
 ## Near-Term Next Steps
 
-1. Start Phase 6 security and reliability hardening.
+1. Start Phase 7 architecture and DX modernization.
 2. Revisit Phase 5 demo-local flows for persistence if the course scope grows.

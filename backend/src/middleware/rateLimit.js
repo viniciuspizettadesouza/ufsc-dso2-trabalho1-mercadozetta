@@ -9,7 +9,10 @@ function createRateLimiter(scope) {
         limit: config.limit,
         standardHeaders: true,
         legacyHeaders: false,
-        message: { error: config.message },
+        message: {
+            error: config.message,
+            code: scope === 'register' ? 'REGISTER_RATE_LIMITED' : 'AUTH_RATE_LIMITED',
+        },
     });
 }
 

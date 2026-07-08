@@ -59,6 +59,9 @@ npm test
 npm audit
 ```
 
+CI runs backend tests, frontend tests, frontend lint/build, and `npm audit
+--audit-level=high` for the root, backend, and frontend dependency trees.
+
 ## Routes
 
 | Method | Route | Auth | Description |
@@ -77,6 +80,21 @@ Authenticated routes expect:
 ```http
 Authorization: Bearer <token>
 ```
+
+## Error Responses
+
+API errors use a stable JSON contract:
+
+```json
+{
+  "error": "Invalid credentials",
+  "code": "INVALID_CREDENTIALS"
+}
+```
+
+`error` is a user-readable message kept for frontend compatibility. `code` is a
+stable machine-readable value for tests, clients, and logs. Unexpected server
+errors return HTTP `500` with `INTERNAL_SERVER_ERROR`.
 
 ## Payloads
 
