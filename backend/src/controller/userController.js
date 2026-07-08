@@ -4,6 +4,15 @@ function isValidEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
+function getDuplicateField(err) {
+    if (err.code !== 11000)
+        return null;
+
+    const fields = Object.keys(err.keyPattern || err.keyValue || {});
+
+    return fields[0] || null;
+}
+
 module.exports = {
     async add(req, res) {
         const body = req.body || {};
@@ -32,6 +41,11 @@ module.exports = {
             newUser.password = undefined;
             return res.status(201).send({ newUser });
         } catch (err) {
+            const duplicateField = getDuplicateField(err);
+
+            if (duplicateField === 'email')
+                return res.status(400).send({ error: 'User already exists' });
+
             return res.status(400).send({ error: 'Registration failed' });
         }
     }

@@ -10,9 +10,7 @@ if (!mongoUri) {
     process.exit(1);
 }
 
-mongoose.connect(mongoUri, {
-    useUnifiedTopology: true, useNewUrlParser: true
-}).then(() => console.log('MongoDB connected'))
+mongoose.connect(mongoUri).then(() => console.log('MongoDB connected'))
 .catch((err) => console.log(err));
 
 app.listen(port, () => console.log(`Server running on port ${port}`));

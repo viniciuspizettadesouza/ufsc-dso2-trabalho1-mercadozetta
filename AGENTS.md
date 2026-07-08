@@ -47,7 +47,11 @@ Name tests after the unit or workflow under test, for example `auth-user-product
 
 Recent history follows Conventional Commit style, such as `feat: show auth actions in header`, `docs: add local development setup guide`, and `chore: update frontend routing dependencies`.
 
-Use short, imperative commit messages with a scope only when it adds clarity. Pull requests should include a concise summary, test results, linked issues when applicable, and screenshots or screen recordings for frontend UI changes.
+Use short, imperative commit messages with a scope only when it adds clarity. Prefer Conventional Commit types such as `feat`, `fix`, `docs`, `test`, `refactor`, and `chore`.
+
+Name branches with a clear type prefix and kebab-case description, for example `feat/authenticated-product-flow`, `fix/login-error-state`, `docs/local-development-guide`, or `chore/dependency-toolchain-upgrades`.
+
+Use pull request titles that follow the same Conventional Commit style as commit messages.
 
 ## Security & Configuration Tips
 

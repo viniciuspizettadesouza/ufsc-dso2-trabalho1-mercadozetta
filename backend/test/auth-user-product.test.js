@@ -13,6 +13,7 @@ const productModelPath = require.resolve('../src/model/product');
 
 let users;
 let products;
+let createUserError;
 
 function resetModules() {
     [
@@ -43,6 +44,9 @@ function resetModules() {
                 };
             },
             async create(user) {
+                if (createUserError)
+                    throw createUserError;
+
                 const newUser = { _id: `user-${users.length + 1}`, ...user };
                 users.push(newUser);
                 return { ...newUser };
@@ -82,6 +86,7 @@ beforeEach(async () => {
         telephone: '123',
     }];
     products = [];
+    createUserError = null;
 });
 
 describe('auth, user, and product routes', () => {
@@ -130,6 +135,27 @@ describe('auth, user, and product routes', () => {
         expect(response.status).toBe(201);
         expect(response.body.newUser.email).toBe('buyer@example.com');
         expect(response.body.newUser.password).toBeUndefined();
+    });
+
+    it('returns a friendly error when user creation violates the unique email index', async () => {
+        createUserError = {
+            code: 11000,
+            keyPattern: { email: 1 },
+        };
+
+        const app = loadApp();
+
+        const response = await request(app)
+            .post('/add-user')
+            .send({
+                email: 'seller@example.com',
+                password: 'secret123',
+                username: 'Buyer',
+                telephone: '999',
+            });
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({ error: 'User already exists' });
     });
 
     it('requires authentication to create products', async () => {

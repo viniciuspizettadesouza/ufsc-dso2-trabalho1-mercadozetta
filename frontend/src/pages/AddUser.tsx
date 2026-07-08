@@ -1,26 +1,38 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router';
+import { isAxiosError } from 'axios';
 
 import Header from './header';
 import api from '../services/api';
 
-export default function Login() {
+export default function AddUser() {
     const navigate = useNavigate();
 
     const [username, setUsername] = useState('');
     const [telephone, setTelephone] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
 
     async function handleSubmit(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
 
-        await api.post('/add-user', {
-            username, telephone, email, password
+        try {
+            setError('');
 
-        });
+            await api.post('/add-user', {
+                username, telephone, email, password
+            });
 
-        navigate('/');
+            navigate('/');
+        } catch (err) {
+            if (isAxiosError<{ error?: string }>(err) && err.response?.data.error) {
+                setError(err.response.data.error);
+                return;
+            }
+
+            setError('Não foi possível criar a conta. Tente novamente.');
+        }
     }
 
     return (
@@ -56,6 +68,11 @@ export default function Login() {
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                     />
+                    {error && (
+                        <p className="mt-3 text-sm font-medium text-red-600" role="alert">
+                            {error}
+                        </p>
+                    )}
                     <button
                         className="mt-2.5 h-12 cursor-pointer rounded border-0 bg-[#3483fa] text-base font-bold text-white"
                         type="submit"
