@@ -2,69 +2,22 @@
 
 ## Current State
 
-- Active branch: `feature/login-flow`
-- Last commit: `0bd0a54 refactor: move page styles to Tailwind`
-- Branch is ready to merge back to `main` after the completed smoke test.
-- Manual smoke test passed with real local `.env` files:
-  - Created a user.
-  - Logged in.
-  - Created a product while authenticated.
-  - Confirmed the seller product list shows the expected seller's products.
+- Active branch: `chore-dependency-maintenance`
+- Last commit: `951f051 feat: implement authenticated login and product flows (#45)`
+- Dependency maintenance updates are completed on this branch and awaiting review/commit.
 - Frontend validation passed:
-  - `npm run build`
-  - `npm run lint`
+  - `npm --prefix frontend run build`
+  - `npm --prefix frontend run lint`
 - Dependency audits passed:
-  - `cd backend && npm audit`
-  - `cd frontend && npm audit`
-- Frontend tests passed:
+  - `npm --prefix backend audit`
+  - `npm --prefix frontend audit`
+- Tests passed:
   - `npm test`
-- Backend tests passed:
-  - `npm test`
-- Backend syntax validation passed:
-  - `node -c backend/src/app.js`
-  - `node -c backend/src/controller/authController.js`
-  - `node -c backend/src/controller/productController.js`
-  - `node -c backend/src/controller/userController.js`
-  - `node -c backend/src/routes.js`
-  - `node -c backend/src/server.js`
 
-## Completed In This Branch
+## Baseline
 
-- Created `backend/.env.example`.
-- Created `frontend/.env.example`.
-- Added `jsonwebtoken` to the backend.
-- Updated backend login to validate credentials and return `{ user, token }`.
-- Updated frontend login to call `POST /login`, store `token` and `user` in `localStorage`, and navigate to `/user/:id`.
-- Converted `frontend/src/services/api.js` to `frontend/src/services/api.ts`.
-- Updated frontend API base URL to use `VITE_API_URL` with a localhost fallback.
-- Removed the `string-similarity` dependency.
-- Replaced fuzzy product filtering with a simple case-insensitive `includes()` search.
-- Fixed basic TypeScript errors that were blocking the frontend build.
-- Fixed product list loading so it does not request `/products` on every render.
-- Added backend authentication middleware for `Authorization: Bearer <token>`.
-- Protected product creation routes with authentication.
-- Added `POST /products` as the preferred product creation route.
-- Updated frontend product creation to call `POST /products`.
-- Updated the frontend API service to attach the stored token to requests.
-- Related created products to the authenticated seller.
-- Replaced hardcoded MongoDB connection parts with `MONGODB_URI`.
-- Added optional backend `PORT` configuration.
-- Updated `backend/.env.example` for `MONGODB_URI`, `JWT_SECRET`, and `PORT`.
-- Added request validation for login, user creation, and product creation payloads.
-- Avoided passing raw `req.body` directly to Mongoose creates in user/product creation.
-- Improved creation status codes to return `201`.
-- Standardized validation/auth failures around `{ error: string }` responses.
-- Added seller product listing endpoints:
-  - `GET /users/:userID/products`
-  - `GET /user/:userID/products`
-- Updated `/user/:id` frontend view to load only that seller's products.
-- Split the Express app setup into `backend/src/app.js` so the server startup remains isolated.
-- Added backend Vitest + Supertest tests for login success/failure, user creation, product auth requirement, and authenticated product creation.
-- Added Vitest and Testing Library to the frontend.
-- Added frontend login tests for API success/navigation/storage and API failure messaging.
-- Resolved backend dependency vulnerabilities by updating Express, Mongoose, and Nodemon.
-- Resolved frontend dependency vulnerabilities by updating Axios, React Router, Vite, and the Vite React plugin.
-- Completed a manual smoke test with real local `.env` files.
+- Authentication, protected product creation, seller product listing, env examples, and focused backend/frontend tests are already implemented.
+- Manual smoke testing previously passed with local `.env` files for user creation, login, authenticated product creation, and seller product listing.
 
 ## Environment Setup
 
@@ -89,11 +42,7 @@ VITE_API_URL=http://localhost:3333
    - Upgrade `react` and `react-dom` to `19.2.7+`.
    - Replace `react-router-dom` imports with `react-router` or `react-router/dom` imports because the re-export package is removed in v8.
    - Install React Router v8 after the prerequisites are in place and rerun frontend tests/build.
-2. Apply low-risk dependency maintenance updates.
-   - Frontend: update `@types/react`, `@types/react-dom`, `@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `autoprefixer`, `eslint`, `eslint-plugin-react-refresh`, `tailwindcss`, and `typescript` within their current major versions.
-   - Backend: update `cors` and `dotenv` within their current major versions.
-   - Rerun `npm audit`, tests, lint, and frontend build after the updates.
-3. Plan larger dependency upgrades as separate work items.
+2. Plan larger dependency upgrades as separate work items.
    - Frontend: evaluate React `19.2.7+`, Tailwind CSS `4.x`, ESLint `10.x`, TypeScript `6.x`, `@typescript-eslint` `8.x`, and `eslint-plugin-react-hooks` `7.x`.
    - Backend: evaluate `bcryptjs` `3.x`, Express `5.x`, Dotenv `17.x`, and Mongoose `9.x`.
    - Treat these as migration tasks because they may require code, config, runtime, or CI changes.
