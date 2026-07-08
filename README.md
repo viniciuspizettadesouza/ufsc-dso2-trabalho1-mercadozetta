@@ -142,7 +142,11 @@ Set `frontend/.env` to point to the local API:
 
 ```env
 VITE_API_URL=http://localhost:3333
+VITE_TENANT_ID=mercadozetta
 ```
+
+`VITE_TENANT_ID` selects the active white-label tenant. The default tenant is
+`mercadozetta`; the sample second tenant is `campus-market`.
 
 Return to the project root:
 
@@ -249,5 +253,8 @@ npm audit
 - Product creation requires login.
 - The frontend sends the JWT token stored in `localStorage` on authenticated
   requests.
+- The frontend also sends `X-Tenant-Id` on API requests so the backend can keep
+  tenant-owned users and products isolated.
+- Supported tenants in this project are `mercadozetta` and `campus-market`.
 
 <img src="images/mercadozetta.jpg" width="400">

@@ -21,6 +21,7 @@ describe('App', () => {
     afterEach(() => {
         cleanup();
         vi.resetModules();
+        vi.unstubAllEnvs();
     });
 
     beforeEach(() => {
@@ -34,6 +35,17 @@ describe('App', () => {
 
         expect(screen.getByRole('button', { name: 'Create account' })).toBeInTheDocument();
         expect(await screen.findByText('No products found :(')).toBeInTheDocument();
+    });
+
+    it('renders the app with the sample CampusMarket tenant', async () => {
+        vi.stubEnv('VITE_TENANT_ID', 'campus-market');
+
+        await renderAppAt('/');
+
+        expect(screen.getByRole('img', { name: 'CampusMarket logo' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Post offer' })).toBeInTheDocument();
+        expect(await screen.findByText('No offers found :(')).toBeInTheDocument();
+        expect(document.title).toBe('CampusMarket');
     });
 
     it('renders the login page for /login', async () => {
