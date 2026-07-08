@@ -94,7 +94,7 @@ describe('auth, user, and product routes', () => {
         const app = loadApp();
 
         const response = await request(app)
-            .post('/login')
+            .post('/auth/login')
             .send({
                 email: 'seller@example.com',
                 password: 'secret123',
@@ -110,7 +110,7 @@ describe('auth, user, and product routes', () => {
         const app = loadApp();
 
         const response = await request(app)
-            .post('/login')
+            .post('/auth/login')
             .send({
                 email: 'seller@example.com',
                 password: 'wrong-password',
@@ -124,7 +124,7 @@ describe('auth, user, and product routes', () => {
         const app = loadApp();
 
         const response = await request(app)
-            .post('/add-user')
+            .post('/users')
             .send({
                 email: 'Buyer@Example.com',
                 password: 'secret123',
@@ -146,7 +146,7 @@ describe('auth, user, and product routes', () => {
         const app = loadApp();
 
         const response = await request(app)
-            .post('/add-user')
+            .post('/users')
             .send({
                 email: 'seller@example.com',
                 password: 'secret123',

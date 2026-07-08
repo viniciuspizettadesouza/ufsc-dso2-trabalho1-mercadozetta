@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router';
 
 import logo from '../../assets/logo.svg'
+import { appRoutes } from '../../routes';
 
 type StoredUser = {
     _id?: string;
@@ -36,11 +37,11 @@ const Header = ({ hideLoginAction = false }: HeaderProps) => {
     function handleLogout() {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        navigate('/');
+        navigate(appRoutes.home);
     }
 
     function handleLogin() {
-        navigate('/login');
+        navigate(appRoutes.login);
     }
 
     return (
@@ -64,7 +65,7 @@ const Header = ({ hideLoginAction = false }: HeaderProps) => {
                         Logout
                     </button>
                 </div>
-            ) : !hideLoginAction && location.pathname !== '/login' && (
+            ) : !hideLoginAction && location.pathname !== appRoutes.login && (
                 <div className="mr-[100px] flex items-center gap-4 text-[#333] max-[700px]:mx-5 max-[700px]:items-start">
                     <button
                         className="h-10 cursor-pointer rounded border-0 bg-[#3483fa] px-4 text-sm font-bold text-white"

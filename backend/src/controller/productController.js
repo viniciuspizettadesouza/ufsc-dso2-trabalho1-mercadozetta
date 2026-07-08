@@ -37,13 +37,13 @@ module.exports = {
     },
 
     async listBySeller(req, res) {
-        const { userID } = req.params;
+        const userId = req.params.userId || req.params.userID;
 
-        if (!mongoose.Types.ObjectId.isValid(userID))
+        if (!mongoose.Types.ObjectId.isValid(userId))
             return res.status(400).send({ error: 'Invalid seller id' });
 
         try {
-            const products = await Product.find({ seller: userID });
+            const products = await Product.find({ seller: userId });
             return res.status(200).send(products);
         } catch (err) {
             return res.status(400).send({ error: 'Failed to list seller products' });

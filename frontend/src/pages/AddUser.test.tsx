@@ -71,7 +71,7 @@ describe('AddUser', () => {
         expect(navigate).not.toHaveBeenCalled();
 
         await waitFor(() => {
-            expect(api.post).toHaveBeenCalledWith('/add-user', {
+            expect(api.post).toHaveBeenCalledWith('/users', {
                 username: 'Smoke User',
                 telephone: '48999999999',
                 email: 'smoke@example.com',

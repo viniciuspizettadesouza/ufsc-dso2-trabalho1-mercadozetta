@@ -7,26 +7,27 @@ import AddProduct from './pages/AddProduct';
 import AddUser from './pages/AddUser';
 import Login from './pages/Login';
 import Index from './pages/Index';
+import { routePatterns } from './routes';
 
 const router = createBrowserRouter([
   {
-    path: "/",
+    path: routePatterns.home,
     element: <Index />,
   },
   {
-    path: "/user/:id",
+    path: routePatterns.sellerProducts,
     element: <Index />,
   },
   {
-    path: "/login",
+    path: routePatterns.login,
     element: <Login />,
   },
   {
-    path: "/add-user",
+    path: routePatterns.register,
     element: <AddUser />,
   },
   {
-    path: "/add-product",
+    path: routePatterns.newProduct,
     element: <AddProduct />,
   },
 ]);
