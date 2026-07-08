@@ -8,12 +8,12 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
-    "dotenv": "^16.6.1",
-    "express": "^4.22.2",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^8.24.1"
+    "mongoose": "^9.7.4"
   },
   "devDependencies": {
     "nodemon": "^3.1.14",

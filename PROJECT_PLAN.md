@@ -2,8 +2,8 @@
 
 ## Current State
 
-- Active branch: `react-router-v8-upgrade`
-- Last commit on `master`: `664bd8a chore: update maintenance dependencies (#46)`
+- Active branch: `plan-dependency-upgrades`
+- Last commit on `master`: `c0c349f feat: upgrade frontend to React Router v8 (#48)`
 - Dependency maintenance updates are merged on `master`.
 - MongoDB schema index work is prepared separately on `improve-mongodb-schema-indexes`.
 - Frontend validation passed:
@@ -14,7 +14,7 @@
   - `npm --prefix frontend audit`
 - Tests passed:
   - `npm test`
-- React Router v8 upgrade completed on `react-router-v8-upgrade`:
+- React Router v8 upgrade completed and merged on `master`:
   - Declared Node `>=22.22.0` as the project/frontend runtime baseline.
   - Added `.nvmrc` pinned to Node `22.23.1`.
   - Upgraded React and React DOM to `19.2.7`.
@@ -46,10 +46,46 @@ VITE_API_URL=http://localhost:3333
 
 ## Next Recommended Work
 
-1. Plan larger dependency upgrades as separate work items.
-   - Frontend: evaluate React `19.2.7+`, Tailwind CSS `4.x`, ESLint `10.x`, TypeScript `6.x`, `@typescript-eslint` `8.x`, and `eslint-plugin-react-hooks` `7.x`.
-   - Backend: evaluate `bcryptjs` `3.x`, Express `5.x`, Dotenv `17.x`, and Mongoose `9.x`.
-   - Treat these as migration tasks because they may require code, config, runtime, or CI changes.
+1. Run larger dependency upgrades as separate migration branches.
+   - Verified package targets on 2026-07-08:
+     - React `19.2.7` and React Router `8.1.0` are already current.
+     - Tailwind CSS `4.3.2`
+     - ESLint `10.6.0`
+     - TypeScript `6.0.3`
+     - `@typescript-eslint/eslint-plugin` and `@typescript-eslint/parser` `8.63.0`
+     - `eslint-plugin-react-hooks` `7.1.1`
+     - `bcryptjs` `3.0.3`
+     - Express `5.2.1`
+     - Dotenv `17.4.2`
+     - Mongoose `9.7.4`
+   - Recommended order:
+     1. Frontend lint toolchain migration completed on `plan-dependency-upgrades`:
+        - Upgraded ESLint to `10.6.0`, `@typescript-eslint/*` to `8.63.0`, and `eslint-plugin-react-hooks` to `7.1.1`.
+        - Added `@eslint/js` `10.0.1` and `globals` `16.5.0` for ESLint flat config.
+        - Replaced `frontend/.eslintrc.cjs` with `frontend/eslint.config.js`.
+        - Updated the frontend lint script to use `eslint . --max-warnings 0`.
+        - Verified with `npm --prefix frontend run lint`, `npm --prefix frontend run build`, and `npm --prefix frontend test`.
+        - Note: npm emitted the expected engine warning under local Node `22.14.0`; the project baseline remains Node `>=22.22.0`.
+     2. Tailwind CSS 4 migration completed on `plan-dependency-upgrades`:
+        - Upgraded Tailwind CSS to `4.3.2`.
+        - Added `@tailwindcss/vite` `4.3.2` and configured it in `frontend/vite.config.ts`.
+        - Replaced the v3 `@tailwind` directives in `frontend/src/index.css` with `@import "tailwindcss";`.
+        - Removed the old no-op `frontend/tailwind.config.js` and `frontend/postcss.config.js` files.
+        - Verified with `npm --prefix frontend run lint`, `npm --prefix frontend run build`, `npm --prefix frontend test`, and `npm --prefix frontend audit`.
+     3. TypeScript 6 migration completed on `plan-dependency-upgrades`:
+        - Upgraded TypeScript to `6.0.3`.
+        - Verified with `npm --prefix frontend run lint`, `npm --prefix frontend run build`, `npm --prefix frontend test`, and `npm --prefix frontend audit`.
+     4. Backend low-risk dependency migration completed on `plan-dependency-upgrades`:
+        - Upgraded Dotenv to `17.4.2` and `bcryptjs` to `3.0.3`.
+        - Verified with `npm --prefix backend test` and `npm --prefix backend audit`.
+     5. Express 5 migration completed on `plan-dependency-upgrades`:
+        - Upgraded Express to `5.2.1`.
+        - Verified with `npm --prefix backend test` and `npm --prefix backend audit`.
+     6. Mongoose 9 migration completed on `plan-dependency-upgrades`:
+        - Upgraded Mongoose to `9.7.4`.
+        - Simplified `backend/src/server.js` to call `mongoose.connect(mongoUri)` without legacy connection options.
+        - Verified with `npm --prefix backend test` and `npm --prefix backend audit`.
+        - Manual smoke test against MongoDB is still recommended before merging.
 
 ## Database Notes
 
