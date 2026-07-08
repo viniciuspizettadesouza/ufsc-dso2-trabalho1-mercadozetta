@@ -64,13 +64,29 @@ describe('api service', () => {
         const { interceptor } = await loadApi();
         const config = interceptor?.({ headers: {} });
 
-        expect(config).toEqual({ headers: { Authorization: 'Bearer token-123' } });
+        expect(config).toEqual({
+            headers: {
+                Authorization: 'Bearer token-123',
+                'X-Tenant-Id': 'mercadozetta',
+            },
+        });
     });
 
-    it('does not attach auth header when token is absent', async () => {
+    it('does not attach auth header when token is absent and still sends tenant id', async () => {
         const { interceptor } = await loadApi();
         const config = interceptor?.({ headers: {} });
 
-        expect(config).toEqual({ headers: {} });
+        expect(config).toEqual({ headers: { 'X-Tenant-Id': 'mercadozetta' } });
+    });
+
+    it('uses configured tenant id for tenant-aware requests', async () => {
+        vi.stubEnv('VITE_TENANT_ID', 'campus-market');
+
+        const { interceptor } = await loadApi();
+        const config = interceptor?.({ headers: {} });
+
+        expect(config).toEqual({ headers: { 'X-Tenant-Id': 'campus-market' } });
+
+        vi.unstubAllEnvs();
     });
 });

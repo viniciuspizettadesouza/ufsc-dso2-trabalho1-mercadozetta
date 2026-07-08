@@ -1,5 +1,6 @@
 const AppError = require('../errors/AppError');
 const User = require('../model/user');
+const { defaultTenantId } = require('../tenants');
 const { validateCreateUserPayload } = require('../validators/userValidator');
 
 function getDuplicateField(err) {
@@ -11,21 +12,24 @@ function getDuplicateField(err) {
     return fields[0] || null;
 }
 
-async function createUser(body) {
+async function createUser(body, tenantId = defaultTenantId) {
     const payload = validateCreateUserPayload(body);
 
     try {
-        if (await User.findOne({ email: payload.email }))
+        if (await User.findOne({ tenantId, email: payload.email }))
             throw new AppError(400, 'USER_EXISTS', 'User already exists');
 
-        const newUser = await User.create(payload);
+        const newUser = await User.create({
+            ...payload,
+            tenantId,
+        });
         newUser.password = undefined;
 
         return newUser;
     } catch (err) {
         const duplicateField = getDuplicateField(err);
 
-        if (duplicateField === 'email')
+        if (duplicateField === 'email' || duplicateField === 'tenantId')
             throw new AppError(400, 'USER_EXISTS', 'User already exists');
 
         throw err;

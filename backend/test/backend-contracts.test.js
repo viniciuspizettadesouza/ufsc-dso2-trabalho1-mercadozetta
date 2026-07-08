@@ -139,11 +139,37 @@ describe('auth middleware', () => {
         expect(next).toHaveBeenCalledTimes(1);
         expect(res.statusCode).toBeNull();
     });
+
+    it('rejects tokens issued for another tenant', () => {
+        const token = jwt.sign(
+            { id: 'user-123', tenantId: 'campus-market' },
+            process.env.JWT_SECRET
+        );
+        const req = {
+            headers: { authorization: `Bearer ${token}` },
+            tenant: { id: 'mercadozetta' },
+        };
+        const res = createResponse();
+        const next = vi.fn();
+
+        authMiddleware(req, res, next);
+
+        expect(res.statusCode).toBe(401);
+        expect(res.body).toEqual({ error: 'Invalid authorization token' });
+        expect(next).not.toHaveBeenCalled();
+    });
 });
 
 describe('model contracts', () => {
     it('keeps user password excluded by default', () => {
         expect(User.schema.path('password').options.select).toBe(false);
+    });
+
+    it('keeps tenant-aware user email uniqueness', () => {
+        expect(User.schema.indexes()).toContainEqual([
+            { tenantId: 1, email: 1 },
+            expect.objectContaining({ unique: true }),
+        ]);
     });
 
     it('hashes user password before save when password changes', async () => {
@@ -197,9 +223,13 @@ describe('model contracts', () => {
         });
     });
 
-    it('keeps product seller index and timestamps', () => {
+    it('keeps product tenant indexes and timestamps', () => {
         expect(Product.schema.indexes()).toContainEqual([
-            { seller: 1 },
+            { tenantId: 1, seller: 1 },
+            expect.any(Object),
+        ]);
+        expect(Product.schema.indexes()).toContainEqual([
+            { tenantId: 1, name: 'text', description: 'text' },
             expect.any(Object),
         ]);
         expect(Product.schema.options.timestamps).toBe(true);

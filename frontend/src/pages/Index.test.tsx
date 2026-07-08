@@ -45,15 +45,15 @@ describe('Index', () => {
     it('renders the main product experience', async () => {
         renderIndex();
 
-        expect(screen.getByRole('button', { name: 'Criar conta' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Inserir Produtos' })).toBeInTheDocument();
-        expect(await screen.findByText('Nenhum produto encontrado :(')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Create account' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Add products' })).toBeInTheDocument();
+        expect(await screen.findByText('No products found :(')).toBeInTheDocument();
     });
 
     it('navigates to account creation', async () => {
         renderIndex();
 
-        await userEvent.click(screen.getByRole('button', { name: 'Criar conta' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Create account' }));
 
         expect(navigate).toHaveBeenCalledWith('/register');
     });
@@ -61,7 +61,7 @@ describe('Index', () => {
     it('navigates to product creation', async () => {
         renderIndex();
 
-        await userEvent.click(screen.getByRole('button', { name: 'Inserir Produtos' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Add products' }));
 
         expect(navigate).toHaveBeenCalledWith('/products/new');
     });

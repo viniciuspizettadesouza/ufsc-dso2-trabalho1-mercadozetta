@@ -3,16 +3,18 @@ import { FormEvent } from 'react';
 
 import Header from './header/index';
 import Product from './Products';
+import { useBrand } from '../brands/BrandProvider';
 import { appRoutes } from '../routes';
 
 export default function Index() {
+    const brand = useBrand();
     const navigate = useNavigate();
 
     async function handleAccount(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
         navigate(appRoutes.register);
     }
-    async function handleProdutos(e: FormEvent<HTMLFormElement>) {
+    async function handleProducts(e: FormEvent<HTMLFormElement>) {
         e.preventDefault();
         navigate(appRoutes.newProduct);
     }
@@ -23,21 +25,21 @@ export default function Index() {
             <div className="flex h-full items-center justify-center">
                 <form className="flex w-full max-w-[300px] flex-col" onSubmit={handleAccount}>
                     <button
-                        className="mt-2.5 h-12 cursor-pointer rounded border-0 bg-[#3483fa] text-base font-bold text-white"
+                        className="mt-2.5 h-12 cursor-pointer rounded border-0 bg-[var(--brand-secondary)] text-base font-bold text-white"
                         type="submit"
                     >
-                        Criar conta
+                        {brand.copy.home.createAccountAction}
                     </button>
                 </form>
 
             </div>
             <div className="flex h-full items-center justify-center">
-                <form className="flex w-full max-w-[300px] flex-col" onSubmit={handleProdutos}>
+                <form className="flex w-full max-w-[300px] flex-col" onSubmit={handleProducts}>
                     <button
-                        className="mt-2.5 h-12 cursor-pointer rounded border-0 bg-[#3483fa] text-base font-bold text-white"
+                        className="mt-2.5 h-12 cursor-pointer rounded border-0 bg-[var(--brand-secondary)] text-base font-bold text-white"
                         type="submit"
                     >
-                        Inserir Produtos
+                        {brand.copy.home.createProductAction}
                     </button>
                 </form>
             </div>

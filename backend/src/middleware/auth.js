@@ -17,6 +17,9 @@ module.exports = function authMiddleware(req, res, next) {
             process.env.JWT_SECRET || 'mercadozetta-dev-secret'
         );
 
+        if (decoded.tenantId && req.tenant && decoded.tenantId !== req.tenant.id)
+            return res.status(401).send({ error: 'Invalid authorization token' });
+
         req.userId = decoded.id;
         return next();
     } catch (err) {

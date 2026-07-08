@@ -1,6 +1,13 @@
 const { Schema, model } = require('mongoose');
+const { defaultTenantId } = require('../tenants');
 
 const ProductSchema = new Schema({
+    tenantId: {
+        type: String,
+        required: true,
+        default: defaultTenantId,
+        index: true,
+    },
     name: {
         type: String,
         required: true,
@@ -26,6 +33,7 @@ const ProductSchema = new Schema({
     timestamps: true,
 });
 
-ProductSchema.index({ seller: 1 });
+ProductSchema.index({ tenantId: 1, seller: 1 });
+ProductSchema.index({ tenantId: 1, name: 'text', description: 'text' });
 
 module.exports = model('product', ProductSchema);

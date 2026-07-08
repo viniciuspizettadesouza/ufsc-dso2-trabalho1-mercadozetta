@@ -4,6 +4,7 @@ import { isAxiosError } from 'axios';
 
 import Header from './header';
 import api from '../services/api';
+import { useBrand } from '../brands/BrandProvider';
 import { apiRoutes, appRoutes } from '../routes';
 
 type StoredUser = {
@@ -26,6 +27,7 @@ function getStoredUser(): StoredUser | null {
 }
 
 export default function AddProduct() {
+    const brand = useBrand();
     const navigate = useNavigate();
 
     const [name, setName] = useState('');
@@ -40,7 +42,7 @@ export default function AddProduct() {
         const user = getStoredUser();
 
         if (!localStorage.getItem('token') || !user?._id) {
-            setError('Faça login para inserir um anúncio.');
+            setError(brand.copy.validation.loginRequiredForProduct);
             return;
         }
 
@@ -58,7 +60,7 @@ export default function AddProduct() {
                 return;
             }
 
-            setError('Não foi possível inserir o anúncio. Tente novamente.');
+            setError(brand.copy.validation.productCreateError);
         }
     }
 
@@ -70,28 +72,28 @@ export default function AddProduct() {
                     <input
                         className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
                         type="text"
-                        placeholder="Nome do Produto"
+                        placeholder="Product name"
                         value={name}
                         onChange={e => setName(e.target.value)}
                     />
                     <input
                         className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
                         type="text"
-                        placeholder="Descrição do Produto"
+                        placeholder="Product description"
                         value={description}
                         onChange={e => setDescription(e.target.value)}
                     />
                     <input
                         className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
                         type="number"
-                        placeholder="Quantidade"
+                        placeholder="Quantity"
                         value={quant}
                         onChange={e => setQuant(e.target.value)}
                     />
                     <input
                         className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
                         type="text"
-                        placeholder="URL da Imagem"
+                        placeholder="Image URL"
                         value={image}
                         onChange={e => setImage(e.target.value)}
                     />
@@ -101,10 +103,10 @@ export default function AddProduct() {
                         </p>
                     )}
                     <button
-                        className="mt-2.5 h-12 cursor-pointer rounded border-0 bg-[#3483fa] text-base font-bold text-white"
+                        className="mt-2.5 h-12 cursor-pointer rounded border-0 bg-[var(--brand-secondary)] text-base font-bold text-white"
                         type="submit"
                     >
-                        Inserir Anúncio
+                        {brand.copy.forms.createProductAction}
                     </button>
                 </form>
             </div>

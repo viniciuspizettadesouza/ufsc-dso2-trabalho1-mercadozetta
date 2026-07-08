@@ -2,6 +2,7 @@ import { ChangeEvent, MouseEvent, useEffect, useState, useCallback } from 'react
 import { useParams } from 'react-router';
 
 import api from '../services/api';
+import { useBrand } from '../brands/BrandProvider';
 import { apiRoutes } from '../routes';
 
 type Product = {
@@ -12,6 +13,7 @@ type Product = {
 };
 
 export default function Products() {
+    const brand = useBrand();
     const { sellerId } = useParams();
     const [products, setProducts] = useState<Product[]>([]);
     const [newProducts, setNewProducts] = useState<Product[]>([]);
@@ -31,13 +33,13 @@ export default function Products() {
             } catch {
                 setProducts([])
                 setNewProducts([])
-                setError('Não foi possível carregar os produtos.')
+                setError(brand.copy.catalog.loadError)
             } finally {
                 setIsLoading(false);
             }
         }
         loadProducts();
-    }, [sellerId]);
+    }, [brand.copy.catalog.loadError, sellerId]);
 
     const procure = useCallback((event: ChangeEvent<HTMLInputElement> | MouseEvent<HTMLButtonElement>) => {
         const value = event.currentTarget.value;
@@ -54,19 +56,19 @@ export default function Products() {
         <div className="flex flex-col content-center justify-items-center">
             <div className="flex h-full items-center justify-center">
                 <button
-                    className="mt-2.5 flex h-12 w-full max-w-[300px] cursor-pointer flex-col items-center justify-center rounded border-0 bg-[#3483fa] text-base font-bold text-white"
+                    className="mt-2.5 flex h-12 w-full max-w-[300px] cursor-pointer flex-col items-center justify-center rounded border-0 bg-[var(--brand-secondary)] text-base font-bold text-white"
                     type="submit"
                     value={produto}
                     onClick={procure}
                 >
-                    Buscar Produtos
+                    {brand.copy.catalog.searchAction}
                 </button>
             </div>
             <div className="flex h-full items-center justify-center">
                 <input
                     className="mt-2.5 flex h-12 w-full max-w-[300px] self-center rounded border-0 text-center"
                     type="text"
-                    placeholder="Procure um produto"
+                    placeholder={brand.copy.catalog.searchPlaceholder}
                     value={produto}
                     onChange={procure}
                 />
@@ -75,7 +77,7 @@ export default function Products() {
             <div className="mx-auto max-w-[980px] px-0 py-[50px] text-center">
                 {isLoading ? (
                     <div role="status" className="text-[32px] font-bold text-[#999]">
-                        Carregando produtos...
+                        {brand.copy.catalog.loading}
                     </div>
                 ) : error ? (
                     <div role="alert" className="text-[32px] font-bold text-[#999]">
@@ -91,7 +93,7 @@ export default function Products() {
                                         {product.name}
                                     </p>
                                     <p className="h-14 w-[223px] overflow-hidden text-ellipsis">
-                                        Descrição do produto:
+                                        {brand.copy.catalog.descriptionLabel}
                                     </p>
                                     <p className="h-14 w-[223px] overflow-hidden text-ellipsis">
                                         {product.description}
@@ -102,7 +104,7 @@ export default function Products() {
                     </ul>
                 ) : (
                     <div className="text-[32px] font-bold text-[#999]">
-                        <h1>Nenhum produto encontrado :(</h1>
+                        <h1>{brand.copy.catalog.empty}</h1>
                     </div>
                 )}
             </div>

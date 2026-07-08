@@ -1,12 +1,18 @@
 const { Schema, model } = require('mongoose');
 const bcrypt = require('bcryptjs');
+const { defaultTenantId } = require('../tenants');
 
 const UserSchema = new Schema({
+    tenantId: {
+        type: String,
+        required: true,
+        default: defaultTenantId,
+        index: true,
+    },
     email: {
         type: String,
         required: true,
         lowercase: true,
-        unique: true,
     },
     password: {
         type: String,
@@ -24,6 +30,8 @@ const UserSchema = new Schema({
 }, {
     timestamps: true,
 });
+
+UserSchema.index({ tenantId: 1, email: 1 }, { unique: true });
 
 UserSchema.pre('save', async function () {
     if (!this.isModified('password'))

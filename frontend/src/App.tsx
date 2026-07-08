@@ -7,6 +7,7 @@ import AddProduct from './pages/AddProduct';
 import AddUser from './pages/AddUser';
 import Login from './pages/Login';
 import Index from './pages/Index';
+import { BrandProvider } from './brands/BrandProvider';
 import { routePatterns } from './routes';
 
 const router = createBrowserRouter([
@@ -33,7 +34,11 @@ const router = createBrowserRouter([
 ]);
 
 export default function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <BrandProvider>
+      <RouterProvider router={router} />
+    </BrandProvider>
+  );
 }
 
 if (import.meta.hot) {

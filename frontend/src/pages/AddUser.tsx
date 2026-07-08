@@ -4,9 +4,11 @@ import { isAxiosError } from 'axios';
 
 import Header from './header';
 import api from '../services/api';
+import { useBrand } from '../brands/BrandProvider';
 import { apiRoutes, appRoutes } from '../routes';
 
 export default function AddUser() {
+    const brand = useBrand();
     const navigate = useNavigate();
 
     const [username, setUsername] = useState('');
@@ -32,7 +34,7 @@ export default function AddUser() {
                 return;
             }
 
-            setError('Não foi possível criar a conta. Tente novamente.');
+            setError(brand.copy.validation.accountCreateError);
         }
     }
 
@@ -44,28 +46,28 @@ export default function AddUser() {
                     <input
                         className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
                         type="text"
-                        placeholder="Nome"
+                        placeholder="Name"
                         value={username}
                         onChange={e => setUsername(e.target.value)}
                     />
                     <input
                         className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
                         type="text"
-                        placeholder="Telefone"
+                        placeholder="Phone"
                         value={telephone}
                         onChange={e => setTelephone(e.target.value)}
                     />
                     <input
                         className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
                         type="email"
-                        placeholder="E-mail"
+                        placeholder="Email"
                         value={email}
                         onChange={e => setEmail(e.target.value)}
                     />
                     <input
                         className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
                         type="password"
-                        placeholder="Senha"
+                        placeholder="Password"
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                     />
@@ -75,10 +77,10 @@ export default function AddUser() {
                         </p>
                     )}
                     <button
-                        className="mt-2.5 h-12 cursor-pointer rounded border-0 bg-[#3483fa] text-base font-bold text-white"
+                        className="mt-2.5 h-12 cursor-pointer rounded border-0 bg-[var(--brand-secondary)] text-base font-bold text-white"
                         type="submit"
                     >
-                        Criar conta
+                        {brand.copy.forms.createAccountAction}
                     </button>
                 </form>
             </div>
