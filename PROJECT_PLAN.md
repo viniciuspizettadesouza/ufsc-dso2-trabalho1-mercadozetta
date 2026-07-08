@@ -2,9 +2,9 @@
 
 ## Current State
 
-- Active branch: `chore-dependency-maintenance`
-- Last commit: `951f051 feat: implement authenticated login and product flows (#45)`
-- Dependency maintenance updates are completed on this branch and awaiting review/commit.
+- Active branch: `improve-mongodb-schema-indexes`
+- Last commit: `664bd8a chore: update maintenance dependencies (#46)`
+- Dependency maintenance updates are merged on `master`.
 - Frontend validation passed:
   - `npm --prefix frontend run build`
   - `npm --prefix frontend run lint`
@@ -13,6 +13,10 @@
   - `npm --prefix frontend audit`
 - Tests passed:
   - `npm test`
+- MongoDB schema improvements completed on `improve-mongodb-schema-indexes`:
+  - Added a unique index for `User.email`.
+  - Added an index for `Product.seller`.
+  - Added focused backend tests for schema index metadata.
 
 ## Baseline
 
@@ -54,9 +58,7 @@ VITE_API_URL=http://localhost:3333
   - products
   - one seller reference per product
 - PostgreSQL would likely be a stronger option if the app grows into a fuller marketplace with orders, payments, inventory movements, carts, reviews, refunds, and stricter transactional consistency needs.
-- Recommended MongoDB schema improvements:
-  - Add a unique index for `User.email`.
-  - Add an index for `Product.seller`.
+- Remaining MongoDB schema improvements to evaluate:
   - Consider changing `Product.quant` from `String` to `Number`.
   - Consider adding marketplace fields such as price, category, status, and availability.
 

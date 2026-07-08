@@ -26,4 +26,6 @@ const ProductSchema = new Schema({
     timestamps: true,
 });
 
+ProductSchema.index({ seller: 1 });
+
 module.exports = model('product', ProductSchema);
