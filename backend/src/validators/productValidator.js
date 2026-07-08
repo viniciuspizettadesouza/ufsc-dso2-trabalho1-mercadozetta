@@ -5,6 +5,8 @@ const { productStatuses } = require('../productStatus');
 function validateCreateProductPayload(body = {}) {
     const name = String(body.name || '').trim();
     const description = String(body.description || '').trim();
+    const category = String(body.category || 'general').trim().toLowerCase();
+    const subcategory = String(body.subcategory || '').trim().toLowerCase();
     const rawInventory = body.inventory ?? body.quant;
     const image = String(body.image || '').trim();
     const inventory = Number(rawInventory);
@@ -24,10 +26,21 @@ function validateCreateProductPayload(body = {}) {
     return {
         name,
         description,
+        category,
+        subcategory,
         inventory,
         image,
         status,
     };
+}
+
+function validateProductId(productId) {
+    const id = String(productId || '').trim();
+
+    if (!id)
+        throw new AppError(400, 'INVALID_PRODUCT_ID', 'Invalid product id');
+
+    return id;
 }
 
 function validateSellerId(userId) {
@@ -39,5 +52,6 @@ function validateSellerId(userId) {
 
 module.exports = {
     validateCreateProductPayload,
+    validateProductId,
     validateSellerId,
 };

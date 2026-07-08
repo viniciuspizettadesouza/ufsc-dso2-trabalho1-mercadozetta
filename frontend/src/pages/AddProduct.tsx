@@ -36,6 +36,8 @@ export default function AddProduct() {
 
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
+    const [category, setCategory] = useState('general');
+    const [subcategory, setSubcategory] = useState('');
     const [inventory, setInventory] = useState('');
     const [image, setImage] = useState('');
     const [status, setStatus] = useState<ProductStatus>('active');
@@ -55,7 +57,7 @@ export default function AddProduct() {
             setError('');
 
             await api.post(apiRoutes.products, {
-                name, description, inventory: Number(inventory), image, status
+                name, description, category, subcategory, inventory: Number(inventory), image, status
             });
 
             navigate(appRoutes.sellerProducts(user._id));
@@ -88,6 +90,26 @@ export default function AddProduct() {
                         value={description}
                         onChange={e => setDescription(e.target.value)}
                     />
+                    <label className="mt-5 text-sm font-medium text-[#666]" htmlFor="product-category">
+                        {brand.copy.forms.categoryLabel}
+                    </label>
+                    <input
+                        id="product-category"
+                        className="mt-2 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
+                        type="text"
+                        value={category}
+                        onChange={e => setCategory(e.target.value)}
+                    />
+                    <label className="mt-5 text-sm font-medium text-[#666]" htmlFor="product-subcategory">
+                        {brand.copy.forms.subcategoryLabel}
+                    </label>
+                    <input
+                        id="product-subcategory"
+                        className="mt-2 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
+                        type="text"
+                        value={subcategory}
+                        onChange={e => setSubcategory(e.target.value)}
+                    />
                     <input
                         className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
                         type="number"
@@ -98,6 +120,7 @@ export default function AddProduct() {
                         onChange={e => setInventory(e.target.value)}
                     />
                     <input
+                        aria-label={brand.copy.forms.uploadImageLabel}
                         className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
                         type="text"
                         placeholder="Image URL"

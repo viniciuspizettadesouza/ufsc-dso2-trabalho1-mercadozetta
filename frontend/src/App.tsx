@@ -7,6 +7,10 @@ import AddProduct from './pages/AddProduct';
 import AddUser from './pages/AddUser';
 import Login from './pages/Login';
 import Index from './pages/Index';
+import Checkout from './pages/Checkout';
+import AdminDashboard from './pages/AdminDashboard';
+import ProductDetail from './pages/ProductDetail';
+import SellerProfile from './pages/SellerProfile';
 import { BrandProvider } from './brands/BrandProvider';
 import { routePatterns } from './routes';
 
@@ -20,6 +24,10 @@ const router = createBrowserRouter([
     element: <Index />,
   },
   {
+    path: routePatterns.sellerProfile,
+    element: <SellerProfile />,
+  },
+  {
     path: routePatterns.login,
     element: <Login />,
   },
@@ -30,6 +38,18 @@ const router = createBrowserRouter([
   {
     path: routePatterns.newProduct,
     element: <AddProduct />,
+  },
+  {
+    path: routePatterns.productDetail,
+    element: <ProductDetail />,
+  },
+  {
+    path: routePatterns.checkout,
+    element: <Checkout />,
+  },
+  {
+    path: routePatterns.admin,
+    element: <AdminDashboard />,
   },
 ]);
 

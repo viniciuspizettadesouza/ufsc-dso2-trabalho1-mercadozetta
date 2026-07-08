@@ -47,6 +47,7 @@ describe('Products', () => {
     });
 
     beforeEach(() => {
+        localStorage.clear();
         vi.mocked(api.get).mockReset();
     });
 
@@ -98,6 +99,64 @@ describe('Products', () => {
 
         await userEvent.type(screen.getByPlaceholderText('Search for a product'), 'zz');
         expect(screen.getByText('No products found :(')).toBeInTheDocument();
+    });
+
+    it('requests backend filters with query params', async () => {
+        vi.mocked(api.get)
+            .mockResolvedValueOnce({ data: products })
+            .mockResolvedValueOnce({ data: [products[1]] });
+
+        renderProducts();
+
+        await screen.findByText('Coffee');
+        await userEvent.type(screen.getByPlaceholderText('Search for a product'), 'tea');
+        await userEvent.type(screen.getByLabelText('Category filter'), 'drinks');
+        await userEvent.selectOptions(screen.getByLabelText('Availability filter'), 'sold_out');
+        await userEvent.selectOptions(screen.getByLabelText('Sort products'), 'name_asc');
+        await userEvent.click(screen.getByRole('button', { name: 'Search products' }));
+
+        expect(api.get).toHaveBeenLastCalledWith('/products?q=tea&category=drinks&availability=sold_out&sort=name_asc');
+    });
+
+    it('shows backend filter failures', async () => {
+        vi.mocked(api.get)
+            .mockResolvedValueOnce({ data: products })
+            .mockRejectedValueOnce(new Error('network error'));
+
+        renderProducts();
+
+        await screen.findByText('Coffee');
+        await userEvent.click(screen.getByRole('button', { name: 'Search products' }));
+
+        expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load products.');
+    });
+
+    it('toggles watchlist and cart state from storage', async () => {
+        localStorage.setItem('favorites', JSON.stringify(['product-1']));
+        localStorage.setItem('cart', JSON.stringify(['product-1']));
+        vi.mocked(api.get).mockResolvedValueOnce({ data: products });
+
+        renderProducts();
+
+        expect(await screen.findByRole('button', { name: 'Watching' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'In cart' })).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Watching' }));
+        await userEvent.click(screen.getByRole('button', { name: 'In cart' }));
+
+        expect(localStorage.getItem('favorites')).toBe('[]');
+        expect(localStorage.getItem('cart')).toBe('[]');
+    });
+
+    it('handles invalid stored marketplace state', async () => {
+        localStorage.setItem('favorites', '{');
+        localStorage.setItem('cart', '{');
+        vi.mocked(api.get).mockResolvedValueOnce({ data: products });
+
+        renderProducts();
+
+        expect(await screen.findAllByRole('button', { name: 'Watch' })).toHaveLength(2);
+        expect(screen.getAllByRole('button', { name: 'Cart' })).toHaveLength(2);
     });
 
     it('renders image alt text from product name', async () => {

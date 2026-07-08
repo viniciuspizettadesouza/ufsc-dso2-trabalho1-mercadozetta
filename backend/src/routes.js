@@ -12,6 +12,10 @@ routes.get('/', (req, res) => {
 
 routes.get('/products', ProductController.index);
 
+routes.get('/products/:productId', ProductController.detail);
+
+routes.get('/users/:userId', UserController.sellerProfile);
+
 routes.get('/users/:userId/products', ProductController.listBySeller);
 
 routes.post('/users', UserController.add);

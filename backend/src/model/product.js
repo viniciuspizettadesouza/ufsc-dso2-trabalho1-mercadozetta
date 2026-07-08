@@ -17,6 +17,18 @@ const ProductSchema = new Schema({
     description: {
         type: String,
     },
+    category: {
+        type: String,
+        trim: true,
+        lowercase: true,
+        default: 'general',
+    },
+    subcategory: {
+        type: String,
+        trim: true,
+        lowercase: true,
+        default: '',
+    },
     inventory: {
         type: Number,
         required: true,
@@ -42,6 +54,7 @@ const ProductSchema = new Schema({
 });
 
 ProductSchema.index({ tenantId: 1, seller: 1 });
+ProductSchema.index({ tenantId: 1, category: 1, subcategory: 1 });
 ProductSchema.index({ tenantId: 1, name: 'text', description: 'text' });
 
 module.exports = model('product', ProductSchema);

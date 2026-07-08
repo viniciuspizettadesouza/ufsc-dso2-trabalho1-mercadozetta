@@ -78,4 +78,37 @@ describe('App', () => {
         expect(await screen.findByText('No products found :(')).toBeInTheDocument();
         expect(apiGet).toHaveBeenCalledWith('/users/seller-1/products');
     });
+
+    it('renders the product detail page for /products/:productId', async () => {
+        apiGet.mockResolvedValueOnce({
+            data: {
+                _id: 'product-1',
+                name: 'Coffee',
+                description: 'Fresh beans',
+                image: 'coffee.jpg',
+                seller: 'seller-1',
+                sellerProfile: { _id: 'seller-1', username: 'Seller', storeName: 'Seller store' },
+            },
+        });
+
+        await renderAppAt('/products/product-1');
+
+        expect(await screen.findByRole('heading', { name: 'Coffee' })).toBeInTheDocument();
+        expect(apiGet).toHaveBeenCalledWith('/products/product-1');
+    });
+
+    it('renders the checkout page', async () => {
+        await renderAppAt('/checkout');
+
+        expect(screen.getByRole('heading', { name: 'Checkout simulation' })).toBeInTheDocument();
+    });
+
+    it('renders the admin dashboard', async () => {
+        apiGet.mockResolvedValueOnce({ data: [] });
+
+        await renderAppAt('/admin');
+
+        expect(await screen.findByRole('heading', { name: 'Admin dashboard' })).toBeInTheDocument();
+        expect(apiGet).toHaveBeenCalledWith('/products');
+    });
 });
