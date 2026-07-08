@@ -16,13 +16,25 @@ export default function Products() {
     const [products, setProducts] = useState<Product[]>([]);
     const [newProducts, setNewProducts] = useState<Product[]>([]);
     const [produto, setProduto] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState('');
 
     useEffect(() => {
         async function loadProducts() {
-            const path = sellerId ? apiRoutes.sellerProducts(sellerId) : apiRoutes.products;
-            const response = await api.get(path)
-            setProducts(response.data)
-            setNewProducts(response.data)
+            try {
+                setIsLoading(true);
+                setError('');
+                const path = sellerId ? apiRoutes.sellerProducts(sellerId) : apiRoutes.products;
+                const response = await api.get(path)
+                setProducts(response.data)
+                setNewProducts(response.data)
+            } catch {
+                setProducts([])
+                setNewProducts([])
+                setError('Não foi possível carregar os produtos.')
+            } finally {
+                setIsLoading(false);
+            }
         }
         loadProducts();
     }, [sellerId]);
@@ -61,11 +73,19 @@ export default function Products() {
             </div>
 
             <div className="mx-auto max-w-[980px] px-0 py-[50px] text-center">
-                {newProducts.length > 0 ? (
+                {isLoading ? (
+                    <div role="status" className="text-[32px] font-bold text-[#999]">
+                        Carregando produtos...
+                    </div>
+                ) : error ? (
+                    <div role="alert" className="text-[32px] font-bold text-[#999]">
+                        {error}
+                    </div>
+                ) : newProducts.length > 0 ? (
                     <ul className="mt-[50px] grid list-none grid-cols-4 gap-[30px] max-[900px]:grid-cols-2 max-[520px]:grid-cols-1">
                         {newProducts.map(product => (
                             <li className="flex flex-col" key={product._id}>
-                                <img className="max-w-full" src={product.image} alt="produto" />
+                                <img className="max-w-full" src={product.image} alt={product.name} />
                                 <div>
                                     <p className="overflow-hidden whitespace-nowrap">
                                         {product.name}
