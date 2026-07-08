@@ -11,6 +11,8 @@ export type BrandCopy = {
         loadError: string;
         empty: string;
         descriptionLabel: string;
+        inventoryLabel: string;
+        soldOutLabel: string;
     };
     home: {
         createAccountAction: string;

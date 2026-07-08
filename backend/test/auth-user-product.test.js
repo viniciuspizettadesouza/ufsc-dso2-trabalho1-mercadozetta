@@ -356,14 +356,33 @@ describe('auth, user, and product routes', () => {
             .send({
                 name: 'Coffee',
                 description: 'Fresh beans',
-                quant: '3',
+                inventory: 3,
                 image: 'coffee.jpg',
             });
 
         expect(response.status).toBe(201);
         expect(response.body.newProduct.seller).toBe('user-1');
         expect(response.body.newProduct.tenantId).toBe('mercadozetta');
+        expect(response.body.newProduct.inventory).toBe(3);
         expect(response.body.newProduct.name).toBe('Coffee');
+    });
+
+    it('normalizes legacy quant payloads into numeric inventory', async () => {
+        const app = loadApp();
+        const token = jwt.sign({ id: 'user-1' }, process.env.JWT_SECRET);
+
+        const response = await request(app)
+            .post('/products')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+                name: 'Coffee',
+                quant: '3',
+                image: 'coffee.jpg',
+            });
+
+        expect(response.status).toBe(201);
+        expect(response.body.newProduct.inventory).toBe(3);
+        expect(response.body.newProduct.quant).toBeUndefined();
     });
 
     it('creates products for the active tenant', async () => {
@@ -376,7 +395,7 @@ describe('auth, user, and product routes', () => {
             .set('Authorization', `Bearer ${token}`)
             .send({
                 name: 'Notebook',
-                quant: '1',
+                inventory: 1,
                 image: 'notebook.jpg',
             });
 
@@ -399,6 +418,23 @@ describe('auth, user, and product routes', () => {
         expect(response.body).toEqual({ error: 'Name, quantity and image are required' });
     });
 
+    it('rejects product creation with invalid inventory', async () => {
+        const app = loadApp();
+        const token = jwt.sign({ id: 'user-1' }, process.env.JWT_SECRET);
+
+        const response = await request(app)
+            .post('/products')
+            .set('Authorization', `Bearer ${token}`)
+            .send({
+                name: 'Coffee',
+                inventory: -1,
+                image: 'coffee.jpg',
+            });
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({ error: 'Quantity must be a non-negative integer' });
+    });
+
     it('returns a friendly error when product creation fails', async () => {
         createProductError = new Error('database offline');
         const app = loadApp();
@@ -409,7 +445,7 @@ describe('auth, user, and product routes', () => {
             .set('Authorization', `Bearer ${token}`)
             .send({
                 name: 'Coffee',
-                quant: '3',
+                inventory: 3,
                 image: 'coffee.jpg',
             });
 
@@ -422,7 +458,7 @@ describe('auth, user, and product routes', () => {
             _id: 'product-1',
             tenantId: 'mercadozetta',
             name: 'Coffee',
-            quant: '3',
+            inventory: 3,
             image: 'coffee.jpg',
             seller: 'user-1',
         }];
@@ -440,7 +476,7 @@ describe('auth, user, and product routes', () => {
                 _id: 'product-1',
                 tenantId: 'mercadozetta',
                 name: 'Coffee',
-                quant: '3',
+                inventory: 3,
                 image: 'coffee.jpg',
                 seller: 'user-1',
             },
@@ -448,7 +484,7 @@ describe('auth, user, and product routes', () => {
                 _id: 'product-2',
                 tenantId: 'campus-market',
                 name: 'Notebook',
-                quant: '1',
+                inventory: 1,
                 image: 'notebook.jpg',
                 seller: 'user-2',
             },
@@ -490,7 +526,7 @@ describe('auth, user, and product routes', () => {
                 _id: 'product-1',
                 tenantId: 'mercadozetta',
                 name: 'Coffee',
-                quant: '3',
+                inventory: 3,
                 image: 'coffee.jpg',
                 seller: '507f1f77bcf86cd799439011',
             },
@@ -498,7 +534,7 @@ describe('auth, user, and product routes', () => {
                 _id: 'product-2',
                 tenantId: 'campus-market',
                 name: 'Tea',
-                quant: '2',
+                inventory: 2,
                 image: 'tea.jpg',
                 seller: '507f1f77bcf86cd799439012',
             },
@@ -517,7 +553,7 @@ describe('auth, user, and product routes', () => {
                 _id: 'product-1',
                 tenantId: 'mercadozetta',
                 name: 'Coffee',
-                quant: '3',
+                inventory: 3,
                 image: 'coffee.jpg',
                 seller: '507f1f77bcf86cd799439011',
             },
@@ -525,7 +561,7 @@ describe('auth, user, and product routes', () => {
                 _id: 'product-2',
                 tenantId: 'campus-market',
                 name: 'Tea',
-                quant: '2',
+                inventory: 2,
                 image: 'tea.jpg',
                 seller: '507f1f77bcf86cd799439011',
             },

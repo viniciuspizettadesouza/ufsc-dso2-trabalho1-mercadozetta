@@ -210,13 +210,13 @@ describe('model contracts', () => {
         hashSpy.mockRestore();
     });
 
-    it('requires product name, quantity, image, and seller', async () => {
+    it('requires product name, inventory, image, and seller', async () => {
         const product = new Product({});
 
         await expect(product.validate()).rejects.toMatchObject({
             errors: {
                 name: expect.any(Object),
-                quant: expect.any(Object),
+                inventory: expect.any(Object),
                 image: expect.any(Object),
                 seller: expect.any(Object),
             },

@@ -4,7 +4,7 @@ import { isAxiosError } from 'axios';
 
 import Header from './header';
 import api from '../services/api';
-import { useBrand } from '../brands/BrandProvider';
+import { useBrand } from '../brands/brandContext';
 import { apiRoutes, appRoutes } from '../routes';
 
 type StoredUser = {
@@ -32,7 +32,7 @@ export default function AddProduct() {
 
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
-    const [quant, setQuant] = useState('');
+    const [inventory, setInventory] = useState('');
     const [image, setImage] = useState('');
     const [error, setError] = useState('');
 
@@ -50,7 +50,7 @@ export default function AddProduct() {
             setError('');
 
             await api.post(apiRoutes.products, {
-                name, description, quant, image
+                name, description, inventory: Number(inventory), image
             });
 
             navigate(appRoutes.sellerProducts(user._id));
@@ -86,9 +86,11 @@ export default function AddProduct() {
                     <input
                         className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
                         type="number"
+                        min="0"
+                        step="1"
                         placeholder="Quantity"
-                        value={quant}
-                        onChange={e => setQuant(e.target.value)}
+                        value={inventory}
+                        onChange={e => setInventory(e.target.value)}
                     />
                     <input
                         className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"

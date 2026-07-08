@@ -1,9 +1,8 @@
-import { createContext, ReactNode, useContext, useEffect, useMemo } from 'react';
+import { ReactNode, useEffect, useMemo } from 'react';
 
-import { defaultBrand, getBrandByTenantId } from '.';
+import { getBrandByTenantId } from '.';
+import { BrandContext } from './brandContext';
 import type { BrandConfig } from './schema';
-
-const BrandContext = createContext<BrandConfig>(defaultBrand);
 
 type BrandProviderProps = {
     brand?: BrandConfig;
@@ -48,8 +47,4 @@ export function BrandProvider({ brand, children }: BrandProviderProps) {
             {children}
         </BrandContext.Provider>
     );
-}
-
-export function useBrand() {
-    return useContext(BrandContext);
 }

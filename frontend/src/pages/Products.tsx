@@ -2,7 +2,7 @@ import { ChangeEvent, MouseEvent, useEffect, useState, useCallback } from 'react
 import { useParams } from 'react-router';
 
 import api from '../services/api';
-import { useBrand } from '../brands/BrandProvider';
+import { useBrand } from '../brands/brandContext';
 import { apiRoutes } from '../routes';
 
 type Product = {
@@ -10,6 +10,7 @@ type Product = {
     name: string;
     description: string;
     image: string;
+    inventory?: number;
 };
 
 export default function Products() {
@@ -98,6 +99,13 @@ export default function Products() {
                                     <p className="h-14 w-[223px] overflow-hidden text-ellipsis">
                                         {product.description}
                                     </p>
+                                    {brand.features.inventory && product.inventory !== undefined && (
+                                        <p className="h-8 w-[223px] overflow-hidden text-ellipsis font-bold text-[var(--brand-accent)]">
+                                            {product.inventory > 0
+                                                ? `${brand.copy.catalog.inventoryLabel} ${product.inventory}`
+                                                : brand.copy.catalog.soldOutLabel}
+                                        </p>
+                                    )}
                                 </div>
                             </li>
                         ))}

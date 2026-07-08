@@ -75,7 +75,7 @@ describe('AddProduct', () => {
             expect(api.post).toHaveBeenCalledWith('/products', {
                 name: 'Coffee',
                 description: 'Fresh beans',
-                quant: '3',
+                inventory: 3,
                 image: 'coffee.jpg',
             });
         });

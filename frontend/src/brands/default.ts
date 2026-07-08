@@ -29,6 +29,8 @@ export const defaultBrand: BrandConfig = {
             loadError: 'Unable to load products.',
             empty: 'No products found :(',
             descriptionLabel: 'Product description:',
+            inventoryLabel: 'Available:',
+            soldOutLabel: 'Sold out',
         },
         home: {
             createAccountAction: 'Create account',

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 
 import Header from './header';
 import api from '../services/api';
-import { useBrand } from '../brands/BrandProvider';
+import { useBrand } from '../brands/brandContext';
 import { apiRoutes, appRoutes } from '../routes';
 
 export default function Login() {
