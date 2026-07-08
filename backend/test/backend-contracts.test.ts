@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const request = require('supertest');
+
 const app = require('../src/app');
 const authMiddleware = require('../src/middleware/auth');
 const Product = require('../src/model/product');

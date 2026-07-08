@@ -2,11 +2,12 @@ module.exports = {
     test: {
         environment: 'node',
         globals: true,
+        setupFiles: ['./vitest.setup.ts'],
         coverage: {
             provider: 'v8',
             reporter: ['text', 'html', 'json'],
             exclude: [
-                'src/server.js',
+                'src/server.ts',
                 'coverage/**',
                 'node_modules/**',
             ],

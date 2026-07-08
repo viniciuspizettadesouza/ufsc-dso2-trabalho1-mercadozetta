@@ -26,6 +26,14 @@ let products;
 let createUserError;
 let findProductsError;
 let createProductError;
+function createDocument(item) {
+    return {
+        ...item,
+        toObject() {
+            return { ...item };
+        },
+    };
+}
 
 function resetModules() {
     [
@@ -60,7 +68,7 @@ function resetModules() {
                     && (!query.email || item.email === query.email)
                     && (!query._id || item._id === query._id)
                 ));
-                const foundUser = user ? { ...user } : null;
+                const foundUser = user ? createDocument(user) : null;
 
                 return {
                     select: async () => foundUser,
@@ -73,7 +81,7 @@ function resetModules() {
                 if (createUserError)
                     throw createUserError;
 
-                const newUser = { _id: `user-${users.length + 1}`, ...user };
+                const newUser = createDocument({ _id: `user-${users.length + 1}`, ...user });
                 users.push(newUser);
                 return { ...newUser };
             },
@@ -89,25 +97,29 @@ function resetModules() {
                 if (findProductsError)
                     throw findProductsError;
 
-                return products.filter(product => (
-                    (!query.tenantId || product.tenantId === query.tenantId)
-                    && (!query.seller || product.seller === query.seller)
-                ));
+                return products
+                    .filter(product => (
+                        (!query.tenantId || product.tenantId === query.tenantId)
+                        && (!query.seller || product.seller === query.seller)
+                    ))
+                    .map(createDocument);
             },
             async findOne(query = {}) {
                 if (findProductsError)
                     throw findProductsError;
 
-                return products.find(product => (
-                    (!query.tenantId || product.tenantId === query.tenantId)
-                    && (!query._id || product._id === query._id)
-                )) || null;
+                const product = products.find(item => (
+                    (!query.tenantId || item.tenantId === query.tenantId)
+                    && (!query._id || item._id === query._id)
+                ));
+
+                return product ? createDocument(product) : null;
             },
             async create(product) {
                 if (createProductError)
                     throw createProductError;
 
-                const newProduct = { _id: `product-${products.length + 1}`, ...product };
+                const newProduct = createDocument({ _id: `product-${products.length + 1}`, ...product });
                 products.push(newProduct);
                 return { ...newProduct };
             },
