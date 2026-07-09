@@ -1,4 +1,5 @@
-const { validateLoginPayload } = require('../../../src/validators/authValidator');
+import { describe, expect, it } from 'vitest';
+import { validateLoginPayload } from '../../../src/validators/authValidator';
 
 describe('authValidator', () => {
     it('normalizes login email and keeps the password unchanged', () => {
@@ -25,5 +26,3 @@ describe('authValidator', () => {
             }));
     });
 });
-
-export {};

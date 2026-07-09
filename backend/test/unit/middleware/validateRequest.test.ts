@@ -1,4 +1,5 @@
-const validateRequest = require('../../../src/middleware/validateRequest');
+import { describe, expect, it, vi } from 'vitest';
+import validateRequest from '../../../src/middleware/validateRequest';
 
 describe('validateRequest', () => {
     it('stores validated body, params, and query without dropping previous data', () => {
@@ -14,7 +15,7 @@ describe('validateRequest', () => {
             body: body => ({ ...body, normalized: true }),
             params: params => ({ id: params.productId }),
             query: query => ({ sort: query.sort }),
-        })(req, {}, next);
+        })(req as any, {} as any, next);
 
         expect(req.validated).toEqual({
             tenant: 'mercadozetta',
@@ -33,10 +34,8 @@ describe('validateRequest', () => {
             body: () => {
                 throw error;
             },
-        })({ body: {} }, {}, next);
+        })({ body: {} } as any, {} as any, next);
 
         expect(next).toHaveBeenCalledWith(error);
     });
 });
-
-export {};

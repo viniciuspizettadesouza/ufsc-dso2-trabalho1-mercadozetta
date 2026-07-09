@@ -1,6 +1,7 @@
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { clearModules, mockModule } = require('../helpers/moduleMock');
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { clearModules, mockModule } from '../helpers/moduleMock';
 
 const servicePath = require.resolve('../../../src/services/authService');
 const securityPath = require.resolve('../../../src/config/security');
@@ -97,5 +98,3 @@ describe('authService', () => {
         });
     });
 });
-
-export {};

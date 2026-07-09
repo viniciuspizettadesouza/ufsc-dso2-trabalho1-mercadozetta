@@ -1,4 +1,5 @@
-const { clearModules, mockModule } = require('../helpers/moduleMock');
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { clearModules, mockModule } from '../helpers/moduleMock';
 
 const controllerPath = require.resolve('../../../src/controller/productController');
 const servicePath = require.resolve('../../../src/services/productService');
@@ -24,8 +25,6 @@ function loadController(service: any = {}) {
 afterEach(() => {
     clearModules(controllerPath, servicePath);
 });
-
-export {};
 
 describe('productController', () => {
     it('lists products for the current tenant and validated query', async () => {

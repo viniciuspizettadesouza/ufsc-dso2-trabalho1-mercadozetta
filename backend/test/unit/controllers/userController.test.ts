@@ -1,4 +1,5 @@
-const { clearModules, mockModule } = require('../helpers/moduleMock');
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { clearModules, mockModule } from '../helpers/moduleMock';
 
 const controllerPath = require.resolve('../../../src/controller/userController');
 const servicePath = require.resolve('../../../src/services/userService');
@@ -22,8 +23,6 @@ function loadController(service: any = {}) {
 afterEach(() => {
     clearModules(controllerPath, servicePath);
 });
-
-export {};
 
 describe('userController', () => {
     it('creates a user with validated body and tenant id', async () => {

@@ -1,11 +1,12 @@
-const tenantMiddleware = require('../../../src/middleware/tenant');
+import { describe, expect, it, vi } from 'vitest';
+import tenantMiddleware from '../../../src/middleware/tenant';
 
 describe('tenantMiddleware', () => {
     it('uses the default tenant when no tenant header is provided', () => {
         const req: any = { headers: {} };
         const next = vi.fn();
 
-        tenantMiddleware(req, {}, next);
+        tenantMiddleware(req, {} as any, next);
 
         expect(req.tenant).toEqual(expect.objectContaining({
             id: 'mercadozetta',
@@ -18,7 +19,7 @@ describe('tenantMiddleware', () => {
         const req: any = { headers: { 'x-tenant-id': 'campus-market' } };
         const next = vi.fn();
 
-        tenantMiddleware(req, {}, next);
+        tenantMiddleware(req, {} as any, next);
 
         expect(req.tenant).toEqual(expect.objectContaining({
             id: 'campus-market',
@@ -28,10 +29,10 @@ describe('tenantMiddleware', () => {
     });
 
     it('rejects invalid tenant headers', () => {
-        const req = { headers: { 'x-tenant-id': 'unknown' } };
+        const req: any = { headers: { 'x-tenant-id': 'unknown' } };
         const next = vi.fn();
 
-        tenantMiddleware(req, {}, next);
+        tenantMiddleware(req, {} as any, next);
 
         expect(next).toHaveBeenCalledWith(expect.objectContaining({
             statusCode: 400,
@@ -39,5 +40,3 @@ describe('tenantMiddleware', () => {
         }));
     });
 });
-
-export {};

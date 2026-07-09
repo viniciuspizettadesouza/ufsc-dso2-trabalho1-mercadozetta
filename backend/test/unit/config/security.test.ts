@@ -1,3 +1,5 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
 const securityPath = require.resolve('../../../src/config/security');
 
 function loadSecurityWithEnv(env = {}) {
@@ -83,5 +85,3 @@ describe('security config', () => {
         });
     });
 });
-
-export {};

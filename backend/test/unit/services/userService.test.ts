@@ -1,4 +1,5 @@
-const { clearModules, mockModule } = require('../helpers/moduleMock');
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { clearModules, mockModule } from '../helpers/moduleMock';
 
 const servicePath = require.resolve('../../../src/services/userService');
 const userModelPath = require.resolve('../../../src/model/user');
@@ -135,5 +136,3 @@ describe('userService', () => {
         });
     });
 });
-
-export {};

@@ -1,5 +1,6 @@
-const jwt = require('jsonwebtoken');
-const { clearModules, mockModule } = require('../helpers/moduleMock');
+import jwt from 'jsonwebtoken';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { clearModules, mockModule } from '../helpers/moduleMock';
 
 const authPath = require.resolve('../../../src/middleware/auth');
 const securityPath = require.resolve('../../../src/config/security');
@@ -90,5 +91,3 @@ describe('auth middleware', () => {
         }));
     });
 });
-
-export {};

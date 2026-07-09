@@ -1,4 +1,5 @@
-const { validateCreateUserPayload } = require('../../../src/validators/userValidator');
+import { describe, expect, it } from 'vitest';
+import { validateCreateUserPayload } from '../../../src/validators/userValidator';
 
 describe('userValidator', () => {
     it('normalizes a valid create-user payload', () => {
@@ -42,5 +43,3 @@ describe('userValidator', () => {
         })).toThrow(expect.objectContaining({ code: 'WEAK_PASSWORD' }));
     });
 });
-
-export {};

@@ -1,5 +1,6 @@
-const AppError = require('../../../src/errors/AppError');
-const errorHandler = require('../../../src/middleware/errorHandler');
+import { describe, expect, it, vi } from 'vitest';
+import AppError from '../../../src/errors/AppError';
+import errorHandler from '../../../src/middleware/errorHandler';
 
 function createResponse() {
     return {
@@ -16,7 +17,7 @@ describe('errorHandler', () => {
         const next = vi.fn();
         res.headersSent = true;
 
-        errorHandler(error, {}, res, next);
+        errorHandler(error, {} as any, res as any, next);
 
         expect(next).toHaveBeenCalledWith(error);
         expect(res.status).not.toHaveBeenCalled();
@@ -25,7 +26,7 @@ describe('errorHandler', () => {
     it('serializes AppError instances with optional details', () => {
         const res = createResponse();
 
-        errorHandler(new AppError(400, 'BAD_INPUT', 'Bad input', { field: 'email' }), {}, res, vi.fn());
+        errorHandler(new AppError(400, 'BAD_INPUT', 'Bad input', { field: 'email' }), {} as any, res as any, vi.fn());
 
         expect(res.status).toHaveBeenCalledWith(400);
         expect(res.send).toHaveBeenCalledWith({
@@ -38,7 +39,7 @@ describe('errorHandler', () => {
     it('maps invalid JSON parser errors to a 400 response', () => {
         const res = createResponse();
 
-        errorHandler({ type: 'entity.parse.failed' }, {}, res, vi.fn());
+        errorHandler({ type: 'entity.parse.failed' }, {} as any, res as any, vi.fn());
 
         expect(res.status).toHaveBeenCalledWith(400);
         expect(res.send).toHaveBeenCalledWith({
@@ -50,7 +51,7 @@ describe('errorHandler', () => {
     it('hides unexpected errors behind a generic 500 response', () => {
         const res = createResponse();
 
-        errorHandler(new Error('database exploded'), {}, res, vi.fn());
+        errorHandler(new Error('database exploded'), {} as any, res as any, vi.fn());
 
         expect(res.status).toHaveBeenCalledWith(500);
         expect(res.send).toHaveBeenCalledWith({
@@ -59,5 +60,3 @@ describe('errorHandler', () => {
         });
     });
 });
-
-export {};

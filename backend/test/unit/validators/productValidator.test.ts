@@ -1,9 +1,10 @@
-const {
+import { describe, expect, it } from 'vitest';
+import {
     validateCreateProductPayload,
     validateProductFilters,
     validateProductId,
     validateSellerId,
-} = require('../../../src/validators/productValidator');
+} from '../../../src/validators/productValidator';
 
 describe('productValidator', () => {
     it('normalizes product creation payloads and supports the quant alias', () => {
@@ -83,5 +84,3 @@ describe('productValidator', () => {
             .toThrow(expect.objectContaining({ code: 'INVALID_SELLER_ID' }));
     });
 });
-
-export {};
