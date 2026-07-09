@@ -48,7 +48,34 @@ repeatable.
 - Document the demo startup flow in the README.
 - Add a short manual smoke-test checklist that starts from seeded data.
 
-## Priority 3 - API Contract Documentation
+## Priority 3 - Auth Flow Hardening
+
+Implement these in a dedicated branch after the authentication flow diagrams are
+reviewed. The current flow is solid for a demo, but these changes would make it
+safer and more production-ready.
+
+- Reject signed JWTs that do not contain a valid user id before setting
+  `req.userId`.
+- Revisit browser token storage:
+  - consider replacing `localStorage` JWT storage with an `HttpOnly`, `Secure`,
+    `SameSite` cookie strategy
+  - keep the current approach only if the project intentionally prioritizes demo
+    simplicity over stronger XSS resistance
+- Add a clearer token lifecycle:
+  - short-lived access tokens
+  - refresh token or token-version strategy
+  - backend-supported logout/revocation if the app needs forced session invalidation
+- Tighten tenant handling for production:
+  - require `X-Tenant-Id` instead of silently falling back to the default tenant
+  - keep the default tenant fallback only for local development or tests
+- Add focused tests for:
+  - JWTs missing `id`
+  - expired tokens
+  - tokens from another tenant
+  - missing tenant headers when strict tenant mode is enabled
+  - logout/session invalidation behavior if revocation is added
+
+## Priority 4 - API Contract Documentation
 
 This should happen before adding generated clients or expanding persistent
 commerce workflows.
@@ -64,7 +91,7 @@ commerce workflows.
   - health/readiness endpoints
 - Add API client generation only after the documented contract is stable.
 
-## Priority 4 - Architecture Decision Records
+## Priority 5 - Architecture Decision Records
 
 Capture decisions that are already shaping the project so future changes have a
 clear reference point.
@@ -79,7 +106,7 @@ clear reference point.
   - decision
   - consequences
 
-## Priority 5 - Persistent Commerce Domain
+## Priority 6 - Persistent Commerce Domain
 
 Only start this if the project needs real buyer workflows beyond the current
 demo simulation.
@@ -95,9 +122,10 @@ demo simulation.
 
 1. Modernize the home/catalog experience.
 2. Add Docker Compose and seed scripts.
-3. Document the current API with OpenAPI.
-4. Add ADRs for existing architecture decisions.
-5. Persist commerce workflows only if the product scope grows.
+3. Harden the authentication flow.
+4. Document the current API with OpenAPI.
+5. Add ADRs for existing architecture decisions.
+6. Persist commerce workflows only if the product scope grows.
 
 ## Definition of Done
 
