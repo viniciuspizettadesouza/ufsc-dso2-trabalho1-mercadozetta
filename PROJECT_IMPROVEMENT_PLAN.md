@@ -1,185 +1,113 @@
-# MercadoZetta Improvement Plan
+# MercadoZetta Next Improvement Plan
 
-## Vision
+## Goal
 
-Transform MercadoZetta from a course marketplace demo into a maintainable,
-tested, white-label marketplace foundation. The target architecture should let
-one codebase serve multiple brands, themes, copy sets, catalog rules, and
-deployment environments without duplicating frontend or backend logic.
+Focus the next work on improvements that make MercadoZetta easier to run,
+easier to evolve, and more polished as a white-label marketplace demo.
 
-## Current Goals
+## Priority 1 - UI/UX Modernization
 
-- Expand MercadoZetta from a catalog demo into a fuller marketplace experience.
-- Keep tenant and brand support intact as product features grow.
-- Improve security, reliability, architecture, DX, and UI incrementally.
-- Keep changes incremental: each phase should leave the app usable and
-  deployable.
-
-## Phase 5 - Product and Domain Improvements
-
-Status: completed for the current course/demo scope.
-
-Completed scope:
-
-- Product domain: inventory, status, categories, subcategories, seller
-  ownership, search, sort, and filter support.
-- Marketplace browsing: catalog filters, product detail pages, seller profile
-  pages, seller contact information, and public store branding.
-- Demo commerce flows: watchlist, cart, checkout simulation, order history,
-  reviews, seller ratings, notifications, audit-style activity, and admin
-  dashboard.
-- White-label readiness: new user-visible copy follows the existing brand copy
-  structure where practical.
-- Accessibility pass: new controls use labels/ARIA names and native
-  keyboard-friendly inputs, buttons, links, and selects.
-
-Implementation notes:
-
-- Backend persistence covers product status, inventory, categories,
-  subcategories, seller-scoped listings, product detail lookup, seller profile
-  lookup, and query-param filtering.
-- Course/demo-only buyer workflows use `localStorage` to avoid introducing a
-  larger order/payment domain before the security and architecture phases.
-- Existing product image URL payload compatibility was preserved while the
-  frontend now presents the field as an image upload/reference flow.
-
-## Phase 6 - Security and Reliability
-
-Status: completed for the current course/demo scope.
-
-- Require `JWT_SECRET` outside test/development; avoid silent production
-  fallback secrets.
-- Add password policy and password length validation.
-- Add rate limiting for login and account creation.
-- Add helmet/security headers.
-- Configure CORS by environment instead of allowing every origin.
-- Add centralized request validation.
-- Add centralized error handling middleware.
-- Add structured logging with request id/correlation id.
-- Add health checks:
-  - `GET /health`
-  - `GET /ready`
-- Add graceful shutdown for MongoDB/server.
-- Add API response contracts and status-code consistency.
-- Add dependency vulnerability checks in CI.
-- Add `.env.example` updates whenever config changes.
-
-Completed in current Phase 6 branch:
-
-- JWT signing/verifying now uses a central secret resolver and fails fast outside
-  development/test when `JWT_SECRET` is missing.
-- User registration rejects passwords shorter than 8 characters.
-- Login and account creation routes have configurable in-memory rate limits.
-- Express uses Helmet security headers and environment-configured CORS origins.
-- Requests receive/preserve an `X-Request-Id`, and non-test responses are logged
-  as structured JSON with method, path, status code, and duration.
-- `GET /health` and `GET /ready` endpoints were added.
-- The server closes the HTTP server and MongoDB connection on `SIGINT`/`SIGTERM`.
-- Malformed JSON requests now receive a consistent API error response.
-- Backend docs and `.env.example` include the new CORS and rate-limit settings.
-- Routes now use centralized request validation middleware for body, params, and
-  product query filters before controller execution.
-- API error responses now include both a user-readable `error` string and a
-  stable machine-readable `code`.
-- Unexpected backend failures now consistently return HTTP `500` with
-  `INTERNAL_SERVER_ERROR` instead of being reported as bad requests.
-- GitHub Actions CI now installs all dependency trees, runs high-severity
-  dependency audits, tests backend/frontend, lints frontend, and builds
-  frontend.
-
-## Phase 7 - Architecture and DX Modernization
-
-- Introduce feature-based folder structure.
-- Keep domain logic independent from Express and React where practical.
-- Add path aliases only if they reduce import noise.
-- Consider TypeScript migration for the backend after tests are stable.
-- Add OpenAPI documentation generated from route schemas.
-- Add API client generation only after the API contract stabilizes.
-- Add Docker Compose for API, frontend, and MongoDB.
-- Add seed scripts for demo tenants, users, and products.
-- Add pre-commit checks:
-  - lint
-  - test related files
-  - formatting, if a formatter is introduced
-- Add GitHub Actions or equivalent CI:
-  - install
-  - lint frontend
-  - test backend
-  - test frontend
-  - coverage
-  - build frontend
-- Add ADRs for major decisions:
-  - white-label strategy
-  - auth/session model
-  - tenant isolation model
-  - validation/error format
-
-## Phase 8 - UI/UX Modernization
+This is the best next focus because it improves the most visible part of the
+project without requiring major backend changes.
 
 - Replace the current button-heavy home layout with a marketplace-first page:
   - header with search
   - product grid
   - seller/account actions
-  - clear empty/loading/error states
-- Add responsive product cards with stable image aspect ratio.
-- Add accessible forms with labels, helper text, and error messages.
-- Add consistent spacing, typography, and color tokens from the active brand.
-- Add skeleton loading for product grids.
+  - clear empty, loading, and error states
+- Improve product cards:
+  - stable image aspect ratio
+  - responsive layout
+  - clear price, status, category, and seller information
+  - accessible links/buttons for product and seller navigation
+- Improve forms where needed:
+  - labels
+  - helper text
+  - user-visible validation errors
+  - consistent success/error feedback
+- Add skeleton loading or lightweight loading states for product lists.
 - Add toast or inline feedback for successful actions.
-- Add a design-token layer for white-label theming.
-- Keep UI copy in Portuguese by default, but prepare copy keys for i18n.
+- Keep user-facing copy in Portuguese by default.
+- Continue routing new brand-specific copy through the existing brand copy
+  structure.
 
-## Suggested Target Structure
+## Priority 2 - Local Development and Demo Setup
 
-Backend:
+This should come after the UI pass so testing and demos become easier and more
+repeatable.
 
-```text
-backend/src/
-  app.js
-  server.js
-  config/
-  controller/
-  errors/
-  middleware/
-  model/
-  routes/
-  services/
-  tenants/
-  validators/
-```
+- Add Docker Compose for:
+  - MongoDB
+  - backend API
+  - frontend app
+- Add seed scripts for demo data:
+  - tenants/brands
+  - users
+  - sellers
+  - products
+- Document the demo startup flow in the README.
+- Add a short manual smoke-test checklist that starts from seeded data.
 
-Frontend:
+## Priority 3 - API Contract Documentation
 
-```text
-frontend/src/
-  app/
-  auth/
-  brands/
-  components/
-  features/
-    products/
-    users/
-    sellers/
-  routes/
-  services/
-  test/
-```
+This should happen before adding generated clients or expanding persistent
+commerce workflows.
+
+- Add OpenAPI documentation for the existing API.
+- Prefer generating or colocating the docs from route validation schemas where
+  practical.
+- Document request/response examples for:
+  - auth
+  - users
+  - products
+  - seller profile/product lookup
+  - health/readiness endpoints
+- Add API client generation only after the documented contract is stable.
+
+## Priority 4 - Architecture Decision Records
+
+Capture decisions that are already shaping the project so future changes have a
+clear reference point.
+
+- Add ADRs for:
+  - white-label strategy
+  - auth/session model
+  - tenant isolation model
+  - validation and error response format
+- Keep each ADR short:
+  - context
+  - decision
+  - consequences
+
+## Priority 5 - Persistent Commerce Domain
+
+Only start this if the project needs real buyer workflows beyond the current
+demo simulation.
+
+- Persist carts, watchlists, orders, order items, reviews, and notifications in
+  MongoDB.
+- Add buyer/seller authorization rules for order and review operations.
+- Replace localStorage checkout and order history with API-backed flows.
+- Add lifecycle states for orders and seller fulfillment actions.
+- Add focused backend and frontend regression tests for each persisted workflow.
+
+## Recommended Order
+
+1. Modernize the home/catalog experience.
+2. Add Docker Compose and seed scripts.
+3. Document the current API with OpenAPI.
+4. Add ADRs for existing architecture decisions.
+5. Persist commerce workflows only if the product scope grows.
 
 ## Definition of Done
 
 - `npm test` passes from the repository root.
-- `npm --prefix frontend run lint` passes.
+- `npm run lint` passes from the repository root.
 - `npm --prefix frontend run build` passes.
 - `npm run test:coverage` passes when behavior or coverage-sensitive code
   changes.
-- New product, security, architecture, or UI behavior has focused regression
-  tests.
+- New product, architecture, or UI behavior has focused regression tests.
 - Tenant-scoped behavior remains isolated.
 - Default MercadoZetta and sample tenant branding continue to work.
 - README or relevant docs are updated when commands, configuration, or API
   contracts change.
-
-## Near-Term Next Steps
-
-1. Start Phase 7 architecture and DX modernization.
-2. Revisit Phase 5 demo-local flows for persistence if the course scope grows.
