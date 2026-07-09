@@ -1,8 +1,14 @@
+type ValidatedValue = object | string;
+
 declare global {
   namespace Express {
     interface Request {
       requestId?: string;
-      validated?: Record<string, any>;
+      validated?: {
+        body?: ValidatedValue;
+        params?: ValidatedValue;
+        query?: ValidatedValue;
+      };
       tenant?: { id: string; name: string; active: boolean };
       userId?: string;
     }

@@ -1,20 +1,21 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "CommonJS",
+    "module": "Node16",
+    "moduleResolution": "node16",
     "rootDir": ".",
     "outDir": "dist",
     "noEmit": true,
     "strict": true,
     "esModuleInterop": true,
-    "allowJs": true,
+    "allowJs": false,
     "checkJs": false,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "resolveJsonModule": true,
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src/**/*", "test/**/*", "vitest.setup.ts"],
+  "include": ["src/**/*", "test/**/*", "vitest.setup.ts", "*.config.ts"],
   "exclude": ["node_modules", "dist"]
 }

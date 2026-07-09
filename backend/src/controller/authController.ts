@@ -1,9 +1,16 @@
 import type { Request, Response } from 'express';
 import AuthService from '../services/authService';
+import type { LoginCredentials } from '../validators/authValidator';
+
+type LoginRequest = Request & {
+  validated: {
+    body: LoginCredentials;
+  };
+};
 
 const authController = {
-  async authenticate(req: Request, res: Response) {
-    const result = await AuthService.authenticate(req.validated?.body, req.tenant?.id ?? '');
+  async authenticate(req: LoginRequest, res: Response) {
+    const result = await AuthService.authenticate(req.validated.body, req.tenant?.id ?? '');
     return res.status(200).send(result);
   },
 };

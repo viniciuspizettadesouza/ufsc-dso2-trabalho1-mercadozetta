@@ -15,6 +15,6 @@ app.use(requestContext);
 app.use(express.json());
 app.use(tenantMiddleware);
 app.use(routes);
-app.use(errorHandler as any);
+app.use(errorHandler);
 
 export default app;

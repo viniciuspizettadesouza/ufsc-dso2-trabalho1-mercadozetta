@@ -5,7 +5,7 @@ const servicePath = require.resolve('../../../src/services/productService');
 const productModelPath = require.resolve('../../../src/model/product');
 const userServicePath = require.resolve('../../../src/services/userService');
 
-function loadProductService(productModel, userService: any = {}) {
+function loadProductService(productModel: NodeModule['exports'], userService: any = {}) {
     clearModules(servicePath, productModelPath, userServicePath);
     mockModule(productModelPath, productModel);
     mockModule(userServicePath, {
@@ -67,7 +67,7 @@ describe('productService', () => {
         });
 
         expect(find).toHaveBeenCalledWith({ tenantId: 'campus-market' });
-        expect(result.map(product => product._id)).toEqual(['product-2']);
+        expect(result.map((product: { _id: string }) => product._id)).toEqual(['product-2']);
     });
 
     it('sorts products by creation, name, and inventory', async () => {
@@ -157,6 +157,6 @@ describe('productService', () => {
         });
 
         expect(find).toHaveBeenCalledWith({ tenantId: 'campus-market', seller: sellerId });
-        expect(result.map(product => product._id)).toEqual(['product-1']);
+        expect(result.map((product: { _id: string }) => product._id)).toEqual(['product-1']);
     });
 });

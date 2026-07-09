@@ -7,7 +7,6 @@ import authMiddleware from './middleware/auth';
 import asyncHandler from './middleware/asyncHandler';
 import { authRateLimiter, registerRateLimiter } from './middleware/rateLimit';
 import validateRequest from './middleware/validateRequest';
-import { validateLoginPayload } from './validators/authValidator';
 import {
   validateCreateProductPayload,
   validateProductFilters,
@@ -15,6 +14,7 @@ import {
   validateSellerId,
 } from './validators/productValidator';
 import { validateCreateUserPayload } from './validators/userValidator';
+import { validateLoginPayload } from './validators/authValidator';
 
 const routes = express.Router();
 
@@ -56,7 +56,7 @@ routes.get('/users/:userId', asyncHandler(UserController.sellerProfile));
 routes.get(
   '/users/:userId/products',
   validateRequest({
-    params: params => ({ userId: validateSellerId(params.userId || params.userID) }),
+    params: params => ({ userId: validateSellerId(String(params.userId || params.userID || '')) }),
     query: validateProductFilters,
   }),
   asyncHandler(ProductController.listBySeller)

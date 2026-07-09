@@ -19,7 +19,7 @@ import Product from '../src/model/product';
 import { createProduct, getProductById, listProducts, listProductsBySeller } from '../src/services/productService';
 import UserService from '../src/services/userService';
 
-const mockedProduct = Product as unknown as {
+const mockedProduct = Product as typeof Product & {
   find: ReturnType<typeof vi.fn>;
   findOne: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;

@@ -27,15 +27,15 @@ import jwt from 'jsonwebtoken';
 import User from '../src/model/user';
 import { authenticate } from '../src/services/authService';
 
-const mockedUser = User as unknown as {
+const mockedUser = User as typeof User & {
   findOne: ReturnType<typeof vi.fn>;
 };
 
-const mockedBcrypt = bcrypt as unknown as {
+const mockedBcrypt = bcrypt as typeof bcrypt & {
   compare: ReturnType<typeof vi.fn>;
 };
 
-const mockedJwt = jwt as unknown as {
+const mockedJwt = jwt as typeof jwt & {
   sign: ReturnType<typeof vi.fn>;
 };
 

@@ -28,7 +28,7 @@ type MockDocument = {
     tenantId?: string;
     seller?: string;
     email?: string;
-    [key: string]: unknown;
+    [key: string]: string | number | boolean | null | undefined | (() => MockDocument);
 };
 
 type MockQuery = {
@@ -40,7 +40,7 @@ type MockQuery = {
 
 let users: MockDocument[];
 let products: MockDocument[];
-let createUserError: Error | { code?: number; keyPattern?: Record<string, unknown> } | null;
+let createUserError: Error | { code?: number; keyPattern?: Record<string, number> } | null;
 let findProductsError: Error | null;
 let createProductError: Error | null;
 
@@ -92,7 +92,7 @@ function resetModules() {
 
                 return {
                     select: async () => foundUser,
-                    then(resolve: (value: unknown) => void, reject: (reason?: unknown) => void) {
+                    then(resolve: (value: MockDocument | null) => void, reject: (reason?: Error) => void) {
                         return Promise.resolve(foundUser).then(resolve, reject);
                     },
                 };
@@ -671,7 +671,7 @@ describe('auth, user, and product routes', () => {
         expect(inStockResponse.status).toBe(200);
         expect(inStockResponse.body).toEqual([products[0]]);
         expect(inventoryResponse.status).toBe(200);
-        expect(inventoryResponse.body.map(product => product._id)).toEqual(['product-2', 'product-1']);
+        expect(inventoryResponse.body.map((product: { _id: string }) => product._id)).toEqual(['product-2', 'product-1']);
     });
 
     it('supports search aliases and missing optional product fields', async () => {

@@ -10,23 +10,28 @@ const Product = require('../src/model/product');
 const routes = require('../src/routes');
 const User = require('../src/model/user');
 
-function findRoute(path, method) {
-    return routes.stack.find(layer => (
+function findRoute(path: string, method: string) {
+    return routes.stack.find((layer: any) => (
         layer.route
         && layer.route.path === path
         && layer.route.methods[method]
     ));
 }
 
-function createResponse() {
+function createResponse(): {
+    statusCode: number | null;
+    body: NodeModule['exports'];
+    status: (code: number) => ReturnType<typeof createResponse>;
+    send: (payload: NodeModule['exports']) => ReturnType<typeof createResponse>;
+} {
     return {
         statusCode: null,
         body: null,
-        status(code) {
+        status(code: number) {
             this.statusCode = code;
             return this;
         },
-        send(payload) {
+        send(payload: NodeModule['exports']) {
             this.body = payload;
             return this;
         },
@@ -58,7 +63,7 @@ describe('app and route composition', () => {
 
     it('protects product creation with auth middleware before the controller', () => {
         const productPostRoute = findRoute('/products', 'post');
-        const handlers = productPostRoute.route.stack.map(layer => layer.handle.name);
+        const handlers = productPostRoute.route.stack.map((layer: any) => layer.handle.name);
 
         expect(handlers).toEqual(['authMiddleware', 'requestValidator', 'wrappedHandler']);
     });
@@ -202,7 +207,7 @@ describe('model contracts', () => {
     it('hashes user password before save when password changes', async () => {
         const passwordHook = User.schema.s.hooks._pres
             .get('save')
-            .find(hook => hook.fn.toString().includes('isModified'));
+            .find((hook: any) => hook.fn.toString().includes('isModified'));
         const hashSpy = vi.spyOn(bcrypt, 'hash');
         const doc = {
             password: 'plain-secret',
@@ -222,7 +227,7 @@ describe('model contracts', () => {
     it('does not rehash unchanged user passwords', async () => {
         const passwordHook = User.schema.s.hooks._pres
             .get('save')
-            .find(hook => hook.fn.toString().includes('isModified'));
+            .find((hook: any) => hook.fn.toString().includes('isModified'));
         const hashSpy = vi.spyOn(bcrypt, 'hash');
         const doc = {
             password: 'already-hashed',

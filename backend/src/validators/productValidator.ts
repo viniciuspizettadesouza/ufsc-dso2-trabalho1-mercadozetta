@@ -1,8 +1,55 @@
 import mongoose from 'mongoose';
 import AppError from '../errors/AppError';
-import { productStatuses } from '../productStatus';
+import { productStatuses, type ProductStatus } from '../productStatus';
+import type { RequestFieldValue } from '../types/request';
 
-export function validateCreateProductPayload(body: Record<string, unknown> = {}) {
+export type CreateProductRequestBody = {
+  name?: RequestFieldValue;
+  description?: RequestFieldValue;
+  category?: RequestFieldValue;
+  subcategory?: RequestFieldValue;
+  inventory?: RequestFieldValue;
+  quant?: RequestFieldValue;
+  image?: RequestFieldValue;
+  status?: RequestFieldValue;
+};
+
+export type CreateProductData = {
+  name: string;
+  description: string;
+  category: string;
+  subcategory: string;
+  inventory: number;
+  image: string;
+  status: ProductStatus;
+};
+
+export type ProductListFilters = {
+  q: string;
+  category: string;
+  subcategory: string;
+  seller: string;
+  status: string;
+  availability: string;
+  sort: string;
+};
+
+export type ProductFilterQuery = {
+  q?: RequestFieldValue;
+  search?: RequestFieldValue;
+  category?: RequestFieldValue;
+  subcategory?: RequestFieldValue;
+  seller?: RequestFieldValue;
+  status?: RequestFieldValue;
+  availability?: RequestFieldValue;
+  sort?: RequestFieldValue;
+};
+
+function isProductStatus(status: string): status is ProductStatus {
+  return productStatuses.includes(status as ProductStatus);
+}
+
+export function validateCreateProductPayload(body: CreateProductRequestBody = {}): CreateProductData {
   const name = String(body.name || '').trim();
   const description = String(body.description || '').trim();
   const category = String(body.category || 'general').trim().toLowerCase();
@@ -20,7 +67,7 @@ export function validateCreateProductPayload(body: Record<string, unknown> = {})
   if (!Number.isInteger(inventory) || inventory < 0)
     throw new AppError(400, 'INVALID_PRODUCT_INVENTORY', 'Quantity must be a non-negative integer');
 
-  if (!productStatuses.includes(status as any))
+  if (!isProductStatus(status))
     throw new AppError(400, 'INVALID_PRODUCT_STATUS', 'Product status must be draft, active, paused, sold_out, or archived');
 
   return {
@@ -34,7 +81,7 @@ export function validateCreateProductPayload(body: Record<string, unknown> = {})
   };
 }
 
-export function validateProductFilters(query: Record<string, unknown> = {}) {
+export function validateProductFilters(query: ProductFilterQuery = {}): ProductListFilters {
   const sortModes = ['created_asc', 'created_desc', 'name_asc', 'inventory_desc'];
   const availabilityModes = ['in_stock', 'sold_out'];
   const filters = {
@@ -47,7 +94,7 @@ export function validateProductFilters(query: Record<string, unknown> = {}) {
     sort: String(query.sort || 'created_desc').trim(),
   };
 
-  if (filters.status && !productStatuses.includes(filters.status as any))
+  if (filters.status && !isProductStatus(filters.status))
     throw new AppError(400, 'INVALID_PRODUCT_STATUS_FILTER', 'Product status filter must be draft, active, paused, sold_out, or archived');
 
   if (filters.availability && !availabilityModes.includes(filters.availability))
@@ -59,7 +106,7 @@ export function validateProductFilters(query: Record<string, unknown> = {}) {
   return filters;
 }
 
-export function validateProductId(productId: unknown) {
+export function validateProductId(productId: string | number | null | undefined) {
   const id = String(productId || '').trim();
 
   if (!id)
