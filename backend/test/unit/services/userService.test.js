@@ -16,7 +16,20 @@ afterEach(() => {
 describe('userService', () => {
     it('creates normalized users for a tenant and strips the password', async () => {
         const findOne = vi.fn().mockResolvedValue(null);
-        const create = vi.fn().mockImplementation(async user => ({ _id: 'user-1', ...user }));
+        const create = vi.fn().mockImplementation(async user => ({
+            _id: 'user-1',
+            ...user,
+            toObject() {
+                return {
+                    _id: this._id,
+                    email: this.email,
+                    password: this.password,
+                    username: this.username,
+                    telephone: this.telephone,
+                    tenantId: this.tenantId,
+                };
+            },
+        }));
         const { createUser } = loadUserService({ findOne, create });
 
         const user = await createUser({

@@ -29,6 +29,16 @@ describe('authService', () => {
             username: 'Seller',
             telephone: '123',
             tenantId: 'mercadozetta',
+            toObject() {
+                return {
+                    _id: this._id,
+                    email: this.email,
+                    password: this.password,
+                    username: this.username,
+                    telephone: this.telephone,
+                    tenantId: this.tenantId,
+                };
+            },
         };
         const select = vi.fn().mockResolvedValue(user);
         const findOne = vi.fn(() => ({ select }));

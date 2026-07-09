@@ -105,13 +105,23 @@ describe('productService', () => {
     });
 
     it('returns product detail with seller profile when available', async () => {
-        const product = { _id: 'product-1', seller: '507f1f77bcf86cd799439011' };
+        const product = {
+            _id: 'product-1',
+            seller: '507f1f77bcf86cd799439011',
+            toObject() {
+                return {
+                    _id: this._id,
+                    seller: this.seller,
+                };
+            },
+        };
         const findOne = vi.fn().mockResolvedValue(product);
         const getPublicSellerProfile = vi.fn().mockResolvedValue({ _id: product.seller, username: 'Seller' });
         const { getProductById } = loadProductService({ findOne }, { getPublicSellerProfile });
 
         await expect(getProductById(' product-1 ', 'mercadozetta')).resolves.toEqual({
-            ...product,
+            _id: product._id,
+            seller: product.seller,
             sellerProfile: { _id: product.seller, username: 'Seller' },
         });
         expect(findOne).toHaveBeenCalledWith({ _id: 'product-1', tenantId: 'mercadozetta' });
