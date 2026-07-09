@@ -1,12 +1,12 @@
 import type { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 import AppError from '../errors/AppError';
 
-function isJsonParseError(err: unknown) {
+function isJsonParseError(err: Error | object) {
   return (
     typeof err === 'object'
     && err !== null
     && 'type' in err
-    && (err as { type?: unknown }).type === 'entity.parse.failed'
+    && err.type === 'entity.parse.failed'
   );
 }
 

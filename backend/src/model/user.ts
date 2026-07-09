@@ -1,4 +1,4 @@
-import { Schema, model } from 'mongoose';
+import { Schema, model, Types, type InferSchemaType } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import { defaultTenantId } from '../tenants';
 
@@ -42,4 +42,9 @@ UserSchema.pre('save', async function () {
 });
 
 const User = model('user', UserSchema);
+export type UserRecord = InferSchemaType<typeof UserSchema> & {
+  _id: Types.ObjectId;
+  createdAt?: Date;
+  updatedAt?: Date;
+};
 export default User;

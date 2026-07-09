@@ -1,45 +1,49 @@
 import AppError from '../errors/AppError';
 import User from '../model/user';
 import { defaultTenantId } from '../tenants';
-import { validateCreateUserPayload } from '../validators/userValidator';
+import { type CreateUserData, type CreateUserRequestBody, validateCreateUserPayload } from '../validators/userValidator';
 
-type DuplicateKeyError = {
-  code?: unknown;
-  keyPattern?: Record<string, unknown>;
-  keyValue?: Record<string, unknown>;
+type MongoDuplicateKeyError = {
+  code?: number;
+  keyPattern?: Record<string, number>;
+  keyValue?: Record<string, string>;
 };
 
-function stripPassword<T extends Record<string, unknown>>(userObject: T) {
+function stripPassword<T extends { password?: string }>(userObject: T) {
   const publicUser = { ...userObject };
   delete publicUser.password;
   return publicUser;
 }
 
-function getDuplicateField(err: unknown) {
-  const duplicateError = err as DuplicateKeyError;
+function isDuplicateKeyError(err: object): err is MongoDuplicateKeyError {
+  return 'code' in err && err.code === 11000;
+}
 
-  if (duplicateError.code !== 11000)
+function getDuplicateKeyField(err: object) {
+  if (!isDuplicateKeyError(err))
     return null;
 
-  const fields = Object.keys(duplicateError.keyPattern || duplicateError.keyValue || {});
+  const fields = Object.keys(err.keyPattern || err.keyValue || {});
 
   return fields[0] || null;
 }
 
-export async function createUser(body: Record<string, unknown>, tenantId = defaultTenantId) {
-  const payload = validateCreateUserPayload(body);
+export async function createUser(body: CreateUserRequestBody | CreateUserData, tenantId = defaultTenantId) {
+  const userData = validateCreateUserPayload(body);
 
   try {
-    if (await User.findOne({ tenantId, email: payload.email }))
+    if (await User.findOne({ tenantId, email: userData.email }))
       throw new AppError(400, 'USER_EXISTS', 'User already exists');
 
     const newUser = await User.create({
-      ...payload,
+      ...userData,
       tenantId,
     });
     return stripPassword(newUser.toObject());
   } catch (err) {
-    const duplicateField = getDuplicateField(err);
+    const duplicateField = err !== null && typeof err === 'object'
+      ? getDuplicateKeyField(err)
+      : null;
 
     if (duplicateField === 'email' || duplicateField === 'tenantId')
       throw new AppError(400, 'USER_EXISTS', 'User already exists');

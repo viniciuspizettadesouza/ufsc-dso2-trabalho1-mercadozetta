@@ -7,7 +7,6 @@ import authMiddleware from './middleware/auth';
 import asyncHandler from './middleware/asyncHandler';
 import { authRateLimiter, registerRateLimiter } from './middleware/rateLimit';
 import validateRequest from './middleware/validateRequest';
-import { validateLoginPayload } from './validators/authValidator';
 import {
   validateCreateProductPayload,
   validateProductFilters,
@@ -15,6 +14,7 @@ import {
   validateSellerId,
 } from './validators/productValidator';
 import { validateCreateUserPayload } from './validators/userValidator';
+import { validateLoginPayload } from './validators/authValidator';
 
 const routes = express.Router();
 

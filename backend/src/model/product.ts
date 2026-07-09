@@ -1,4 +1,4 @@
-import { Schema, model } from 'mongoose';
+import { Schema, model, Types, type InferSchemaType } from 'mongoose';
 import { defaultTenantId } from '../tenants';
 import { productStatuses } from '../productStatus';
 
@@ -58,4 +58,9 @@ ProductSchema.index({ tenantId: 1, category: 1, subcategory: 1 });
 ProductSchema.index({ tenantId: 1, name: 'text', description: 'text' });
 
 const Product = model('product', ProductSchema);
+export type ProductRecord = InferSchemaType<typeof ProductSchema> & {
+  _id: Types.ObjectId;
+  createdAt?: Date;
+  updatedAt?: Date;
+};
 export default Product;

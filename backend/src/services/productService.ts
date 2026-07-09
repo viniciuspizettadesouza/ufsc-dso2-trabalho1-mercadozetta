@@ -1,37 +1,34 @@
-import Product from '../model/product';
+import Product, { type ProductRecord } from '../model/product';
 import { defaultTenantId } from '../tenants';
 import UserService from './userService';
 import {
+  type CreateProductData,
+  type CreateProductRequestBody,
+  type ProductFilterQuery,
+  type ProductListFilters,
   validateCreateProductPayload,
+  validateProductFilters,
   validateProductId,
   validateSellerId,
 } from '../validators/productValidator';
-import type { ProductStatus } from '../productStatus';
 
-type FilterableProduct = {
-  name?: unknown;
-  description?: unknown;
-  category?: unknown;
-  subcategory?: unknown;
-  status?: unknown;
-  seller?: unknown;
-  inventory?: unknown;
-  createdAt?: unknown;
+type ProductListItem = Pick<ProductRecord, 'name' | 'description' | 'category' | 'subcategory' | 'status' | 'seller' | 'inventory'> & {
+  createdAt?: string | number | Date;
 };
 
-function normalizeText(value: unknown) {
+function normalizeText(value: string | number | boolean | null | undefined) {
   return String(value || '').trim().toLowerCase();
 }
 
-function timestamp(value: unknown) {
+function toTimestamp(value?: string | number | Date) {
   if (typeof value === 'string' || typeof value === 'number' || value instanceof Date)
     return new Date(value).getTime();
 
   return 0;
 }
 
-function filterProducts<T extends FilterableProduct>(products: T[], filters: Record<string, unknown> = {}) {
-  const q = normalizeText(filters.q || filters.search);
+function filterProducts<T extends ProductListItem>(products: T[], filters: ProductListFilters) {
+  const q = normalizeText(filters.q);
   const category = normalizeText(filters.category);
   const subcategory = normalizeText(filters.subcategory);
   const seller = String(filters.seller || '').trim();
@@ -60,40 +57,33 @@ function filterProducts<T extends FilterableProduct>(products: T[], filters: Rec
   });
 }
 
-function sortProducts<T extends FilterableProduct>(products: T[], sort?: string) {
+function sortProducts<T extends ProductListItem>(products: T[], sort?: string) {
   const sortedProducts = [...products];
 
   switch (sort) {
     case 'created_asc':
-      return sortedProducts.sort((a, b) => timestamp(a.createdAt) - timestamp(b.createdAt));
+      return sortedProducts.sort((a, b) => toTimestamp(a.createdAt) - toTimestamp(b.createdAt));
     case 'name_asc':
       return sortedProducts.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
     case 'inventory_desc':
       return sortedProducts.sort((a, b) => Number(b.inventory || 0) - Number(a.inventory || 0));
     case 'created_desc':
     default:
-      return sortedProducts.sort((a, b) => timestamp(b.createdAt) - timestamp(a.createdAt));
+      return sortedProducts.sort((a, b) => toTimestamp(b.createdAt) - toTimestamp(a.createdAt));
   }
 }
 
-export async function listProducts(tenantId = defaultTenantId, filters: Record<string, unknown> = {}) {
+export async function listProducts(tenantId = defaultTenantId, filters: ProductFilterQuery | ProductListFilters = {}) {
+  const validatedFilters = validateProductFilters(filters);
   const products = await Product.find({ tenantId });
-  return sortProducts(filterProducts(products, filters), String(filters.sort || 'created_desc'));
+  return sortProducts(filterProducts(products, validatedFilters), String(validatedFilters.sort || 'created_desc'));
 }
 
-export async function createProduct(body: Record<string, unknown>, seller: string, tenantId = defaultTenantId) {
-  const payload = validateCreateProductPayload(body) as {
-    name: string;
-    description: string;
-    category: string;
-    subcategory: string;
-    inventory: number;
-    image: string;
-    status: ProductStatus;
-  };
+export async function createProduct(body: CreateProductRequestBody | CreateProductData, seller: string, tenantId = defaultTenantId) {
+  const productData = validateCreateProductPayload(body);
 
   return Product.create({
-    ...payload,
+    ...productData,
     tenantId,
     seller,
   });
@@ -114,10 +104,11 @@ export async function getProductById(productId: string, tenantId = defaultTenant
   }
 }
 
-export async function listProductsBySeller(userId: string, tenantId = defaultTenantId, filters: Record<string, unknown> = {}) {
+export async function listProductsBySeller(userId: string, tenantId = defaultTenantId, filters: ProductFilterQuery | ProductListFilters = {}) {
   const seller = validateSellerId(userId);
+  const validatedFilters = validateProductFilters(filters);
   const products = await Product.find({ tenantId, seller });
-  return sortProducts(filterProducts(products, filters), String(filters.sort || 'created_desc'));
+  return sortProducts(filterProducts(products, validatedFilters), String(validatedFilters.sort || 'created_desc'));
 }
 
 const ProductService = {

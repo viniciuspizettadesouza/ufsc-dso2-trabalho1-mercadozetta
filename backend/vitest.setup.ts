@@ -6,7 +6,7 @@ require('ts-node/register/transpile-only');
 	const path = require('path');
 	const originalLoad = Module._load;
 
-	Module._load = function(this: unknown, request: string, parent: NodeModule | null, isMain: boolean) {
+	Module._load = function(this: NodeModule, request: string, parent: NodeModule | null, isMain: boolean) {
 		const exported = originalLoad.call(this, request, parent, isMain);
 
 		try {

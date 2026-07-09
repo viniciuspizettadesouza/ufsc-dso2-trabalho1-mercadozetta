@@ -11,7 +11,7 @@ vi.mock('../src/model/user', () => ({
 import User from '../src/model/user';
 import { createUser, getPublicSellerProfile } from '../src/services/userService';
 
-const mockedUser = User as unknown as {
+const mockedUser = User as typeof User & {
   findOne: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
 };

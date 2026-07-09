@@ -4,15 +4,15 @@ import { getJwtSecret } from '../config/security';
 import AppError from '../errors/AppError';
 import User from '../model/user';
 import { defaultTenantId } from '../tenants';
-import { validateLoginPayload } from '../validators/authValidator';
+import { type LoginCredentials, type LoginRequestBody, validateLoginPayload } from '../validators/authValidator';
 
-function stripPassword<T extends Record<string, unknown>>(userObject: T) {
+function stripPassword<T extends { password?: string }>(userObject: T) {
   const publicUser = { ...userObject };
   delete publicUser.password;
   return publicUser;
 }
 
-export async function authenticate(body: Record<string, unknown>, tenantId = defaultTenantId) {
+export async function authenticate(body: LoginRequestBody | LoginCredentials, tenantId = defaultTenantId) {
   const { email, password } = validateLoginPayload(body);
   const user = await User.findOne({ tenantId, email }).select('+password email username telephone tenantId');
 

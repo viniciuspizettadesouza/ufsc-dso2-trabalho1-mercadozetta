@@ -20,9 +20,9 @@ function findRoute(path: string, method: string) {
 
 function createResponse(): {
     statusCode: number | null;
-    body: unknown;
+    body: NodeModule['exports'];
     status: (code: number) => ReturnType<typeof createResponse>;
-    send: (payload: unknown) => ReturnType<typeof createResponse>;
+    send: (payload: NodeModule['exports']) => ReturnType<typeof createResponse>;
 } {
     return {
         statusCode: null,
@@ -31,7 +31,7 @@ function createResponse(): {
             this.statusCode = code;
             return this;
         },
-        send(payload: unknown) {
+        send(payload: NodeModule['exports']) {
             this.body = payload;
             return this;
         },

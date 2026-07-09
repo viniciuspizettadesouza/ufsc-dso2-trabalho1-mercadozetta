@@ -1,4 +1,4 @@
-export function mockModule(modulePath: string, exports: unknown) {
+export function mockModule(modulePath: string, exports: NodeModule['exports']) {
     require.cache[modulePath] = {
         id: modulePath,
         filename: modulePath,

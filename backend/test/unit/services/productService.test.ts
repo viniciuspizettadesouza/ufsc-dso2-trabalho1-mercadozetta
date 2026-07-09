@@ -5,7 +5,7 @@ const servicePath = require.resolve('../../../src/services/productService');
 const productModelPath = require.resolve('../../../src/model/product');
 const userServicePath = require.resolve('../../../src/services/userService');
 
-function loadProductService(productModel: unknown, userService: any = {}) {
+function loadProductService(productModel: NodeModule['exports'], userService: any = {}) {
     clearModules(servicePath, productModelPath, userServicePath);
     mockModule(productModelPath, productModel);
     mockModule(userServicePath, {

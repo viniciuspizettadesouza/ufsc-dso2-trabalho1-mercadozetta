@@ -8,7 +8,7 @@ export default [
     ignores: ['coverage/**', 'dist/**', 'node_modules/**'],
   },
   js.configs.recommended,
-  ...(tsPlugin.configs['flat/recommended'] as unknown as object[]),
+  ...(tsPlugin.configs['flat/recommended'] as object[]),
   {
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
