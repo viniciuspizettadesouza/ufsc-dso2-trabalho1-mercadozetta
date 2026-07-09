@@ -25,3 +25,5 @@ describe('authValidator', () => {
             }));
     });
 });
+
+export {};

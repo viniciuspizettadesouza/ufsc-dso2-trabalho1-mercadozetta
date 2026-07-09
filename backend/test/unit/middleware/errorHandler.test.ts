@@ -59,3 +59,5 @@ describe('errorHandler', () => {
         });
     });
 });
+
+export {};

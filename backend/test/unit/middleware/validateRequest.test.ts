@@ -38,3 +38,5 @@ describe('validateRequest', () => {
         expect(next).toHaveBeenCalledWith(error);
     });
 });
+
+export {};

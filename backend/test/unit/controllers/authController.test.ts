@@ -38,3 +38,5 @@ describe('authController', () => {
         expect(res.send).toHaveBeenCalledWith(result);
     });
 });
+
+export {};

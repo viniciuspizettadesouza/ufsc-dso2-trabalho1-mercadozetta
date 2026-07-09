@@ -4,7 +4,7 @@ const servicePath = require.resolve('../../../src/services/productService');
 const productModelPath = require.resolve('../../../src/model/product');
 const userServicePath = require.resolve('../../../src/services/userService');
 
-function loadProductService(productModel, userService = {}) {
+function loadProductService(productModel, userService: any = {}) {
     clearModules(servicePath, productModelPath, userServicePath);
     mockModule(productModelPath, productModel);
     mockModule(userServicePath, {
@@ -16,6 +16,8 @@ function loadProductService(productModel, userService = {}) {
 afterEach(() => {
     clearModules(servicePath, productModelPath, userServicePath);
 });
+
+export {};
 
 describe('productService', () => {
     const products = [

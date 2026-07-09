@@ -83,3 +83,5 @@ describe('security config', () => {
         });
     });
 });
+
+export {};

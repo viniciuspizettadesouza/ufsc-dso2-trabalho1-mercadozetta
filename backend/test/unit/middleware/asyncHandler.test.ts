@@ -23,3 +23,5 @@ describe('asyncHandler', () => {
         expect(next).toHaveBeenCalledWith(error);
     });
 });
+
+export {};

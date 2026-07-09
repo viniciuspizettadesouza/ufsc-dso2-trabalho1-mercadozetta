@@ -45,7 +45,7 @@ describe('auth middleware', () => {
     it('sets req.userId for valid tokens', () => {
         const authMiddleware = loadAuthMiddleware();
         const token = jwt.sign({ id: 'user-1', tenantId: 'mercadozetta' }, 'test-secret');
-        const req = {
+        const req: any = {
             headers: { authorization: `Bearer ${token}` },
             tenant: { id: 'mercadozetta' },
         };
@@ -90,3 +90,5 @@ describe('auth middleware', () => {
         }));
     });
 });
+
+export {};

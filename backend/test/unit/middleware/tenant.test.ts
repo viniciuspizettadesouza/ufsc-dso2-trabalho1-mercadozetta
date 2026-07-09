@@ -2,7 +2,7 @@ const tenantMiddleware = require('../../../src/middleware/tenant');
 
 describe('tenantMiddleware', () => {
     it('uses the default tenant when no tenant header is provided', () => {
-        const req = { headers: {} };
+        const req: any = { headers: {} };
         const next = vi.fn();
 
         tenantMiddleware(req, {}, next);
@@ -15,7 +15,7 @@ describe('tenantMiddleware', () => {
     });
 
     it('resolves valid tenant headers', () => {
-        const req = { headers: { 'x-tenant-id': 'campus-market' } };
+        const req: any = { headers: { 'x-tenant-id': 'campus-market' } };
         const next = vi.fn();
 
         tenantMiddleware(req, {}, next);
@@ -39,3 +39,5 @@ describe('tenantMiddleware', () => {
         }));
     });
 });
+
+export {};

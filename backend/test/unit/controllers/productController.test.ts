@@ -10,7 +10,7 @@ function createResponse() {
     };
 }
 
-function loadController(service = {}) {
+function loadController(service: any = {}) {
     clearModules(controllerPath, servicePath);
     mockModule(servicePath, {
         listProducts: service.listProducts || vi.fn(),
@@ -24,6 +24,8 @@ function loadController(service = {}) {
 afterEach(() => {
     clearModules(controllerPath, servicePath);
 });
+
+export {};
 
 describe('productController', () => {
     it('lists products for the current tenant and validated query', async () => {

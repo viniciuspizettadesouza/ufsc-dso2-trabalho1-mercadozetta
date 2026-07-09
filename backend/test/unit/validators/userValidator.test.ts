@@ -42,3 +42,5 @@ describe('userValidator', () => {
         })).toThrow(expect.objectContaining({ code: 'WEAK_PASSWORD' }));
     });
 });
+
+export {};

@@ -83,3 +83,5 @@ describe('productValidator', () => {
             .toThrow(expect.objectContaining({ code: 'INVALID_SELLER_ID' }));
     });
 });
+
+export {};

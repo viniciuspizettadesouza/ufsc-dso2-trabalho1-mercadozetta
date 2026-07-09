@@ -10,7 +10,7 @@ function createResponse() {
     };
 }
 
-function loadController(service = {}) {
+function loadController(service: any = {}) {
     clearModules(controllerPath, servicePath);
     mockModule(servicePath, {
         createUser: service.createUser || vi.fn(),
@@ -22,6 +22,8 @@ function loadController(service = {}) {
 afterEach(() => {
     clearModules(controllerPath, servicePath);
 });
+
+export {};
 
 describe('userController', () => {
     it('creates a user with validated body and tenant id', async () => {
