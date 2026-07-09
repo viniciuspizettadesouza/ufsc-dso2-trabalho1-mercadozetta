@@ -1,0 +1,73 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock('../src/model/user', () => ({
+  default: {
+    findOne: vi.fn(),
+  },
+}));
+
+vi.mock('../src/config/security', () => ({
+  getJwtSecret: vi.fn(() => 'test-secret'),
+}));
+
+vi.mock('bcryptjs', () => ({
+  default: {
+    compare: vi.fn(),
+  },
+}));
+
+vi.mock('jsonwebtoken', () => ({
+  default: {
+    sign: vi.fn(() => 'signed-token'),
+  },
+}));
+
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import User from '../src/model/user';
+import { authenticate } from '../src/services/authService';
+
+const mockedUser = User as unknown as {
+  findOne: ReturnType<typeof vi.fn>;
+};
+
+const mockedBcrypt = bcrypt as unknown as {
+  compare: ReturnType<typeof vi.fn>;
+};
+
+const mockedJwt = jwt as unknown as {
+  sign: ReturnType<typeof vi.fn>;
+};
+
+describe('auth service', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedUser.findOne.mockReset();
+    mockedBcrypt.compare.mockReset();
+    mockedJwt.sign.mockReset();
+  });
+
+  it('authenticates users and strips password from the response', async () => {
+    mockedUser.findOne.mockReturnValue({
+      select: vi.fn().mockResolvedValue({
+        _id: 'user-1',
+        password: 'hashed-password',
+        toObject: () => ({ _id: 'user-1', email: 'seller@example.com', password: 'hashed-password' }),
+      }),
+    });
+    mockedBcrypt.compare.mockResolvedValue(true);
+    mockedJwt.sign.mockReturnValue('signed-token');
+
+    const result = await authenticate({ email: 'Seller@Example.com', password: 'secret123' }, 'mercadozetta');
+
+    expect(mockedUser.findOne).toHaveBeenCalledWith({ tenantId: 'mercadozetta', email: 'seller@example.com' });
+    expect(mockedBcrypt.compare).toHaveBeenCalledWith('secret123', 'hashed-password');
+    expect(mockedJwt.sign).toHaveBeenCalledWith(
+      { id: 'user-1', tenantId: 'mercadozetta' },
+      'test-secret',
+      { expiresIn: '1d' }
+    );
+    expect(result.user).toEqual({ _id: 'user-1', email: 'seller@example.com' });
+    expect(result.token).toBe('signed-token');
+  });
+});
