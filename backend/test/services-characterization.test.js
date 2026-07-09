@@ -174,8 +174,8 @@ describe('user service characterization', () => {
             username: 'Buyer',
             telephone: '999',
             tenantId: 'campus-market',
-            password: undefined,
         }));
+        expect(user.password).toBeUndefined();
     });
 
     it('maps duplicate checks and unique-index violations to USER_EXISTS', async () => {
