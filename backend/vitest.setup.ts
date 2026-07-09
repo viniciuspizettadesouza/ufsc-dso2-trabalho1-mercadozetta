@@ -7,7 +7,7 @@ require('ts-node/register/transpile-only');
 	const originalLoad = Module._load;
 
 	Module._load = function(request, parent, isMain) {
-		const exported = originalLoad.apply(this, arguments);
+		const exported = originalLoad.call(this, request, parent, isMain);
 
 		try {
 			// Resolve filename for the requested module. If it's inside our src folder
