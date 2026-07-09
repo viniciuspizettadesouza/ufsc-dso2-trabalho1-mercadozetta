@@ -7,6 +7,35 @@ The application lets users search products, create an account, log in with email
 and password, and create products for sale. Product creation is protected by JWT,
 and each created product is linked to the authenticated seller.
 
+## Quick Start
+
+For the common local development setup, install dependencies, copy the example
+environment files, and start MongoDB, the backend, and the frontend:
+
+```bash
+npm install
+npm --prefix backend install
+npm --prefix frontend install
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+npm run dev:local
+```
+
+Open the frontend URL printed by Vite. It is usually:
+
+```text
+http://localhost:5173
+```
+
+Useful root commands:
+
+```bash
+npm run db:up
+npm run dev
+npm test
+npm run lint
+```
+
 ## 1. Technologies
 
 - Backend: Node.js, Express, MongoDB, Mongoose, JWT, and bcryptjs
@@ -80,16 +109,25 @@ cd ..
 For local development, you can use a local MongoDB instead of creating a MongoDB
 Atlas database.
 
-With Docker installed, create and start a MongoDB container:
+With Docker installed, start the local MongoDB container from the project root:
 
 ```bash
-docker run --name mercadozetta-mongo -p 27017:27017 -d mongo:7
+npm run db:up
 ```
 
-If the container already exists but is stopped, start it again with:
+The command starts the `mercadozetta-mongo` container. If the container does not
+exist yet, Docker Compose creates it from `docker-compose.yml`.
+
+To stop the local MongoDB container:
 
 ```bash
-docker start mercadozetta-mongo
+npm run db:down
+```
+
+To follow MongoDB logs:
+
+```bash
+npm run db:logs
 ```
 
 The API will access the database at:
@@ -168,26 +206,17 @@ cd ..
 
 ## 8. Run The Project
 
-Keep two terminals open: one for the backend and one for the frontend.
-
-In the first terminal, start the backend:
+From the project root, start MongoDB, the backend, and the frontend with:
 
 ```bash
-cd backend
-npm run dev
+npm run dev:local
 ```
 
-The API should be available at:
+This runs `npm run db:up` first, then starts both applications. The API should
+be available at:
 
 ```text
 http://localhost:3333
-```
-
-In the second terminal, start the frontend:
-
-```bash
-cd frontend
-npm run dev
 ```
 
 Vite will print the frontend URL in the terminal. It is usually:
@@ -197,6 +226,38 @@ http://localhost:5173
 ```
 
 Open that URL in your browser.
+
+If MongoDB is already running and you only want to start the apps, run:
+
+```bash
+npm run dev
+```
+
+You can also run each app separately from the project root.
+
+Start only the backend:
+
+```bash
+npm run dev:backend
+```
+
+Start only the frontend:
+
+```bash
+npm run dev:frontend
+```
+
+The older folder-specific commands still work too:
+
+```bash
+cd backend
+npm run dev
+```
+
+```bash
+cd frontend
+npm run dev
+```
 
 ## 9. Manual Smoke Test
 
@@ -217,6 +278,24 @@ Optionally, create a second user and another product. Then confirm that each
 seller page only shows products from that seller.
 
 ## 10. Useful Commands
+
+Start local MongoDB, backend, and frontend:
+
+```bash
+npm run dev:local
+```
+
+Start only local MongoDB:
+
+```bash
+npm run db:up
+```
+
+Start backend and frontend without changing MongoDB state:
+
+```bash
+npm run dev
+```
 
 Run all automated tests from the project root:
 

@@ -18,6 +18,8 @@ type Product = {
     createdAt?: string;
 };
 
+const productSkeletons = ['skeleton-1', 'skeleton-2', 'skeleton-3', 'skeleton-4'];
+
 function getStoredIds(key: string) {
     try {
         return JSON.parse(localStorage.getItem(key) || '[]') as string[];
@@ -108,126 +110,180 @@ export default function Products() {
 
     const procure = useCallback((event: ChangeEvent<HTMLInputElement>) => {
         const value = event.currentTarget.value;
+        const normalizedValue = value.toLowerCase();
 
         setProduto(value)
         if (value.length > 1) {
-            setNewProducts(products.filter(p => p.name.toLowerCase().includes(value.toLowerCase())))
-        } else if (value.length === 0) {
+            setNewProducts(products.filter(p => (
+                p.name.toLowerCase().includes(normalizedValue) ||
+                p.description.toLowerCase().includes(normalizedValue)
+            )))
+        } else {
             setNewProducts(products)
         }
     }, [products])
 
     return (
-        <div className="flex flex-col content-center justify-items-center">
-            <div className="flex h-full items-center justify-center">
+        <section className="mx-auto max-w-[1180px] px-5 py-8">
+            <form className="grid gap-3 rounded border border-solid border-[#e5e7eb] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.08)] md:grid-cols-[minmax(220px,1fr)_170px_190px_170px_auto]" onSubmit={event => {
+                event.preventDefault();
+                loadProducts();
+            }}>
+                <label className="flex flex-col gap-1 text-sm font-bold text-[#374151]">
+                    {brand.copy.catalog.searchPlaceholder}
+                    <input
+                        className="h-11 rounded border border-solid border-[#d1d5db] px-3 text-base font-normal text-[#111827] placeholder:text-[#9ca3af]"
+                        type="text"
+                        placeholder={brand.copy.catalog.searchPlaceholder}
+                        value={produto}
+                        onChange={procure}
+                    />
+                </label>
+                <label className="flex flex-col gap-1 text-sm font-bold text-[#374151]">
+                    {brand.copy.catalog.categoryFilterLabel}
+                    <input
+                        aria-label={brand.copy.catalog.categoryFilterLabel}
+                        className="h-11 rounded border border-solid border-[#d1d5db] px-3 text-base font-normal text-[#111827] placeholder:text-[#9ca3af]"
+                        type="text"
+                        placeholder={brand.copy.catalog.categoryFilterPlaceholder}
+                        value={category}
+                        onChange={e => setCategory(e.target.value)}
+                    />
+                </label>
+                <label className="flex flex-col gap-1 text-sm font-bold text-[#374151]">
+                    {brand.copy.catalog.availabilityFilterLabel}
+                    <select
+                        aria-label={brand.copy.catalog.availabilityFilterLabel}
+                        className="h-11 rounded border border-solid border-[#d1d5db] px-3 text-base font-normal text-[#111827]"
+                        value={availability}
+                        onChange={e => setAvailability(e.target.value)}
+                    >
+                        <option value="">{brand.copy.catalog.availabilityAnyLabel}</option>
+                        <option value="in_stock">{brand.copy.catalog.availabilityInStockLabel}</option>
+                        <option value="sold_out">{brand.copy.catalog.availabilitySoldOutLabel}</option>
+                    </select>
+                </label>
+                <label className="flex flex-col gap-1 text-sm font-bold text-[#374151]">
+                    {brand.copy.catalog.sortLabel}
+                    <select
+                        aria-label={brand.copy.catalog.sortLabel}
+                        className="h-11 rounded border border-solid border-[#d1d5db] px-3 text-base font-normal text-[#111827]"
+                        value={sort}
+                        onChange={e => setSort(e.target.value)}
+                    >
+                        <option value="created_desc">{brand.copy.catalog.sortNewestLabel}</option>
+                        <option value="created_asc">{brand.copy.catalog.sortOldestLabel}</option>
+                        <option value="name_asc">{brand.copy.catalog.sortNameLabel}</option>
+                        <option value="inventory_desc">{brand.copy.catalog.sortInventoryLabel}</option>
+                    </select>
+                </label>
                 <button
-                    className="mt-2.5 flex h-12 w-full max-w-[300px] cursor-pointer flex-col items-center justify-center rounded border-0 bg-[var(--brand-secondary)] text-base font-bold text-white"
-                    type="button"
-                    onClick={loadProducts}
+                    className="h-11 self-end rounded bg-[var(--brand-secondary)] px-5 text-sm font-bold text-white"
+                    type="submit"
                 >
                     {brand.copy.catalog.searchAction}
                 </button>
-            </div>
-            <div className="flex h-full flex-wrap items-center justify-center gap-2">
-                <input
-                    className="mt-2.5 flex h-12 w-full max-w-[300px] self-center rounded border-0 text-center"
-                    type="text"
-                    placeholder={brand.copy.catalog.searchPlaceholder}
-                    value={produto}
-                    onChange={procure}
-                />
-                <input
-                    aria-label="Category filter"
-                    className="mt-2.5 flex h-12 w-full max-w-[180px] self-center rounded border-0 text-center"
-                    type="text"
-                    placeholder="Category"
-                    value={category}
-                    onChange={e => setCategory(e.target.value)}
-                />
-                <select
-                    aria-label="Availability filter"
-                    className="mt-2.5 h-12 w-full max-w-[180px] rounded border-0 text-center"
-                    value={availability}
-                    onChange={e => setAvailability(e.target.value)}
-                >
-                    <option value="">Any availability</option>
-                    <option value="in_stock">In stock</option>
-                    <option value="sold_out">Sold out only</option>
-                </select>
-                <select
-                    aria-label="Sort products"
-                    className="mt-2.5 h-12 w-full max-w-[180px] rounded border-0 text-center"
-                    value={sort}
-                    onChange={e => setSort(e.target.value)}
-                >
-                    <option value="created_desc">Newest</option>
-                    <option value="created_asc">Oldest</option>
-                    <option value="name_asc">Name</option>
-                    <option value="inventory_desc">Inventory</option>
-                </select>
-            </div>
+            </form>
 
-            <div className="mx-auto max-w-[980px] px-0 py-[50px] text-center">
+            <div className="py-8">
                 {isLoading ? (
-                    <div role="status" className="text-[32px] font-bold text-[#999]">
-                        {brand.copy.catalog.loading}
+                    <div role="status" aria-label={brand.copy.catalog.loading}>
+                        <p className="sr-only">{brand.copy.catalog.loading}</p>
+                        <ul className="grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-4">
+                            {productSkeletons.map(item => (
+                                <li className="overflow-hidden rounded border border-solid border-[#e5e7eb] bg-white" key={item}>
+                                    <div className="aspect-[4/3] bg-[#e5e7eb]" />
+                                    <div className="space-y-3 p-4">
+                                        <div className="h-5 w-3/4 rounded bg-[#e5e7eb]" />
+                                        <div className="h-4 w-full rounded bg-[#eef0f3]" />
+                                        <div className="h-4 w-2/3 rounded bg-[#eef0f3]" />
+                                        <div className="h-9 w-full rounded bg-[#e5e7eb]" />
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
                     </div>
                 ) : error ? (
-                    <div role="alert" className="text-[32px] font-bold text-[#999]">
+                    <div role="alert" className="rounded border border-solid border-red-200 bg-red-50 p-5 text-base font-bold text-red-700">
                         {error}
                     </div>
                 ) : newProducts.length > 0 ? (
-                    <ul className="mt-[50px] grid list-none grid-cols-4 gap-[30px] max-[900px]:grid-cols-2 max-[520px]:grid-cols-1">
+                    <ul className="grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-4">
                         {newProducts.map(product => (
-                            <li className="flex flex-col" key={product._id}>
-                                <img className="max-w-full" src={product.image} alt={product.name} />
-                                <div>
-                                    <p className="overflow-hidden whitespace-nowrap">
-                                        {product.name}
-                                    </p>
-                                    <p className="h-14 w-[223px] overflow-hidden text-ellipsis">
-                                        {brand.copy.catalog.descriptionLabel}
-                                    </p>
-                                    <p className="h-14 w-[223px] overflow-hidden text-ellipsis">
-                                        {product.description}
-                                    </p>
-                                    {product.category && (
-                                        <p className="h-8 w-[223px] overflow-hidden text-ellipsis text-sm text-[#666]">
-                                            {brand.copy.catalog.categoryLabel} {product.category}
-                                        </p>
-                                    )}
-                                    {brand.features.inventory && product.inventory !== undefined && (
-                                        <p className="h-8 w-[223px] overflow-hidden text-ellipsis font-bold text-[var(--brand-accent)]">
-                                            {product.inventory > 0
-                                                ? `${brand.copy.catalog.inventoryLabel} ${product.inventory}`
-                                                : brand.copy.catalog.soldOutLabel}
-                                        </p>
-                                    )}
-                                    {product.status && (
-                                        <p className="h-8 w-[223px] overflow-hidden text-ellipsis text-sm font-bold text-[#666]">
-                                            {brand.copy.catalog.statusLabel} {brand.copy.catalog.statusLabels[product.status]}
-                                        </p>
-                                    )}
-                                    <div className="mt-2 flex w-[223px] flex-wrap justify-center gap-2">
+                            <li className="flex min-h-full flex-col overflow-hidden rounded border border-solid border-[#e5e7eb] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]" key={product._id}>
+                                <Link className="block bg-[#f3f4f6]" to={appRoutes.productDetail(product._id)}>
+                                    <img className="aspect-[4/3] w-full object-cover" src={product.image} alt={product.name} />
+                                </Link>
+                                <div className="flex flex-1 flex-col gap-3 p-4">
+                                    <div>
                                         <Link
-                                            className="rounded bg-[var(--brand-secondary)] px-3 py-2 text-sm font-bold text-white"
+                                            className="line-clamp-2 min-h-12 text-base font-bold leading-6 text-[#111827]"
                                             to={appRoutes.productDetail(product._id)}
                                         >
-                                            Details
+                                            {product.name}
+                                        </Link>
+                                        <p className="mt-1 text-lg font-bold text-[var(--brand-accent)]">
+                                            {brand.copy.catalog.priceUnavailableLabel}
+                                        </p>
+                                    </div>
+                                    <p className="line-clamp-3 min-h-[72px] text-sm leading-6 text-[#4b5563]">
+                                        <span className="font-bold">{brand.copy.catalog.descriptionLabel}</span>{' '}
+                                        {product.description}
+                                    </p>
+                                    <dl className="grid gap-2 text-sm text-[#4b5563]">
+                                        {product.category && (
+                                            <div className="flex items-start justify-between gap-3">
+                                                <dt className="font-bold">{brand.copy.catalog.categoryLabel}</dt>
+                                                <dd className="text-right">{product.category}</dd>
+                                            </div>
+                                        )}
+                                        {brand.features.inventory && product.inventory !== undefined && (
+                                            <div className="flex items-start justify-between gap-3">
+                                                <dt className="font-bold">{brand.copy.catalog.inventoryLabel}</dt>
+                                                <dd className={product.inventory > 0 ? 'font-bold text-[var(--brand-accent)]' : 'font-bold text-red-600'}>
+                                                    {product.inventory > 0 ? product.inventory : brand.copy.catalog.soldOutLabel}
+                                                </dd>
+                                            </div>
+                                        )}
+                                        {product.status && (
+                                            <div className="flex items-start justify-between gap-3">
+                                                <dt className="font-bold">{brand.copy.catalog.statusLabel}</dt>
+                                                <dd className="rounded bg-[#eef2ff] px-2 py-0.5 text-right text-xs font-bold text-[#3730a3]">
+                                                    {brand.copy.catalog.statusLabels[product.status]}
+                                                </dd>
+                                            </div>
+                                        )}
+                                        {product.seller && (
+                                            <div className="flex items-start justify-between gap-3">
+                                                <dt className="font-bold">{brand.copy.catalog.sellerLabel}</dt>
+                                                <dd className="text-right">
+                                                    <Link className="font-bold text-[var(--brand-secondary)]" to={appRoutes.sellerProfile(product.seller)}>
+                                                        {product.seller}
+                                                    </Link>
+                                                </dd>
+                                            </div>
+                                        )}
+                                    </dl>
+                                    <div className="mt-auto grid grid-cols-3 gap-2 pt-1">
+                                        <Link
+                                            className="col-span-3 inline-flex min-h-10 items-center justify-center rounded bg-[var(--brand-secondary)] px-3 text-center text-sm font-bold text-white"
+                                            to={appRoutes.productDetail(product._id)}
+                                        >
+                                            {brand.copy.catalog.detailsAction}
                                         </Link>
                                         <button
-                                            className="rounded border border-solid border-[#ddd] px-3 py-2 text-sm font-bold text-[#666]"
+                                            className="min-h-10 rounded border border-solid border-[#d1d5db] px-2 text-sm font-bold text-[#374151]"
                                             type="button"
                                             onClick={() => setFavorites(toggleStoredId('favorites', product._id))}
                                         >
-                                            {favorites.includes(product._id) ? 'Watching' : 'Watch'}
+                                            {favorites.includes(product._id) ? brand.copy.catalog.watchingAction : brand.copy.catalog.watchAction}
                                         </button>
                                         <button
-                                            className="rounded border border-solid border-[#ddd] px-3 py-2 text-sm font-bold text-[#666]"
+                                            className="col-span-2 min-h-10 rounded border border-solid border-[#d1d5db] px-2 text-sm font-bold text-[#374151]"
                                             type="button"
                                             onClick={() => setCart(toggleStoredId('cart', product._id))}
                                         >
-                                            {cart.includes(product._id) ? 'In cart' : 'Cart'}
+                                            {cart.includes(product._id) ? brand.copy.catalog.inCartAction : brand.copy.catalog.cartAction}
                                         </button>
                                     </div>
                                 </div>
@@ -235,11 +291,11 @@ export default function Products() {
                         ))}
                     </ul>
                 ) : (
-                    <div className="text-[32px] font-bold text-[#999]">
-                        <h1>{brand.copy.catalog.empty}</h1>
+                    <div className="rounded border border-dashed border-[#cbd5e1] bg-white p-8 text-center">
+                        <h2 className="text-xl font-bold text-[#4b5563]">{brand.copy.catalog.empty}</h2>
                     </div>
                 )}
             </div>
-        </div>
+        </section>
     );
 }

@@ -6,6 +6,13 @@
   },
   "scripts": {
     "prepare": "husky",
+    "dev": "npm run dev:backend & npm run dev:frontend",
+    "dev:local": "npm run db:up && npm run dev",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "db:up": "docker start mercadozetta-mongo || docker compose up -d mongo",
+    "db:down": "docker stop mercadozetta-mongo || docker compose down",
+    "db:logs": "docker logs -f mercadozetta-mongo",
     "typecheck": "npm --prefix backend run compile",
     "lint": "npm run lint:backend && npm run lint:frontend",
     "lint:backend": "npm --prefix backend run lint",

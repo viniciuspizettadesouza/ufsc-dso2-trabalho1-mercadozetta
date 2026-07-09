@@ -7,16 +7,33 @@ export type BrandCopy = {
     catalog: {
         searchAction: string;
         searchPlaceholder: string;
+        categoryFilterLabel: string;
+        categoryFilterPlaceholder: string;
+        availabilityFilterLabel: string;
+        availabilityAnyLabel: string;
+        availabilityInStockLabel: string;
+        availabilitySoldOutLabel: string;
+        sortLabel: string;
+        sortNewestLabel: string;
+        sortOldestLabel: string;
+        sortNameLabel: string;
+        sortInventoryLabel: string;
         loading: string;
         loadError: string;
         empty: string;
         descriptionLabel: string;
+        priceUnavailableLabel: string;
         inventoryLabel: string;
         soldOutLabel: string;
         categoryLabel: string;
         subcategoryLabel: string;
         sellerLabel: string;
         statusLabel: string;
+        detailsAction: string;
+        watchAction: string;
+        watchingAction: string;
+        cartAction: string;
+        inCartAction: string;
         statusLabels: {
             draft: string;
             active: string;
@@ -26,6 +43,9 @@ export type BrandCopy = {
         };
     };
     home: {
+        headline: string;
+        subtitle: string;
+        sellerActionLabel: string;
         createAccountAction: string;
         createProductAction: string;
     };

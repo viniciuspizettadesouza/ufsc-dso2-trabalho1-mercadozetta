@@ -54,7 +54,7 @@ describe('Header', () => {
     it('shows login action for anonymous users', async () => {
         renderHeader();
 
-        await userEvent.click(screen.getByRole('button', { name: 'Login' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
 
         expect(navigate).toHaveBeenCalledWith('/login');
     });
@@ -62,13 +62,13 @@ describe('Header', () => {
     it('hides login action when requested', () => {
         renderHeader('/', true);
 
-        expect(screen.queryByRole('button', { name: 'Login' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Entrar' })).not.toBeInTheDocument();
     });
 
     it('hides login action on the login page', () => {
         renderHeader('/login');
 
-        expect(screen.queryByRole('button', { name: 'Login' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: 'Entrar' })).not.toBeInTheDocument();
     });
 
     it('shows authenticated user data and logs out', async () => {
@@ -85,7 +85,7 @@ describe('Header', () => {
         expect(screen.getByText('seller@example.com')).toBeInTheDocument();
         expect(screen.getByText('123')).toBeInTheDocument();
 
-        await userEvent.click(screen.getByRole('button', { name: 'Logout' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Sair' }));
 
         expect(localStorage.getItem('token')).toBeNull();
         expect(localStorage.getItem('user')).toBeNull();
@@ -98,6 +98,6 @@ describe('Header', () => {
         renderHeader();
 
         expect(localStorage.getItem('user')).toBeNull();
-        expect(screen.getByRole('button', { name: 'Login' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument();
     });
 });

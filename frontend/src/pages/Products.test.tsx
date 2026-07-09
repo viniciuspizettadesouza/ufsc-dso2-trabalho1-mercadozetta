@@ -18,8 +18,10 @@ const products = [
         name: 'Coffee',
         description: 'Fresh beans',
         image: 'coffee.jpg',
+        category: 'drinks',
         inventory: 3,
         status: 'active' as const,
+        seller: 'seller-1',
     },
     {
         _id: 'product-2',
@@ -56,13 +58,15 @@ describe('Products', () => {
 
         renderProducts();
 
-        expect(screen.getByRole('status')).toHaveTextContent('Loading products...');
+        expect(screen.getByRole('status', { name: 'Carregando produtos...' })).toBeInTheDocument();
         expect(await screen.findByText('Coffee')).toBeInTheDocument();
         expect(screen.getByText('Tea')).toBeInTheDocument();
-        expect(screen.getByText('Available: 3')).toBeInTheDocument();
-        expect(screen.getByText('Sold out')).toBeInTheDocument();
-        expect(screen.getByText('Status: Active')).toBeInTheDocument();
-        expect(screen.getByText('Status: Paused')).toBeInTheDocument();
+        expect(screen.getByText('3')).toBeInTheDocument();
+        expect(screen.getByText('drinks')).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'seller-1' })).toHaveAttribute('href', '/sellers/seller-1/profile');
+        expect(screen.getByText('Esgotado')).toBeInTheDocument();
+        expect(screen.getByText('Ativo')).toBeInTheDocument();
+        expect(screen.getByText('Pausado')).toBeInTheDocument();
         expect(api.get).toHaveBeenCalledWith('/products');
     });
 
@@ -80,7 +84,7 @@ describe('Products', () => {
 
         renderProducts();
 
-        expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load products.');
+        expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível carregar os produtos.');
     });
 
     it('filters products case-insensitively and handles no results', async () => {
@@ -89,16 +93,16 @@ describe('Products', () => {
         renderProducts();
 
         await screen.findByText('Coffee');
-        await userEvent.type(screen.getByPlaceholderText('Search for a product'), 'TE');
+        await userEvent.type(screen.getByPlaceholderText('Buscar produto'), 'TE');
 
         expect(screen.getByText('Tea')).toBeInTheDocument();
         expect(screen.queryByText('Coffee')).not.toBeInTheDocument();
 
-        await userEvent.clear(screen.getByPlaceholderText('Search for a product'));
+        await userEvent.clear(screen.getByPlaceholderText('Buscar produto'));
         expect(screen.getByText('Coffee')).toBeInTheDocument();
 
-        await userEvent.type(screen.getByPlaceholderText('Search for a product'), 'zz');
-        expect(screen.getByText('No products found :(')).toBeInTheDocument();
+        await userEvent.type(screen.getByPlaceholderText('Buscar produto'), 'zz');
+        expect(screen.getByText('Nenhum produto encontrado')).toBeInTheDocument();
     });
 
     it('requests backend filters with query params', async () => {
@@ -109,11 +113,11 @@ describe('Products', () => {
         renderProducts();
 
         await screen.findByText('Coffee');
-        await userEvent.type(screen.getByPlaceholderText('Search for a product'), 'tea');
-        await userEvent.type(screen.getByLabelText('Category filter'), 'drinks');
-        await userEvent.selectOptions(screen.getByLabelText('Availability filter'), 'sold_out');
-        await userEvent.selectOptions(screen.getByLabelText('Sort products'), 'name_asc');
-        await userEvent.click(screen.getByRole('button', { name: 'Search products' }));
+        await userEvent.type(screen.getByPlaceholderText('Buscar produto'), 'tea');
+        await userEvent.type(screen.getByLabelText('Categoria'), 'drinks');
+        await userEvent.selectOptions(screen.getByLabelText('Disponibilidade'), 'sold_out');
+        await userEvent.selectOptions(screen.getByLabelText('Ordenar produtos'), 'name_asc');
+        await userEvent.click(screen.getByRole('button', { name: 'Buscar produtos' }));
 
         expect(api.get).toHaveBeenLastCalledWith('/products?q=tea&category=drinks&availability=sold_out&sort=name_asc');
     });
@@ -126,9 +130,9 @@ describe('Products', () => {
         renderProducts();
 
         await screen.findByText('Coffee');
-        await userEvent.click(screen.getByRole('button', { name: 'Search products' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Buscar produtos' }));
 
-        expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load products.');
+        expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível carregar os produtos.');
     });
 
     it('toggles watchlist and cart state from storage', async () => {
@@ -138,11 +142,11 @@ describe('Products', () => {
 
         renderProducts();
 
-        expect(await screen.findByRole('button', { name: 'Watching' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'In cart' })).toBeInTheDocument();
+        expect(await screen.findByRole('button', { name: 'Favorito' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'No carrinho' })).toBeInTheDocument();
 
-        await userEvent.click(screen.getByRole('button', { name: 'Watching' }));
-        await userEvent.click(screen.getByRole('button', { name: 'In cart' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Favorito' }));
+        await userEvent.click(screen.getByRole('button', { name: 'No carrinho' }));
 
         expect(localStorage.getItem('favorites')).toBe('[]');
         expect(localStorage.getItem('cart')).toBe('[]');
@@ -155,8 +159,8 @@ describe('Products', () => {
 
         renderProducts();
 
-        expect(await screen.findAllByRole('button', { name: 'Watch' })).toHaveLength(2);
-        expect(screen.getAllByRole('button', { name: 'Cart' })).toHaveLength(2);
+        expect(await screen.findAllByRole('button', { name: 'Favoritar' })).toHaveLength(2);
+        expect(screen.getAllByRole('button', { name: 'Carrinho' })).toHaveLength(2);
     });
 
     it('renders image alt text from product name', async () => {
