@@ -671,7 +671,7 @@ describe('auth, user, and product routes', () => {
         expect(inStockResponse.status).toBe(200);
         expect(inStockResponse.body).toEqual([products[0]]);
         expect(inventoryResponse.status).toBe(200);
-        expect(inventoryResponse.body.map(product => product._id)).toEqual(['product-2', 'product-1']);
+        expect(inventoryResponse.body.map((product: { _id: string }) => product._id)).toEqual(['product-2', 'product-1']);
     });
 
     it('supports search aliases and missing optional product fields', async () => {

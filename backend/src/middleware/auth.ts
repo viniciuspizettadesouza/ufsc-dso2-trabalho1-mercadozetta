@@ -3,6 +3,11 @@ import type { Request, Response, NextFunction } from 'express';
 import AppError from '../errors/AppError';
 import { getJwtSecret } from '../config/security';
 
+type AuthTokenPayload = {
+  id?: string;
+  tenantId?: string;
+};
+
 function authMiddleware(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
 
@@ -17,7 +22,7 @@ function authMiddleware(req: Request, res: Response, next: NextFunction) {
   const jwtSecret = getJwtSecret();
 
   try {
-    const decoded = jwt.verify(token, jwtSecret) as any;
+    const decoded = jwt.verify(token, jwtSecret) as AuthTokenPayload;
     if (decoded.tenantId && req.tenant && decoded.tenantId !== req.tenant.id)
       return next(new AppError(401, 'INVALID_AUTH_TOKEN', 'Invalid authorization token'));
 

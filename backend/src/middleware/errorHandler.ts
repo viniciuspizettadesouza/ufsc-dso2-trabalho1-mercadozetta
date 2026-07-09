@@ -1,6 +1,15 @@
 import type { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 import AppError from '../errors/AppError';
 
+function isJsonParseError(err: unknown) {
+  return (
+    typeof err === 'object'
+    && err !== null
+    && 'type' in err
+    && (err as { type?: unknown }).type === 'entity.parse.failed'
+  );
+}
+
 const errorHandler: ErrorRequestHandler = (err, req: Request, res: Response, next: NextFunction) => {
   if (res.headersSent)
     return next(err);
@@ -12,7 +21,7 @@ const errorHandler: ErrorRequestHandler = (err, req: Request, res: Response, nex
       ...(err.details ? { details: err.details } : {}),
     });
 
-  if (err && (err as any).type === 'entity.parse.failed')
+  if (isJsonParseError(err))
     return res.status(400).send({
       error: 'Invalid JSON payload',
       code: 'INVALID_JSON_PAYLOAD',

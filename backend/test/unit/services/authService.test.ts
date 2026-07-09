@@ -7,7 +7,7 @@ const servicePath = require.resolve('../../../src/services/authService');
 const securityPath = require.resolve('../../../src/config/security');
 const userModelPath = require.resolve('../../../src/model/user');
 
-function loadAuthService(userModel, secret = 'unit-test-secret') {
+function loadAuthService(userModel: unknown, secret = 'unit-test-secret') {
     clearModules(servicePath, securityPath, userModelPath);
     mockModule(userModelPath, userModel);
     mockModule(securityPath, {

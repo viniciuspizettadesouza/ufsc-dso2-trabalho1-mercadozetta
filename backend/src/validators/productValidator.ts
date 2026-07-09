@@ -1,6 +1,10 @@
 import mongoose from 'mongoose';
 import AppError from '../errors/AppError';
-import { productStatuses } from '../productStatus';
+import { productStatuses, type ProductStatus } from '../productStatus';
+
+function isProductStatus(status: string): status is ProductStatus {
+  return productStatuses.includes(status as ProductStatus);
+}
 
 export function validateCreateProductPayload(body: Record<string, unknown> = {}) {
   const name = String(body.name || '').trim();
@@ -20,7 +24,7 @@ export function validateCreateProductPayload(body: Record<string, unknown> = {})
   if (!Number.isInteger(inventory) || inventory < 0)
     throw new AppError(400, 'INVALID_PRODUCT_INVENTORY', 'Quantity must be a non-negative integer');
 
-  if (!productStatuses.includes(status as any))
+  if (!isProductStatus(status))
     throw new AppError(400, 'INVALID_PRODUCT_STATUS', 'Product status must be draft, active, paused, sold_out, or archived');
 
   return {
@@ -47,7 +51,7 @@ export function validateProductFilters(query: Record<string, unknown> = {}) {
     sort: String(query.sort || 'created_desc').trim(),
   };
 
-  if (filters.status && !productStatuses.includes(filters.status as any))
+  if (filters.status && !isProductStatus(filters.status))
     throw new AppError(400, 'INVALID_PRODUCT_STATUS_FILTER', 'Product status filter must be draft, active, paused, sold_out, or archived');
 
   if (filters.availability && !availabilityModes.includes(filters.availability))

@@ -8,11 +8,29 @@ import {
 } from '../validators/productValidator';
 import type { ProductStatus } from '../productStatus';
 
+type FilterableProduct = {
+  name?: unknown;
+  description?: unknown;
+  category?: unknown;
+  subcategory?: unknown;
+  status?: unknown;
+  seller?: unknown;
+  inventory?: unknown;
+  createdAt?: unknown;
+};
+
 function normalizeText(value: unknown) {
   return String(value || '').trim().toLowerCase();
 }
 
-function filterProducts(products: any[], filters: Record<string, unknown> = {}) {
+function timestamp(value: unknown) {
+  if (typeof value === 'string' || typeof value === 'number' || value instanceof Date)
+    return new Date(value).getTime();
+
+  return 0;
+}
+
+function filterProducts<T extends FilterableProduct>(products: T[], filters: Record<string, unknown> = {}) {
   const q = normalizeText(filters.q || filters.search);
   const category = normalizeText(filters.category);
   const subcategory = normalizeText(filters.subcategory);
@@ -42,19 +60,19 @@ function filterProducts(products: any[], filters: Record<string, unknown> = {}) 
   });
 }
 
-function sortProducts(products: any[], sort?: string) {
+function sortProducts<T extends FilterableProduct>(products: T[], sort?: string) {
   const sortedProducts = [...products];
 
   switch (sort) {
     case 'created_asc':
-      return sortedProducts.sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime());
+      return sortedProducts.sort((a, b) => timestamp(a.createdAt) - timestamp(b.createdAt));
     case 'name_asc':
       return sortedProducts.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
     case 'inventory_desc':
       return sortedProducts.sort((a, b) => Number(b.inventory || 0) - Number(a.inventory || 0));
     case 'created_desc':
     default:
-      return sortedProducts.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      return sortedProducts.sort((a, b) => timestamp(b.createdAt) - timestamp(a.createdAt));
   }
 }
 

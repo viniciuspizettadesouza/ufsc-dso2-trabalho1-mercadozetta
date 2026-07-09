@@ -4,7 +4,7 @@ import { clearModules, mockModule } from '../helpers/moduleMock';
 const servicePath = require.resolve('../../../src/services/userService');
 const userModelPath = require.resolve('../../../src/model/user');
 
-function loadUserService(userModel) {
+function loadUserService(userModel: unknown) {
     clearModules(servicePath, userModelPath);
     mockModule(userModelPath, userModel);
     return require('../../../src/services/userService');

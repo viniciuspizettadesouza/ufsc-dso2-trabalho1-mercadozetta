@@ -1,14 +1,14 @@
-const js = require('@eslint/js');
-const globals = require('globals');
-const tsParser = require('@typescript-eslint/parser');
-const tsPlugin = require('@typescript-eslint/eslint-plugin');
+import js from '@eslint/js';
+import globals from 'globals';
+import tsParser from '@typescript-eslint/parser';
+import tsPlugin from '@typescript-eslint/eslint-plugin';
 
-module.exports = [
+export default [
   {
     ignores: ['coverage/**', 'dist/**', 'node_modules/**'],
   },
   js.configs.recommended,
-  ...tsPlugin.configs['flat/recommended'],
+  ...(tsPlugin.configs['flat/recommended'] as unknown as object[]),
   {
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
@@ -34,13 +34,6 @@ module.exports = [
         ...globals.node,
         ...globals.vitest,
       },
-    },
-  },
-  {
-    files: ['vitest.config.js', 'eslint.config.js'],
-    languageOptions: {
-      sourceType: 'commonjs',
-      globals: globals.node,
     },
   },
 ];

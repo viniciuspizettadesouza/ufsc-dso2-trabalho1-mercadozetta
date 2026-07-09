@@ -3,11 +3,25 @@ import User from '../model/user';
 import { defaultTenantId } from '../tenants';
 import { validateCreateUserPayload } from '../validators/userValidator';
 
-function getDuplicateField(err: any) {
-  if (err.code !== 11000)
+type DuplicateKeyError = {
+  code?: unknown;
+  keyPattern?: Record<string, unknown>;
+  keyValue?: Record<string, unknown>;
+};
+
+function stripPassword<T extends Record<string, unknown>>(userObject: T) {
+  const publicUser = { ...userObject };
+  delete publicUser.password;
+  return publicUser;
+}
+
+function getDuplicateField(err: unknown) {
+  const duplicateError = err as DuplicateKeyError;
+
+  if (duplicateError.code !== 11000)
     return null;
 
-  const fields = Object.keys(err.keyPattern || err.keyValue || {});
+  const fields = Object.keys(duplicateError.keyPattern || duplicateError.keyValue || {});
 
   return fields[0] || null;
 }
@@ -23,11 +37,8 @@ export async function createUser(body: Record<string, unknown>, tenantId = defau
       ...payload,
       tenantId,
     });
-    const userObject = newUser.toObject();
-    delete (userObject as any).password;
-
-    return userObject;
-  } catch (err: any) {
+    return stripPassword(newUser.toObject());
+  } catch (err) {
     const duplicateField = getDuplicateField(err);
 
     if (duplicateField === 'email' || duplicateField === 'tenantId')

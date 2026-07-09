@@ -1,9 +1,9 @@
 import type { Request, Response, NextFunction } from 'express';
 
 type Schema = {
-  body?: (value: any) => unknown;
-  params?: (value: any) => unknown;
-  query?: (value: any) => unknown;
+  body?: (value: Record<string, unknown>) => unknown;
+  params?: (value: Record<string, unknown>) => unknown;
+  query?: (value: Record<string, unknown>) => unknown;
 };
 
 function validateRequest(schema: Schema = {}) {
@@ -14,13 +14,13 @@ function validateRequest(schema: Schema = {}) {
       };
 
       if (schema.body)
-        req.validated.body = schema.body(req.body);
+        req.validated.body = schema.body(req.body) as Record<string, unknown>;
 
       if (schema.params)
-        req.validated.params = schema.params(req.params);
+        req.validated.params = schema.params(req.params) as Record<string, string>;
 
       if (schema.query)
-        req.validated.query = schema.query(req.query);
+        req.validated.query = schema.query(req.query as Record<string, unknown>) as Record<string, unknown>;
 
       return next();
     } catch (err) {
