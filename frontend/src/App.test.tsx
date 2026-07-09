@@ -33,8 +33,8 @@ describe('App', () => {
     it('renders the home page for /', async () => {
         await renderAppAt('/');
 
-        expect(screen.getByRole('button', { name: 'Create account' })).toBeInTheDocument();
-        expect(await screen.findByText('No products found :(')).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Criar conta' })).toBeInTheDocument();
+        expect(await screen.findByText('Nenhum produto encontrado')).toBeInTheDocument();
     });
 
     it('renders the app with the sample CampusMarket tenant', async () => {
@@ -43,8 +43,8 @@ describe('App', () => {
         await renderAppAt('/');
 
         expect(screen.getByRole('img', { name: 'CampusMarket logo' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Post offer' })).toBeInTheDocument();
-        expect(await screen.findByText('No offers found :(')).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Publicar oferta' })).toBeInTheDocument();
+        expect(await screen.findByText('Nenhuma oferta encontrada')).toBeInTheDocument();
         expect(document.title).toBe('CampusMarket');
     });
 
@@ -53,7 +53,7 @@ describe('App', () => {
 
         expect(screen.getByPlaceholderText('Email')).toBeInTheDocument();
         expect(screen.getByPlaceholderText('Password')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Login' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument();
     });
 
     it('renders the register page for /register', async () => {
@@ -61,7 +61,7 @@ describe('App', () => {
 
         expect(screen.getByPlaceholderText('Name')).toBeInTheDocument();
         expect(screen.getByPlaceholderText('Phone')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Create account' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Criar conta' })).toBeInTheDocument();
     });
 
     it('renders the product creation page for /products/new', async () => {
@@ -69,13 +69,13 @@ describe('App', () => {
 
         expect(screen.getByPlaceholderText('Product name')).toBeInTheDocument();
         expect(screen.getByPlaceholderText('Image URL')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Create listing' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Criar anúncio' })).toBeInTheDocument();
     });
 
     it('renders the seller products page for /sellers/:sellerId', async () => {
         await renderAppAt('/sellers/seller-1');
 
-        expect(await screen.findByText('No products found :(')).toBeInTheDocument();
+        expect(await screen.findByText('Nenhum produto encontrado')).toBeInTheDocument();
         expect(apiGet).toHaveBeenCalledWith('/users/seller-1/products');
     });
 

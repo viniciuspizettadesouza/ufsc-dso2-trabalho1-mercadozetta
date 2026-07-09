@@ -57,7 +57,7 @@ describe('Login', () => {
 
         await userEvent.type(screen.getByPlaceholderText('Email'), 'seller@example.com');
         await userEvent.type(screen.getByPlaceholderText('Password'), 'secret123');
-        await userEvent.click(screen.getByRole('button', { name: 'Login' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
 
         await waitFor(() => {
             expect(api.post).toHaveBeenCalledWith('/auth/login', {
@@ -80,9 +80,9 @@ describe('Login', () => {
 
         await userEvent.type(screen.getByPlaceholderText('Email'), 'seller@example.com');
         await userEvent.type(screen.getByPlaceholderText('Password'), 'wrong-password');
-        await userEvent.click(screen.getByRole('button', { name: 'Login' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
 
-        expect(await screen.findByText('Invalid email or password')).toBeInTheDocument();
+        expect(await screen.findByText('E-mail ou senha inválidos')).toBeInTheDocument();
         expect(localStorage.getItem('token')).toBeNull();
         expect(navigate).not.toHaveBeenCalled();
     });

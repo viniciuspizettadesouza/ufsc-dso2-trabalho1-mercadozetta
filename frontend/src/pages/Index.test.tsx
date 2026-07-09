@@ -1,5 +1,4 @@
 import { cleanup, render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -42,27 +41,12 @@ describe('Index', () => {
         vi.mocked(api.get).mockResolvedValue({ data: [] });
     });
 
-    it('renders the main product experience', async () => {
+    it('renders the main marketplace experience', async () => {
         renderIndex();
 
-        expect(screen.getByRole('button', { name: 'Create account' })).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Add products' })).toBeInTheDocument();
-        expect(await screen.findByText('No products found :(')).toBeInTheDocument();
-    });
-
-    it('navigates to account creation', async () => {
-        renderIndex();
-
-        await userEvent.click(screen.getByRole('button', { name: 'Create account' }));
-
-        expect(navigate).toHaveBeenCalledWith('/register');
-    });
-
-    it('navigates to product creation', async () => {
-        renderIndex();
-
-        await userEvent.click(screen.getByRole('button', { name: 'Add products' }));
-
-        expect(navigate).toHaveBeenCalledWith('/products/new');
+        expect(screen.getByRole('heading', { name: 'Encontre ofertas do marketplace' })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: 'Criar conta' })).toHaveAttribute('href', '/register');
+        expect(screen.getByRole('link', { name: 'Anunciar produto' })).toHaveAttribute('href', '/products/new');
+        expect(await screen.findByText('Nenhum produto encontrado')).toBeInTheDocument();
     });
 });

@@ -5,33 +5,7 @@
 Focus the next work on improvements that make MercadoZetta easier to run,
 easier to evolve, and more polished as a white-label marketplace demo.
 
-## Priority 1 - UI/UX Modernization
-
-This is the best next focus because it improves the most visible part of the
-project without requiring major backend changes.
-
-- Replace the current button-heavy home layout with a marketplace-first page:
-  - header with search
-  - product grid
-  - seller/account actions
-  - clear empty, loading, and error states
-- Improve product cards:
-  - stable image aspect ratio
-  - responsive layout
-  - clear price, status, category, and seller information
-  - accessible links/buttons for product and seller navigation
-- Improve forms where needed:
-  - labels
-  - helper text
-  - user-visible validation errors
-  - consistent success/error feedback
-- Add skeleton loading or lightweight loading states for product lists.
-- Add toast or inline feedback for successful actions.
-- Keep user-facing copy in Portuguese by default.
-- Continue routing new brand-specific copy through the existing brand copy
-  structure.
-
-## Priority 2 - Local Development and Demo Setup
+## Priority 1 - Local Development and Demo Setup
 
 This should come after the UI pass so testing and demos become easier and more
 repeatable.
@@ -48,7 +22,7 @@ repeatable.
 - Document the demo startup flow in the README.
 - Add a short manual smoke-test checklist that starts from seeded data.
 
-## Priority 3 - Auth Flow Hardening
+## Priority 2 - Auth Flow Hardening
 
 Implement these in a dedicated branch after the authentication flow diagrams are
 reviewed. The current flow is solid for a demo, but these changes would make it
@@ -75,7 +49,7 @@ safer and more production-ready.
   - missing tenant headers when strict tenant mode is enabled
   - logout/session invalidation behavior if revocation is added
 
-## Priority 4 - API Contract Documentation
+## Priority 3 - API Contract Documentation
 
 This should happen before adding generated clients or expanding persistent
 commerce workflows.
@@ -91,7 +65,7 @@ commerce workflows.
   - health/readiness endpoints
 - Add API client generation only after the documented contract is stable.
 
-## Priority 5 - Architecture Decision Records
+## Priority 4 - Architecture Decision Records
 
 Capture decisions that are already shaping the project so future changes have a
 clear reference point.
@@ -106,7 +80,7 @@ clear reference point.
   - decision
   - consequences
 
-## Priority 6 - Persistent Commerce Domain
+## Priority 5 - Persistent Commerce Domain
 
 Only start this if the project needs real buyer workflows beyond the current
 demo simulation.
@@ -120,12 +94,11 @@ demo simulation.
 
 ## Recommended Order
 
-1. Modernize the home/catalog experience.
-2. Add Docker Compose and seed scripts.
-3. Harden the authentication flow.
-4. Document the current API with OpenAPI.
-5. Add ADRs for existing architecture decisions.
-6. Persist commerce workflows only if the product scope grows.
+1. Add Docker Compose and seed scripts.
+2. Harden the authentication flow.
+3. Document the current API with OpenAPI.
+4. Add ADRs for existing architecture decisions.
+5. Persist commerce workflows only if the product scope grows.
 
 ## Definition of Done
 

@@ -65,7 +65,7 @@ describe('AddUser', () => {
         await userEvent.type(screen.getByPlaceholderText('Phone'), '48999999999');
         await userEvent.type(screen.getByPlaceholderText('Email'), 'smoke@example.com');
         await userEvent.type(screen.getByPlaceholderText('Password'), 'secret123');
-        await userEvent.click(screen.getByRole('button', { name: 'Create account' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Criar conta' }));
 
         expect(await screen.findByRole('alert')).toHaveTextContent('User already exists');
         expect(navigate).not.toHaveBeenCalled();

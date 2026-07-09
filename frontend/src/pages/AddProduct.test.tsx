@@ -54,9 +54,9 @@ describe('AddProduct', () => {
         renderAddProduct();
 
         await fillProductForm();
-        await userEvent.click(screen.getByRole('button', { name: 'Create listing' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Criar anúncio' }));
 
-        expect(await screen.findByRole('alert')).toHaveTextContent('Sign in to create a listing.');
+        expect(await screen.findByRole('alert')).toHaveTextContent('Entre para criar um anúncio.');
         expect(api.post).not.toHaveBeenCalled();
         expect(navigate).not.toHaveBeenCalled();
     });
@@ -69,7 +69,7 @@ describe('AddProduct', () => {
         renderAddProduct();
 
         await fillProductForm();
-        await userEvent.click(screen.getByRole('button', { name: 'Create listing' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Criar anúncio' }));
 
         await waitFor(() => {
             expect(api.post).toHaveBeenCalledWith('/products', {
@@ -93,8 +93,8 @@ describe('AddProduct', () => {
         renderAddProduct();
 
         await fillProductForm();
-        await userEvent.selectOptions(screen.getByLabelText('Product status'), 'draft');
-        await userEvent.click(screen.getByRole('button', { name: 'Create listing' }));
+        await userEvent.selectOptions(screen.getByLabelText('Status do produto'), 'draft');
+        await userEvent.click(screen.getByRole('button', { name: 'Criar anúncio' }));
 
         await waitFor(() => {
             expect(api.post).toHaveBeenCalledWith('/products', expect.objectContaining({
@@ -111,9 +111,9 @@ describe('AddProduct', () => {
         renderAddProduct();
 
         await fillProductForm();
-        await userEvent.click(screen.getByRole('button', { name: 'Create listing' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Criar anúncio' }));
 
-        expect(await screen.findByRole('alert')).toHaveTextContent('Unable to create the listing. Try again.');
+        expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível criar o anúncio. Tente novamente.');
         expect(navigate).not.toHaveBeenCalled();
     });
 
@@ -124,9 +124,9 @@ describe('AddProduct', () => {
         renderAddProduct();
 
         await fillProductForm();
-        await userEvent.click(screen.getByRole('button', { name: 'Create listing' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Criar anúncio' }));
 
-        expect(await screen.findByRole('alert')).toHaveTextContent('Sign in to create a listing.');
+        expect(await screen.findByRole('alert')).toHaveTextContent('Entre para criar um anúncio.');
         expect(localStorage.getItem('user')).toBeNull();
     });
 
@@ -153,7 +153,7 @@ describe('AddProduct', () => {
         renderAddProduct();
 
         await fillProductForm();
-        await userEvent.click(screen.getByRole('button', { name: 'Create listing' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Criar anúncio' }));
 
         expect(await screen.findByRole('alert')).toHaveTextContent('Name, quantity and image are required');
         expect(navigate).not.toHaveBeenCalled();
