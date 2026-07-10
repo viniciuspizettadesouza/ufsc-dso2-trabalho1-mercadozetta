@@ -89,6 +89,21 @@ describe('userService', () => {
             statusCode: 400,
             code: 'USER_EXISTS',
         });
+
+        ({ createUser } = loadUserService({
+            findOne: vi.fn().mockResolvedValue(null),
+            create: vi.fn().mockRejectedValue({ code: 11000, keyValue: { tenantId: 'mercadozetta' } }),
+        }));
+
+        await expect(createUser({
+            email: 'seller@example.com',
+            password: 'secret123',
+            username: 'Seller',
+            telephone: '999',
+        })).rejects.toMatchObject({
+            statusCode: 400,
+            code: 'USER_EXISTS',
+        });
     });
 
     it('rethrows non-duplicate create errors', async () => {

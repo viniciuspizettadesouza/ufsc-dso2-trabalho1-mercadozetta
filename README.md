@@ -27,11 +27,25 @@ Open the frontend URL printed by Vite. It is usually:
 http://localhost:5173
 ```
 
+To run the full demo stack in Docker instead:
+
+```bash
+npm run compose:up
+```
+
+In another terminal, seed repeatable demo data:
+
+```bash
+npm run compose:seed
+```
+
 Useful root commands:
 
 ```bash
 npm run db:up
 npm run dev
+npm run seed:demo
+npm run compose:up
 npm test
 npm run lint
 ```
@@ -259,25 +273,85 @@ cd frontend
 npm run dev
 ```
 
-## 9. Manual Smoke Test
+## 9. Seed Demo Data
+
+The demo seed creates users, sellers, and products for the built-in
+`mercadozetta` and `campus-market` tenants. It is safe to run more than once:
+seeded records are refreshed, and unrelated local data is left alone.
+
+With MongoDB running through `npm run db:up`, seed the local database:
+
+```bash
+npm run seed:demo
+```
+
+With the Docker Compose stack, seed through the backend container:
+
+```bash
+npm run compose:seed
+```
+
+Demo MercadoZetta seller account:
+
+```text
+vinicius@mercadozetta.test
+mercadozetta123
+```
+
+Demo CampusMarket seller account:
+
+```text
+vinicius@campus-market.test
+campusmarket123
+```
+
+## 10. Docker Compose Demo
+
+Docker Compose can run MongoDB, the backend API, and the frontend app together:
+
+```bash
+npm run compose:up
+```
+
+The services are exposed at:
+
+```text
+Frontend: http://localhost:5173
+Backend:  http://localhost:3333
+MongoDB:  mongodb://localhost:27017/mercadozetta
+```
+
+After the stack is healthy, seed demo records from another terminal:
+
+```bash
+npm run compose:seed
+```
+
+Stop the stack with:
+
+```bash
+npm run compose:down
+```
+
+## 11. Manual Smoke Test
 
 With the backend, frontend, and MongoDB running:
 
 1. Open `http://localhost:5173`.
-2. Go to `/register`.
-3. Create a user with email and password.
+2. Run `npm run seed:demo` or `npm run compose:seed`.
+3. Confirm that seeded products are visible on the home page or `/products`.
 4. Go to `/login`.
-5. Log in with the user you created.
-6. Confirm that you are redirected to a page like `/sellers/:sellerId`.
-7. Go to `/products/new`.
-8. Create a product.
-9. Return to the logged-in user's page.
-10. Confirm that the product appears in that seller's product list.
+5. Log in with `vinicius@mercadozetta.test` and `mercadozetta123`.
+6. Confirm that you are redirected to `/sellers/660000000000000000000001`.
+7. Confirm that the seller page lists the seeded MercadoZetta products.
+8. Go to `/products/new`.
+9. Create a product with any name, image URL, and positive quantity.
+10. Confirm that the new product appears in that seller's product list.
 
 Optionally, create a second user and another product. Then confirm that each
 seller page only shows products from that seller.
 
-## 10. Useful Commands
+## 12. Useful Commands
 
 Start local MongoDB, backend, and frontend:
 
@@ -295,6 +369,30 @@ Start backend and frontend without changing MongoDB state:
 
 ```bash
 npm run dev
+```
+
+Seed repeatable demo users, sellers, and products:
+
+```bash
+npm run seed:demo
+```
+
+Start the complete Docker Compose demo stack:
+
+```bash
+npm run compose:up
+```
+
+Seed the Docker Compose database:
+
+```bash
+npm run compose:seed
+```
+
+Stop the Docker Compose stack:
+
+```bash
+npm run compose:down
 ```
 
 Run all automated tests from the project root:
@@ -332,7 +430,7 @@ npm run lint
 npm audit
 ```
 
-## 11. Main Application Routes
+## 13. Main Application Routes
 
 - `/` - home page and product search
 - `/register` - user registration
@@ -340,7 +438,7 @@ npm audit
 - `/products/new` - authenticated product creation
 - `/sellers/:sellerId` - seller page with that seller's products
 
-## 12. Important Notes
+## 14. Important Notes
 
 - `.env` files are local and should not be committed.
 - The backend needs `MONGODB_URI` to start correctly.

@@ -70,6 +70,32 @@ describe('productService', () => {
         expect(result.map((product: { _id: string }) => product._id)).toEqual(['product-2']);
     });
 
+    it('uses default tenant listing and applies seller, subcategory, status, and stock filters', async () => {
+        const find = vi.fn().mockResolvedValue([
+            ...products,
+            {
+                _id: 'product-4',
+                name: '',
+                category: 'peripherals',
+                subcategory: 'mice',
+                seller: 'seller-1',
+                status: 'active',
+                inventory: 1,
+            },
+        ]);
+        const { listProducts } = loadProductService({ find });
+
+        const result = await listProducts(undefined, {
+            subcategory: 'mice',
+            seller: 'seller-1',
+            status: 'active',
+            availability: 'in_stock',
+        });
+
+        expect(find).toHaveBeenCalledWith({ tenantId: 'mercadozetta' });
+        expect(result.map((product: { _id: string }) => product._id)).toEqual(['product-1', 'product-4']);
+    });
+
     it('sorts products by creation, name, and inventory', async () => {
         const find = vi.fn().mockResolvedValue(products);
         const { listProducts } = loadProductService({ find });

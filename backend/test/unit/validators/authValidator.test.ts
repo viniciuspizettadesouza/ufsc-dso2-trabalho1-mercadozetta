@@ -13,6 +13,12 @@ describe('authValidator', () => {
     });
 
     it('rejects payloads missing email or password', () => {
+        expect(() => validateLoginPayload())
+            .toThrow(expect.objectContaining({
+                statusCode: 400,
+                code: 'MISSING_CREDENTIALS',
+            }));
+
         expect(() => validateLoginPayload({ email: 'seller@example.com' }))
             .toThrow(expect.objectContaining({
                 statusCode: 400,

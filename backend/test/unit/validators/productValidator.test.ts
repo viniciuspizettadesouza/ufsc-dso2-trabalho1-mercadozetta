@@ -24,9 +24,19 @@ describe('productValidator', () => {
             image: 'https://example.com/keyboard.png',
             status: 'active',
         });
+
+        expect(validateCreateProductPayload({
+            name: 'Draft product',
+            inventory: 0,
+            image: 'draft.png',
+            status: '',
+        }).status).toBe('active');
     });
 
     it('rejects missing product fields, invalid inventory, and invalid statuses', () => {
+        expect(() => validateCreateProductPayload())
+            .toThrow(expect.objectContaining({ code: 'MISSING_PRODUCT_FIELDS' }));
+
         expect(() => validateCreateProductPayload({ name: 'Keyboard', inventory: 1 }))
             .toThrow(expect.objectContaining({ code: 'MISSING_PRODUCT_FIELDS' }));
 
@@ -78,6 +88,7 @@ describe('productValidator', () => {
     it('validates product and seller identifiers', () => {
         expect(validateProductId(' product-1 ')).toBe('product-1');
         expect(() => validateProductId('')).toThrow(expect.objectContaining({ code: 'INVALID_PRODUCT_ID' }));
+        expect(() => validateProductId(null)).toThrow(expect.objectContaining({ code: 'INVALID_PRODUCT_ID' }));
 
         expect(validateSellerId('507f1f77bcf86cd799439011')).toBe('507f1f77bcf86cd799439011');
         expect(() => validateSellerId('not-an-object-id'))
