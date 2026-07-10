@@ -5,24 +5,7 @@
 Focus the next work on improvements that make MercadoZetta easier to run,
 easier to evolve, and more polished as a white-label marketplace demo.
 
-## Priority 1 - Local Development and Demo Setup
-
-This should come after the UI pass so testing and demos become easier and more
-repeatable.
-
-- Add Docker Compose for:
-  - MongoDB
-  - backend API
-  - frontend app
-- Add seed scripts for demo data:
-  - tenants/brands
-  - users
-  - sellers
-  - products
-- Document the demo startup flow in the README.
-- Add a short manual smoke-test checklist that starts from seeded data.
-
-## Priority 2 - Auth Flow Hardening
+## Priority 1 - Auth Flow Hardening
 
 Implement these in a dedicated branch after the authentication flow diagrams are
 reviewed. The current flow is solid for a demo, but these changes would make it
@@ -49,7 +32,7 @@ safer and more production-ready.
   - missing tenant headers when strict tenant mode is enabled
   - logout/session invalidation behavior if revocation is added
 
-## Priority 3 - API Contract Documentation
+## Priority 2 - API Contract Documentation
 
 This should happen before adding generated clients or expanding persistent
 commerce workflows.
@@ -65,7 +48,7 @@ commerce workflows.
   - health/readiness endpoints
 - Add API client generation only after the documented contract is stable.
 
-## Priority 4 - Architecture Decision Records
+## Priority 3 - Architecture Decision Records
 
 Capture decisions that are already shaping the project so future changes have a
 clear reference point.
@@ -80,7 +63,7 @@ clear reference point.
   - decision
   - consequences
 
-## Priority 5 - Persistent Commerce Domain
+## Priority 4 - Persistent Commerce Domain
 
 Only start this if the project needs real buyer workflows beyond the current
 demo simulation.
@@ -94,11 +77,10 @@ demo simulation.
 
 ## Recommended Order
 
-1. Add Docker Compose and seed scripts.
-2. Harden the authentication flow.
-3. Document the current API with OpenAPI.
-4. Add ADRs for existing architecture decisions.
-5. Persist commerce workflows only if the product scope grows.
+1. Harden the authentication flow.
+2. Document the current API with OpenAPI.
+3. Add ADRs for existing architecture decisions.
+4. Persist commerce workflows only if the product scope grows.
 
 ## Definition of Done
 

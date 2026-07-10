@@ -17,10 +17,25 @@ describe('userValidator', () => {
     });
 
     it('rejects missing required fields', () => {
+        expect(() => validateCreateUserPayload())
+            .toThrow(expect.objectContaining({
+                statusCode: 400,
+                code: 'MISSING_USER_FIELDS',
+            }));
+
         expect(() => validateCreateUserPayload({
             email: 'buyer@example.com',
             password: 'secret123',
             username: 'Buyer',
+        })).toThrow(expect.objectContaining({
+            statusCode: 400,
+            code: 'MISSING_USER_FIELDS',
+        }));
+
+        expect(() => validateCreateUserPayload({
+            password: 'secret123',
+            username: 'Buyer',
+            telephone: '999',
         })).toThrow(expect.objectContaining({
             statusCode: 400,
             code: 'MISSING_USER_FIELDS',
