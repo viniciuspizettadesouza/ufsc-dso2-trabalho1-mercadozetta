@@ -77,6 +77,12 @@ routes.post(
 );
 
 routes.post(
+  '/auth/logout',
+  authMiddleware,
+  asyncHandler(AuthController.logout)
+);
+
+routes.post(
   '/products',
   authMiddleware,
   validateRequest({ body: validateCreateProductPayload }),

@@ -36,6 +36,8 @@ type MockQuery = {
     seller?: string;
     email?: string;
     _id?: string;
+    tokenVersion?: number;
+    $or?: Array<{ tokenVersion: number | { $exists: boolean } }>;
 };
 
 let users: MockDocument[];
@@ -87,6 +89,7 @@ function resetModules() {
                     item.tenantId === query.tenantId
                     && (!query.email || item.email === query.email)
                     && (!query._id || item._id === query._id)
+                    && (query.tokenVersion === undefined || item.tokenVersion === query.tokenVersion)
                 ));
                 const foundUser = user ? createDocument(user) : null;
 
@@ -96,6 +99,32 @@ function resetModules() {
                         return Promise.resolve(foundUser).then(resolve, reject);
                     },
                 };
+            },
+            async exists(query: MockQuery) {
+                return users.find((item: MockDocument) => (
+                    item.tenantId === query.tenantId
+                    && item._id === query._id
+                    && (
+                        query.tokenVersion === undefined
+                        || item.tokenVersion === query.tokenVersion
+                    )
+                    && (
+                        !query.$or
+                        || item.tokenVersion === 0
+                        || item.tokenVersion === undefined
+                    )
+                )) || null;
+            },
+            async updateOne(query: MockQuery, update: { $inc?: { tokenVersion?: number } }) {
+                const user = users.find((item: MockDocument) => (
+                    item.tenantId === query.tenantId && item._id === query._id
+                ));
+
+                if (!user)
+                    return { matchedCount: 0 };
+
+                user.tokenVersion = Number(user.tokenVersion || 0) + Number(update.$inc?.tokenVersion || 0);
+                return { matchedCount: 1 };
             },
             async create(user: MockDocument) {
                 if (createUserError)
@@ -161,6 +190,7 @@ beforeEach(async () => {
         password: await bcrypt.hash('secret123', 4),
         username: 'seller',
         telephone: '123',
+        tokenVersion: 0,
     }];
     products = [];
     createUserError = null;
@@ -191,7 +221,28 @@ describe('auth, user, and product routes', () => {
         expect(response.status).toBe(200);
         expect(response.body.user.email).toBe('seller@example.com');
         expect(response.body.user.password).toBeUndefined();
+        expect(response.body.user.tokenVersion).toBeUndefined();
         expect(response.body.token).toEqual(expect.any(String));
+    });
+
+    it('revokes the current token on logout', async () => {
+        const app = loadApp();
+        const login = await request(app)
+            .post('/auth/login')
+            .send({ email: 'seller@example.com', password: 'secret123' });
+
+        const logout = await request(app)
+            .post('/auth/logout')
+            .set('Authorization', `Bearer ${login.body.token}`);
+
+        const reuse = await request(app)
+            .post('/products')
+            .set('Authorization', `Bearer ${login.body.token}`)
+            .send({ name: 'Coffee', inventory: 1, image: 'coffee.jpg' });
+
+        expect(logout.status).toBe(204);
+        expect(reuse.status).toBe(401);
+        expect(reuse.body).toMatchObject({ error: 'Invalid authorization token' });
     });
 
     it('rejects login with invalid credentials', async () => {
@@ -418,7 +469,7 @@ describe('auth, user, and product routes', () => {
 
     it('creates products for the authenticated seller', async () => {
         const app = loadApp();
-        const token = jwt.sign({ id: 'user-1' }, process.env.JWT_SECRET);
+        const token = jwt.sign({ id: 'user-1', tenantId: 'mercadozetta', tokenVersion: 0 }, process.env.JWT_SECRET);
 
         const response = await request(app)
             .post('/products')
@@ -444,7 +495,7 @@ describe('auth, user, and product routes', () => {
 
     it('creates products with an explicit status', async () => {
         const app = loadApp();
-        const token = jwt.sign({ id: 'user-1' }, process.env.JWT_SECRET);
+        const token = jwt.sign({ id: 'user-1', tenantId: 'mercadozetta', tokenVersion: 0 }, process.env.JWT_SECRET);
 
         const response = await request(app)
             .post('/products')
@@ -462,7 +513,7 @@ describe('auth, user, and product routes', () => {
 
     it('normalizes legacy quant payloads into numeric inventory', async () => {
         const app = loadApp();
-        const token = jwt.sign({ id: 'user-1' }, process.env.JWT_SECRET);
+        const token = jwt.sign({ id: 'user-1', tenantId: 'mercadozetta', tokenVersion: 0 }, process.env.JWT_SECRET);
 
         const response = await request(app)
             .post('/products')
@@ -479,8 +530,14 @@ describe('auth, user, and product routes', () => {
     });
 
     it('creates products for the active tenant', async () => {
+        users.push({
+            _id: 'user-1',
+            tenantId: 'campus-market',
+            email: 'seller@campus.example.com',
+            tokenVersion: 0,
+        });
         const app = loadApp();
-        const token = jwt.sign({ id: 'user-1' }, process.env.JWT_SECRET);
+        const token = jwt.sign({ id: 'user-1', tenantId: 'campus-market', tokenVersion: 0 }, process.env.JWT_SECRET);
 
         const response = await request(app)
             .post('/products')
@@ -498,7 +555,7 @@ describe('auth, user, and product routes', () => {
 
     it('rejects product creation with missing required fields', async () => {
         const app = loadApp();
-        const token = jwt.sign({ id: 'user-1' }, process.env.JWT_SECRET);
+        const token = jwt.sign({ id: 'user-1', tenantId: 'mercadozetta', tokenVersion: 0 }, process.env.JWT_SECRET);
 
         const response = await request(app)
             .post('/products')
@@ -513,7 +570,7 @@ describe('auth, user, and product routes', () => {
 
     it('rejects product creation with invalid inventory', async () => {
         const app = loadApp();
-        const token = jwt.sign({ id: 'user-1' }, process.env.JWT_SECRET);
+        const token = jwt.sign({ id: 'user-1', tenantId: 'mercadozetta', tokenVersion: 0 }, process.env.JWT_SECRET);
 
         const response = await request(app)
             .post('/products')
@@ -530,7 +587,7 @@ describe('auth, user, and product routes', () => {
 
     it('rejects product creation with invalid status', async () => {
         const app = loadApp();
-        const token = jwt.sign({ id: 'user-1' }, process.env.JWT_SECRET);
+        const token = jwt.sign({ id: 'user-1', tenantId: 'mercadozetta', tokenVersion: 0 }, process.env.JWT_SECRET);
 
         const response = await request(app)
             .post('/products')
@@ -549,7 +606,7 @@ describe('auth, user, and product routes', () => {
     it('returns a friendly error when product creation fails', async () => {
         createProductError = new Error('database offline');
         const app = loadApp();
-        const token = jwt.sign({ id: 'user-1' }, process.env.JWT_SECRET);
+        const token = jwt.sign({ id: 'user-1', tenantId: 'mercadozetta', tokenVersion: 0 }, process.env.JWT_SECRET);
 
         const response = await request(app)
             .post('/products')

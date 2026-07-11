@@ -11,9 +11,9 @@ function createResponse() {
     };
 }
 
-function loadController(authenticate = vi.fn()) {
+function loadController(authenticate = vi.fn(), logout = vi.fn()) {
     clearModules(controllerPath, servicePath);
-    mockModule(servicePath, { authenticate });
+    mockModule(servicePath, { authenticate, logout });
     return require('../../../src/controller/authController');
 }
 
@@ -37,5 +37,18 @@ describe('authController', () => {
         expect(authenticate).toHaveBeenCalledWith(req.validated.body, 'mercadozetta');
         expect(res.status).toHaveBeenCalledWith(200);
         expect(res.send).toHaveBeenCalledWith(result);
+    });
+
+    it('revokes the authenticated session and returns no content', async () => {
+        const logout = vi.fn().mockResolvedValue(undefined);
+        const controller = loadController(vi.fn(), logout);
+        const req = { userId: 'user-1', tenant: { id: 'mercadozetta' } };
+        const res = createResponse();
+
+        await controller.logout(req, res);
+
+        expect(logout).toHaveBeenCalledWith('user-1', 'mercadozetta');
+        expect(res.status).toHaveBeenCalledWith(204);
+        expect(res.send).toHaveBeenCalledWith();
     });
 });

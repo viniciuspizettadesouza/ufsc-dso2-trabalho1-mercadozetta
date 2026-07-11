@@ -12,6 +12,7 @@ function loadAuthService(userModel: NodeModule['exports'], secret = 'unit-test-s
     mockModule(userModelPath, userModel);
     mockModule(securityPath, {
         getJwtSecret: () => secret,
+        getJwtAccessTokenTtl: () => '15m',
     });
     return require('../../../src/services/authService');
 }
@@ -30,6 +31,7 @@ describe('authService', () => {
             username: 'Seller',
             telephone: '123',
             tenantId: 'mercadozetta',
+            tokenVersion: 2,
             toObject() {
                 return {
                     _id: this._id,
@@ -38,6 +40,7 @@ describe('authService', () => {
                     username: this.username,
                     telephone: this.telephone,
                     tenantId: this.tenantId,
+                    tokenVersion: this.tokenVersion,
                 };
             },
         };
@@ -55,14 +58,38 @@ describe('authService', () => {
             tenantId: 'campus-market',
             email: 'seller@example.com',
         });
-        expect(select).toHaveBeenCalledWith('+password email username telephone tenantId');
+        expect(select).toHaveBeenCalledWith('+password +tokenVersion email username telephone tenantId');
         expect(signSpy).toHaveBeenCalledWith(
-            { id: 'user-1', tenantId: 'campus-market' },
+            { id: 'user-1', tenantId: 'campus-market', tokenVersion: 2 },
             'unit-test-secret',
-            { expiresIn: '1d' }
+            { expiresIn: '15m' }
         );
         expect(result.user.password).toBeUndefined();
+        expect(result.user.tokenVersion).toBeUndefined();
         expect(result.token).toEqual(expect.any(String));
+    });
+
+    it('increments the token version to revoke active sessions', async () => {
+        const updateOne = vi.fn().mockResolvedValue({ matchedCount: 1 });
+        const { logout } = loadAuthService({ updateOne });
+
+        await logout('user-1', 'mercadozetta');
+
+        expect(updateOne).toHaveBeenCalledWith(
+            { _id: 'user-1', tenantId: 'mercadozetta' },
+            { $inc: { tokenVersion: 1 } }
+        );
+    });
+
+    it('rejects logout when the authenticated user no longer exists', async () => {
+        const { logout } = loadAuthService({
+            updateOne: vi.fn().mockResolvedValue({ matchedCount: 0 }),
+        });
+
+        await expect(logout('missing', 'mercadozetta')).rejects.toMatchObject({
+            statusCode: 401,
+            code: 'INVALID_AUTH_TOKEN',
+        });
     });
 
     it('rejects missing users and invalid passwords with the same public error', async () => {

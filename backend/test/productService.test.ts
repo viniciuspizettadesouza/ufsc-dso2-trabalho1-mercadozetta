@@ -81,4 +81,21 @@ describe('product service', () => {
 
     await expect(listProductsBySeller('not-an-id', 'mercadozetta')).rejects.toThrowError();
   });
+
+  it('handles optional product fields, filter alternatives, and every sort order', async () => {
+    const products = [
+      { _id: 'empty', name: '', description: undefined, category: undefined, subcategory: undefined, seller: undefined, status: undefined, inventory: undefined, createdAt: undefined },
+      { _id: 'mouse', name: 'Mouse', description: 'Wireless accessory', category: 'Peripherals', subcategory: 'Mice', seller: 'seller-1', status: 'active', inventory: 3, createdAt: 20 },
+      { _id: 'keyboard', name: 'Keyboard', description: 'Office board', category: 'Peripherals', subcategory: 'Keyboards', seller: 'seller-2', status: 'paused', inventory: 0, createdAt: new Date(10) },
+    ];
+    mockedProduct.find.mockResolvedValue(products);
+
+    await expect(listProducts('mercadozetta', { q: 'wireless' })).resolves.toMatchObject([{ _id: 'mouse' }]);
+    await expect(listProducts('mercadozetta', { category: 'peripherals', subcategory: 'keyboards' })).resolves.toMatchObject([{ _id: 'keyboard' }]);
+    await expect(listProducts('mercadozetta', { seller: 'seller-1', status: 'active', availability: 'in_stock' })).resolves.toMatchObject([{ _id: 'mouse' }]);
+    await expect(listProducts('mercadozetta', { availability: 'sold_out' })).resolves.toMatchObject([{ _id: 'keyboard' }, { _id: 'empty' }]);
+    await expect(listProducts('mercadozetta', { sort: 'created_asc' })).resolves.toMatchObject([{ _id: 'empty' }, { _id: 'keyboard' }, { _id: 'mouse' }]);
+    await expect(listProducts('mercadozetta', { sort: 'name_asc' })).resolves.toMatchObject([{ _id: 'empty' }, { _id: 'keyboard' }, { _id: 'mouse' }]);
+    await expect(listProducts('mercadozetta', { sort: 'inventory_desc' })).resolves.toMatchObject([{ _id: 'mouse' }, { _id: 'empty' }, { _id: 'keyboard' }]);
+  });
 });

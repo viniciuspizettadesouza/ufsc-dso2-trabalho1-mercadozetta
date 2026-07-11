@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from 'react-router';
 
 import { useBrand } from '../../brands/brandContext';
 import { appRoutes } from '../../routes';
+import api from '../../services/api';
 
 type StoredUser = {
     _id?: string;
@@ -35,10 +36,16 @@ const Header = ({ hideLoginAction = false }: HeaderProps) => {
     const location = useLocation();
     const user = getStoredUser();
 
-    function handleLogout() {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        navigate(appRoutes.home);
+    async function handleLogout() {
+        try {
+            await api.post('/auth/logout');
+        } catch {
+            // Local logout must still succeed when the API is unavailable.
+        } finally {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            navigate(appRoutes.home);
+        }
     }
 
     function handleLogin() {

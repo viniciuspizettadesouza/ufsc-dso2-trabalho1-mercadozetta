@@ -64,4 +64,41 @@ describe('user service', () => {
       storeName: 'Seller store',
     });
   });
+
+  it('handles persistence error shapes and the anonymous seller-name fallback', async () => {
+    const validUser = {
+      email: 'buyer@example.com',
+      password: 'secret123',
+      username: 'Buyer',
+      telephone: '123',
+    };
+
+    mockedUser.findOne.mockResolvedValueOnce(null);
+    mockedUser.create.mockResolvedValueOnce({
+      toObject: () => ({ ...validUser, _id: 'user-1' }),
+    });
+    await expect(createUser(validUser)).resolves.not.toHaveProperty('password');
+
+    mockedUser.findOne.mockResolvedValueOnce({ _id: 'existing' });
+    await expect(createUser(validUser)).rejects.toMatchObject({ code: 'USER_EXISTS' });
+
+    mockedUser.findOne.mockResolvedValueOnce(null);
+    mockedUser.create.mockRejectedValueOnce('database unavailable');
+    await expect(createUser(validUser)).rejects.toBe('database unavailable');
+
+    mockedUser.findOne.mockResolvedValueOnce(null);
+    mockedUser.create.mockRejectedValueOnce({ code: 42 });
+    await expect(createUser(validUser)).rejects.toEqual({ code: 42 });
+
+    mockedUser.findOne.mockResolvedValueOnce({
+      _id: 'seller-1',
+      username: '',
+      telephone: '123',
+      email: 'seller@example.com',
+    });
+    await expect(getPublicSellerProfile('seller-1')).resolves.toMatchObject({ storeName: 'Seller store' });
+
+    mockedUser.findOne.mockResolvedValueOnce(null);
+    await expect(getPublicSellerProfile('missing')).rejects.toMatchObject({ code: 'SELLER_NOT_FOUND' });
+  });
 });

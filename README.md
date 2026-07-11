@@ -166,6 +166,8 @@ To use the local MongoDB Docker container, set `backend/.env` to:
 ```env
 MONGODB_URI=mongodb://localhost:27017/mercadozetta
 JWT_SECRET=local_dev_secret_please_change_later
+JWT_ACCESS_TOKEN_TTL=15m
+TENANT_HEADER_REQUIRED=false
 PORT=3333
 CORS_ORIGIN=http://localhost:5173
 RATE_LIMIT_AUTH_WINDOW_MS=900000
@@ -176,6 +178,10 @@ RATE_LIMIT_REGISTER_MAX=10
 
 `JWT_SECRET` is used to sign JWT tokens. For local development, it can be any
 long string. In production, use a strong secret and never commit it to Git.
+`JWT_ACCESS_TOKEN_TTL` controls the access-token lifetime and defaults to `15m`.
+`TENANT_HEADER_REQUIRED` defaults to `false` in development and tests and to
+`true` in production. When enabled, every API request must include a valid
+`X-Tenant-Id` header.
 `CORS_ORIGIN` accepts one or more comma-separated frontend origins. The rate
 limit variables control the login and account creation windows in milliseconds.
 
@@ -185,6 +191,8 @@ your Atlas connection string:
 ```env
 MONGODB_URI=mongodb+srv://user:password@cluster.example.mongodb.net/mercadozetta?retryWrites=true&w=majority
 JWT_SECRET=replace_with_a_long_random_secret
+JWT_ACCESS_TOKEN_TTL=15m
+TENANT_HEADER_REQUIRED=true
 PORT=3333
 CORS_ORIGIN=https://your-frontend.example.com
 RATE_LIMIT_AUTH_WINDOW_MS=900000
@@ -192,6 +200,17 @@ RATE_LIMIT_AUTH_MAX=5
 RATE_LIMIT_REGISTER_WINDOW_MS=900000
 RATE_LIMIT_REGISTER_MAX=10
 ```
+
+### Authentication lifecycle
+
+Login returns a tenant-bound, short-lived JWT access token. The frontend stores
+the token in `localStorage`. Logout calls `POST /auth/logout`, which increments
+the user's server-side token version and invalidates all access tokens issued for
+the previous version, before clearing the local session. This keeps the current
+white-label demo simple, but `localStorage` remains more exposed to XSS than an
+`HttpOnly`, `Secure`, `SameSite` cookie. A production deployment can migrate the
+same lifecycle to secure cookies or add refresh-token rotation without extending
+the access-token lifetime.
 
 ### Frontend
 
