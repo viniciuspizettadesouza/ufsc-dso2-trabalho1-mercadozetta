@@ -1,7 +1,11 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import tenantMiddleware from '../../../src/middleware/tenant';
 
 describe('tenantMiddleware', () => {
+    afterEach(() => {
+        vi.unstubAllEnvs();
+    });
+
     it('uses the default tenant when no tenant header is provided', () => {
         const req: any = { headers: {} };
         const next = vi.fn();
@@ -26,6 +30,18 @@ describe('tenantMiddleware', () => {
             name: 'CampusMarket',
         }));
         expect(next).toHaveBeenCalledWith();
+    });
+
+    it('requires the tenant header when strict mode is enabled', () => {
+        vi.stubEnv('TENANT_HEADER_REQUIRED', 'true');
+        const next = vi.fn();
+
+        tenantMiddleware({ headers: {} } as any, {} as any, next);
+
+        expect(next).toHaveBeenCalledWith(expect.objectContaining({
+            statusCode: 400,
+            code: 'TENANT_HEADER_REQUIRED',
+        }));
     });
 
     it('rejects invalid tenant headers', () => {

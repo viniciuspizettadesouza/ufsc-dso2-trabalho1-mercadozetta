@@ -58,6 +58,7 @@ describe('app and route composition', () => {
         expect(findRoute('/users/:userId/products', 'get')).toBeDefined();
         expect(findRoute('/users', 'post')).toBeDefined();
         expect(findRoute('/auth/login', 'post')).toBeDefined();
+        expect(findRoute('/auth/logout', 'post')).toBeDefined();
         expect(findRoute('/products', 'post')).toBeDefined();
     });
 
@@ -72,6 +73,7 @@ describe('app and route composition', () => {
 describe('auth middleware', () => {
     beforeEach(() => {
         process.env.JWT_SECRET = 'contract-test-secret';
+        vi.spyOn(User, 'exists').mockResolvedValue({ _id: 'user-123' } as any);
     });
 
     it('rejects requests without authorization header', () => {
@@ -154,15 +156,16 @@ describe('auth middleware', () => {
         }));
     });
 
-    it('sets req.userId and calls next for valid tokens', () => {
-        const token = jwt.sign({ id: 'user-123' }, process.env.JWT_SECRET);
-        const req: { headers: { authorization: string }; userId?: string } = {
+    it('sets req.userId and calls next for valid tokens', async () => {
+        const token = jwt.sign({ id: 'user-123', tenantId: 'mercadozetta', tokenVersion: 0 }, process.env.JWT_SECRET);
+        const req: { headers: { authorization: string }; tenant: { id: string }; userId?: string } = {
             headers: { authorization: `Bearer ${token}` },
+            tenant: { id: 'mercadozetta' },
         };
         const res = createResponse();
         const next = vi.fn();
 
-        authMiddleware(req, res, next);
+        await authMiddleware(req, res, next);
 
         expect(req.userId).toBe('user-123');
         expect(next).toHaveBeenCalledTimes(1);
@@ -171,7 +174,7 @@ describe('auth middleware', () => {
 
     it('rejects tokens issued for another tenant', () => {
         const token = jwt.sign(
-            { id: 'user-123', tenantId: 'campus-market' },
+            { id: 'user-123', tenantId: 'campus-market', tokenVersion: 0 },
             process.env.JWT_SECRET
         );
         const req = {
@@ -195,6 +198,14 @@ describe('auth middleware', () => {
 describe('model contracts', () => {
     it('keeps user password excluded by default', () => {
         expect(User.schema.path('password').options.select).toBe(false);
+    });
+
+    it('keeps the session version excluded by default', () => {
+        expect(User.schema.path('tokenVersion').options).toMatchObject({
+            default: 0,
+            required: true,
+            select: false,
+        });
     });
 
     it('keeps tenant-aware user email uniqueness', () => {

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import * as security from '../../../src/config/security';
 
 const securityPath = require.resolve('../../../src/config/security');
 
@@ -36,6 +37,18 @@ describe('security config', () => {
         const { getJwtSecret } = loadSecurityWithEnv({ NODE_ENV: 'production' });
 
         expect(() => getJwtSecret()).toThrow('JWT_SECRET environment variable is required outside development and test');
+    });
+
+    it('uses short-lived access tokens by default and accepts a configured TTL', () => {
+        expect(loadSecurityWithEnv({}).getJwtAccessTokenTtl()).toBe('15m');
+        expect(loadSecurityWithEnv({ JWT_ACCESS_TOKEN_TTL: '30m' }).getJwtAccessTokenTtl()).toBe('30m');
+    });
+
+    it('requires tenant headers outside local environments unless explicitly configured', () => {
+        expect(loadSecurityWithEnv({ NODE_ENV: 'production' }).isTenantHeaderRequired()).toBe(true);
+        expect(loadSecurityWithEnv({ NODE_ENV: 'development' }).isTenantHeaderRequired()).toBe(false);
+        expect(loadSecurityWithEnv({ NODE_ENV: 'production', TENANT_HEADER_REQUIRED: 'false' }).isTenantHeaderRequired()).toBe(false);
+        expect(loadSecurityWithEnv({ NODE_ENV: 'test', TENANT_HEADER_REQUIRED: 'true' }).isTenantHeaderRequired()).toBe(true);
     });
 
     it('parses configured CORS origins and accepts requests without an origin', () => {
@@ -83,5 +96,61 @@ describe('security config', () => {
             limit: 10,
             message: 'Too many account creation attempts, please try again later',
         });
+    });
+
+    it('covers local and production defaults through the public configuration API', () => {
+        vi.stubEnv('NODE_ENV', '');
+        vi.stubEnv('JWT_SECRET', '');
+        vi.stubEnv('JWT_ACCESS_TOKEN_TTL', '   ');
+        vi.stubEnv('TENANT_HEADER_REQUIRED', 'unexpected');
+        vi.stubEnv('CORS_ORIGIN', ' , ');
+        vi.stubEnv('RATE_LIMIT_AUTH_WINDOW_MS', '1.5');
+        vi.stubEnv('RATE_LIMIT_AUTH_MAX', '0');
+
+        expect(security.getNodeEnv()).toBe('development');
+        expect(security.isLocalEnv()).toBe(true);
+        expect(security.getJwtSecret()).toBe('mercadozetta-dev-secret');
+        expect(security.getJwtAccessTokenTtl()).toBe('15m');
+        expect(security.isTenantHeaderRequired()).toBe(false);
+        expect(security.getAllowedCorsOrigins()).toEqual(['http://localhost:5173']);
+        expect(security.getRateLimitConfig('auth')).toEqual({
+            windowMs: 1,
+            limit: 5,
+            message: 'Too many login attempts, please try again later',
+        });
+
+        vi.stubEnv('NODE_ENV', 'production');
+        expect(security.isLocalEnv()).toBe(false);
+        expect(security.isTenantHeaderRequired()).toBe(true);
+        expect(security.getAllowedCorsOrigins()).toEqual([]);
+        expect(() => security.getJwtSecret()).toThrow(/JWT_SECRET/);
+
+        vi.stubEnv('JWT_SECRET', 'production-secret');
+        vi.stubEnv('JWT_ACCESS_TOKEN_TTL', ' 30m ');
+        vi.stubEnv('TENANT_HEADER_REQUIRED', ' TRUE ');
+        vi.stubEnv('CORS_ORIGIN', 'https://shop.example, , https://admin.example');
+        expect(security.getJwtSecret()).toBe('production-secret');
+        expect(security.getJwtAccessTokenTtl()).toBe('30m');
+        expect(security.isTenantHeaderRequired()).toBe(true);
+        expect(security.getAllowedCorsOrigins()).toEqual(['https://shop.example', 'https://admin.example']);
+    });
+
+    it('accepts, rejects, and permits origin-less CORS requests', () => {
+        vi.stubEnv('CORS_ORIGIN', 'https://shop.example');
+        const callback = vi.fn();
+        const origin = security.getCorsOptions().origin! as (
+            origin: string | undefined,
+            callback: (error: Error | null, allowed?: boolean) => void
+        ) => void;
+
+        origin(undefined, callback);
+        origin('https://shop.example', callback);
+        origin('https://attacker.example', callback);
+
+        expect(callback.mock.calls).toEqual([
+            [null, true],
+            [null, true],
+            [null, false],
+        ]);
     });
 });

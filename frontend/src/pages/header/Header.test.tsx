@@ -6,8 +6,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Header from './index';
 import { BrandProvider } from '../../brands/BrandProvider';
 import { campusMarketBrand, type BrandConfig } from '../../brands';
+import api from '../../services/api';
 
 const navigate = vi.fn();
+
+vi.mock('../../services/api', () => ({
+    default: { post: vi.fn() },
+}));
 
 vi.mock('react-router', async () => {
     const actual = await vi.importActual<typeof import('react-router')>('react-router');
@@ -36,6 +41,8 @@ describe('Header', () => {
     beforeEach(() => {
         localStorage.clear();
         navigate.mockReset();
+        vi.mocked(api.post).mockReset();
+        vi.mocked(api.post).mockResolvedValue({} as never);
     });
 
     it('shows the brand logo', () => {
@@ -84,6 +91,20 @@ describe('Header', () => {
         expect(screen.getByText('Seller')).toBeInTheDocument();
         expect(screen.getByText('seller@example.com')).toBeInTheDocument();
         expect(screen.getByText('123')).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Sair' }));
+
+        expect(api.post).toHaveBeenCalledWith('/auth/logout');
+        expect(localStorage.getItem('token')).toBeNull();
+        expect(localStorage.getItem('user')).toBeNull();
+        expect(navigate).toHaveBeenCalledWith('/');
+    });
+
+    it('clears the local session even when server-side logout fails', async () => {
+        localStorage.setItem('token', 'token-123');
+        localStorage.setItem('user', JSON.stringify({ username: 'Seller' }));
+        vi.mocked(api.post).mockRejectedValue(new Error('network error'));
+        renderHeader();
 
         await userEvent.click(screen.getByRole('button', { name: 'Sair' }));
 

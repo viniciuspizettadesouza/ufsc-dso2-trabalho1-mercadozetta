@@ -5,34 +5,28 @@
 Focus the next work on improvements that make MercadoZetta easier to run,
 easier to evolve, and more polished as a white-label marketplace demo.
 
-## Priority 1 - Auth Flow Hardening
+## Current Status and Next Session Handoff
 
-Implement these in a dedicated branch after the authentication flow diagrams are
-reviewed. The current flow is solid for a demo, but these changes would make it
-safer and more production-ready.
+The validation and test-organization phase is complete. Do not repeat this
+phase in the next session unless a regression causes the configured coverage
+threshold to fail.
 
-- Reject signed JWTs that do not contain a valid user id before setting
-  `req.userId`.
-- Revisit browser token storage:
-  - consider replacing `localStorage` JWT storage with an `HttpOnly`, `Secure`,
-    `SameSite` cookie strategy
-  - keep the current approach only if the project intentionally prioritizes demo
-    simplicity over stronger XSS resistance
-- Add a clearer token lifecycle:
-  - short-lived access tokens
-  - refresh token or token-version strategy
-  - backend-supported logout/revocation if the app needs forced session invalidation
-- Tighten tenant handling for production:
-  - require `X-Tenant-Id` instead of silently falling back to the default tenant
-  - keep the default tenant fallback only for local development or tests
-- Add focused tests for:
-  - JWTs missing `id`
-  - expired tokens
-  - tokens from another tenant
-  - missing tenant headers when strict tenant mode is enabled
-  - logout/session invalidation behavior if revocation is added
+The next session should start with **Priority 1 - API Contract Documentation**.
+Begin by inventorying the routes and their existing request validators in
+`backend/src/routes.ts`, then choose how the OpenAPI document will be colocated
+with or generated from those contracts. Do not start ADRs or persistent commerce
+workflows before completing Priority 1.
 
-## Priority 2 - API Contract Documentation
+Validated handoff state:
+
+- Backend: 149 tests passing.
+- Backend branch coverage: 85.20%, above the configured 85% threshold.
+- Focused coverage scenarios are stored in the test files associated with their
+  source modules.
+- The test-file organization rule is documented in `AGENTS.md`.
+- Backend TypeScript compilation passes.
+
+## Priority 1 - API Contract Documentation
 
 This should happen before adding generated clients or expanding persistent
 commerce workflows.
@@ -48,7 +42,7 @@ commerce workflows.
   - health/readiness endpoints
 - Add API client generation only after the documented contract is stable.
 
-## Priority 3 - Architecture Decision Records
+## Priority 2 - Architecture Decision Records
 
 Capture decisions that are already shaping the project so future changes have a
 clear reference point.
@@ -63,7 +57,7 @@ clear reference point.
   - decision
   - consequences
 
-## Priority 4 - Persistent Commerce Domain
+## Priority 3 - Persistent Commerce Domain
 
 Only start this if the project needs real buyer workflows beyond the current
 demo simulation.
@@ -77,10 +71,10 @@ demo simulation.
 
 ## Recommended Order
 
-1. Harden the authentication flow.
-2. Document the current API with OpenAPI.
-3. Add ADRs for existing architecture decisions.
-4. Persist commerce workflows only if the product scope grows.
+1. [x] Restore and validate the configured branch-coverage threshold.
+2. [ ] Document the current API with OpenAPI. **Start here in the next session.**
+3. [ ] Add ADRs for existing architecture decisions.
+4. [ ] Persist commerce workflows only if the product scope grows.
 
 ## Definition of Done
 
@@ -90,6 +84,9 @@ demo simulation.
 - `npm run test:coverage` passes when behavior or coverage-sensitive code
   changes.
 - New product, architecture, or UI behavior has focused regression tests.
+- New unit scenarios are added to the test file associated with the source
+  module; aggregate test files are used only for genuine integration, contract,
+  routing, or workflow behavior.
 - Tenant-scoped behavior remains isolated.
 - Default MercadoZetta and sample tenant branding continue to work.
 - README or relevant docs are updated when commands, configuration, or API

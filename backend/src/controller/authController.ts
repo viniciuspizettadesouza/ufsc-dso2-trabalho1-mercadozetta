@@ -13,6 +13,10 @@ const authController = {
     const result = await AuthService.authenticate(req.validated.body, req.tenant?.id ?? '');
     return res.status(200).send(result);
   },
+  async logout(req: Request, res: Response) {
+    await AuthService.logout(req.userId ?? '', req.tenant?.id ?? '');
+    return res.status(204).send();
+  },
 };
 
 export default authController;

@@ -34,6 +34,22 @@ export function getJwtSecret() {
   throw new Error('JWT_SECRET environment variable is required outside development and test');
 }
 
+export function getJwtAccessTokenTtl() {
+  return process.env.JWT_ACCESS_TOKEN_TTL?.trim() || '15m';
+}
+
+export function isTenantHeaderRequired() {
+  const configured = process.env.TENANT_HEADER_REQUIRED?.trim().toLowerCase();
+
+  if (configured === 'true')
+    return true;
+
+  if (configured === 'false')
+    return false;
+
+  return !isLocalEnv();
+}
+
 export function getAllowedCorsOrigins() {
   const configuredOrigins = parseList(process.env.CORS_ORIGIN);
 

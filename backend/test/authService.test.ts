@@ -8,6 +8,7 @@ vi.mock('../src/model/user', () => ({
 
 vi.mock('../src/config/security', () => ({
   getJwtSecret: vi.fn(() => 'test-secret'),
+  getJwtAccessTokenTtl: vi.fn(() => '15m'),
 }));
 
 vi.mock('bcryptjs', () => ({
@@ -52,7 +53,8 @@ describe('auth service', () => {
       select: vi.fn().mockResolvedValue({
         _id: 'user-1',
         password: 'hashed-password',
-        toObject: () => ({ _id: 'user-1', email: 'seller@example.com', password: 'hashed-password' }),
+        tokenVersion: 0,
+        toObject: () => ({ _id: 'user-1', email: 'seller@example.com', password: 'hashed-password', tokenVersion: 0 }),
       }),
     });
     mockedBcrypt.compare.mockResolvedValue(true);
@@ -63,9 +65,9 @@ describe('auth service', () => {
     expect(mockedUser.findOne).toHaveBeenCalledWith({ tenantId: 'mercadozetta', email: 'seller@example.com' });
     expect(mockedBcrypt.compare).toHaveBeenCalledWith('secret123', 'hashed-password');
     expect(mockedJwt.sign).toHaveBeenCalledWith(
-      { id: 'user-1', tenantId: 'mercadozetta' },
+      { id: 'user-1', tenantId: 'mercadozetta', tokenVersion: 0 },
       'test-secret',
-      { expiresIn: '1d' }
+      { expiresIn: '15m' }
     );
     expect(result.user).toEqual({ _id: 'user-1', email: 'seller@example.com' });
     expect(result.token).toBe('signed-token');
