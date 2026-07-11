@@ -1,22 +1,36 @@
-import AppError from '../errors/AppError';
 import type { RequestFieldValue } from '../types/request';
+import { z } from 'zod';
+import { parseAppSchema, requestString } from './parseSchema';
 
 export type LoginRequestBody = {
   email?: RequestFieldValue;
   password?: RequestFieldValue;
 };
 
-export type LoginCredentials = {
-  email: string;
-  password: string;
-};
+export const loginSchema = z.object({
+  email: z.unknown().optional(),
+  password: z.unknown().optional(),
+}).transform(body => ({
+  email: requestString(body.email).trim().toLowerCase(),
+  password: requestString(body.password),
+})).refine(credentials => Boolean(credentials.email && credentials.password), {
+  message: 'Email and password are required',
+  params: { appCode: 'MISSING_CREDENTIALS', statusCode: 400 },
+}).meta({
+  id: 'LoginRequest',
+  description: 'Credentials used to create a tenant-bound session.',
+  override: {
+    type: 'object',
+    required: ['email', 'password'],
+    properties: {
+      email: { type: 'string', format: 'email' },
+      password: { type: 'string' },
+    },
+  },
+});
+
+export type LoginCredentials = z.infer<typeof loginSchema>;
 
 export function validateLoginPayload(body: LoginRequestBody = {}): LoginCredentials {
-  const email = String(body.email || '').trim().toLowerCase();
-  const password = String(body.password || '');
-
-  if (!email || !password)
-    throw new AppError(400, 'MISSING_CREDENTIALS', 'Email and password are required');
-
-  return { email, password };
+  return parseAppSchema(loginSchema, body);
 }

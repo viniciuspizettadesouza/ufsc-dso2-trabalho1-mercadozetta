@@ -64,6 +64,22 @@ frontend/   React + Vite web application
 images/     Images used by the documentation
 ```
 
+The current HTTP API contract is available as an OpenAPI 3.1 document at
+[`docs/openapi.json`](docs/openapi.json). It includes tenant and authentication
+requirements, validation constraints, and request/response examples. Import it
+into an OpenAPI-compatible viewer or client generator using the local file.
+
+The document is generated from the backend's Zod validation schemas and typed
+route contract. After changing a route, request validator, response schema, or
+example, regenerate the checked-in contract from the repository root:
+
+```bash
+npm run generate:openapi
+```
+
+The backend contract test fails if the generated output differs from the
+checked-in file.
+
 ## 3. Prerequisites
 
 Before installing the project, make sure you have:

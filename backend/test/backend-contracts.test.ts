@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const request = require('supertest');
 
 const app = require('../src/app');
@@ -67,6 +68,31 @@ describe('app and route composition', () => {
         const handlers = productPostRoute.route.stack.map((layer: any) => layer.handle.name);
 
         expect(handlers).toEqual(['authMiddleware', 'requestValidator', 'wrappedHandler']);
+    });
+
+    it('reports both MongoDB readiness states from the route contract', () => {
+        const readyHandler = findRoute('/ready', 'get').route.stack[0].handle;
+        const originalReadyState = mongoose.connection.readyState;
+
+        mongoose.connection.readyState = 1;
+        const connectedResponse = createResponse();
+        readyHandler({}, connectedResponse);
+        expect(connectedResponse.statusCode).toBe(200);
+        expect(connectedResponse.body).toEqual({
+            status: 'ready',
+            checks: { mongodb: 'connected' },
+        });
+
+        mongoose.connection.readyState = 0;
+        const disconnectedResponse = createResponse();
+        readyHandler({}, disconnectedResponse);
+        expect(disconnectedResponse.statusCode).toBe(503);
+        expect(disconnectedResponse.body).toEqual({
+            status: 'not_ready',
+            checks: { mongodb: 'disconnected' },
+        });
+
+        mongoose.connection.readyState = originalReadyState;
     });
 });
 

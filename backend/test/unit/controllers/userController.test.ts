@@ -1,8 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { clearModules, mockModule } from '../helpers/moduleMock';
-
-const controllerPath = require.resolve('../../../src/controller/userController');
-const servicePath = require.resolve('../../../src/services/userService');
+import controller from '../../../src/controller/userController';
+import UserService from '../../../src/services/userService';
 
 function createResponse() {
     return {
@@ -12,16 +10,15 @@ function createResponse() {
 }
 
 function loadController(service: any = {}) {
-    clearModules(controllerPath, servicePath);
-    mockModule(servicePath, {
-        createUser: service.createUser || vi.fn(),
-        getPublicSellerProfile: service.getPublicSellerProfile || vi.fn(),
-    });
-    return require('../../../src/controller/userController');
+    if (service.createUser)
+        vi.spyOn(UserService, 'createUser').mockImplementation(service.createUser);
+    if (service.getPublicSellerProfile)
+        vi.spyOn(UserService, 'getPublicSellerProfile').mockImplementation(service.getPublicSellerProfile);
+    return controller;
 }
 
 afterEach(() => {
-    clearModules(controllerPath, servicePath);
+    vi.restoreAllMocks();
 });
 
 describe('userController', () => {
@@ -35,7 +32,7 @@ describe('userController', () => {
         };
         const res = createResponse();
 
-        await controller.add(req, res);
+        await controller.add(req as any, res as any);
 
         expect(createUser).toHaveBeenCalledWith(req.validated.body, 'campus-market');
         expect(res.status).toHaveBeenCalledWith(201);
@@ -52,7 +49,7 @@ describe('userController', () => {
         };
         const res = createResponse();
 
-        await controller.sellerProfile(req, res);
+        await controller.sellerProfile(req as any, res as any);
 
         expect(getPublicSellerProfile).toHaveBeenCalledWith('user-1', 'mercadozetta');
         expect(res.status).toHaveBeenCalledWith(200);

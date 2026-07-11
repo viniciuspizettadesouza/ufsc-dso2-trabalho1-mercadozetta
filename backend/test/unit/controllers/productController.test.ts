@@ -1,8 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { clearModules, mockModule } from '../helpers/moduleMock';
-
-const controllerPath = require.resolve('../../../src/controller/productController');
-const servicePath = require.resolve('../../../src/services/productService');
+import controller from '../../../src/controller/productController';
+import ProductService from '../../../src/services/productService';
 
 function createResponse() {
     return {
@@ -12,18 +10,19 @@ function createResponse() {
 }
 
 function loadController(service: any = {}) {
-    clearModules(controllerPath, servicePath);
-    mockModule(servicePath, {
-        listProducts: service.listProducts || vi.fn(),
-        getProductById: service.getProductById || vi.fn(),
-        createProduct: service.createProduct || vi.fn(),
-        listProductsBySeller: service.listProductsBySeller || vi.fn(),
-    });
-    return require('../../../src/controller/productController');
+    if (service.listProducts)
+        vi.spyOn(ProductService, 'listProducts').mockImplementation(service.listProducts);
+    if (service.getProductById)
+        vi.spyOn(ProductService, 'getProductById').mockImplementation(service.getProductById);
+    if (service.createProduct)
+        vi.spyOn(ProductService, 'createProduct').mockImplementation(service.createProduct);
+    if (service.listProductsBySeller)
+        vi.spyOn(ProductService, 'listProductsBySeller').mockImplementation(service.listProductsBySeller);
+    return controller;
 }
 
 afterEach(() => {
-    clearModules(controllerPath, servicePath);
+    vi.restoreAllMocks();
 });
 
 describe('productController', () => {
@@ -37,7 +36,7 @@ describe('productController', () => {
         };
         const res = createResponse();
 
-        await controller.index(req, res);
+        await controller.index(req as any, res as any);
 
         expect(listProducts).toHaveBeenCalledWith('mercadozetta', req.validated.query);
         expect(res.status).toHaveBeenCalledWith(200);
@@ -54,7 +53,7 @@ describe('productController', () => {
         };
         const res = createResponse();
 
-        await controller.detail(req, res);
+        await controller.detail(req as any, res as any);
 
         expect(getProductById).toHaveBeenCalledWith('product-1', 'campus-market');
         expect(res.status).toHaveBeenCalledWith(200);
@@ -68,7 +67,7 @@ describe('productController', () => {
         await expect(controller.detail({
             tenant: { id: 'mercadozetta' },
             validated: { params: { productId: 'missing' } },
-        }, createResponse())).rejects.toMatchObject({
+        } as any, createResponse() as any)).rejects.toMatchObject({
             statusCode: 404,
             code: 'PRODUCT_NOT_FOUND',
         });
@@ -85,7 +84,7 @@ describe('productController', () => {
         };
         const res = createResponse();
 
-        await controller.add(req, res);
+        await controller.add(req as any, res as any);
 
         expect(createProduct).toHaveBeenCalledWith(req.validated.body, 'user-1', 'mercadozetta');
         expect(res.status).toHaveBeenCalledWith(201);
@@ -105,7 +104,7 @@ describe('productController', () => {
         };
         const res = createResponse();
 
-        await controller.listBySeller(req, res);
+        await controller.listBySeller(req as any, res as any);
 
         expect(listProductsBySeller).toHaveBeenCalledWith('user-1', 'mercadozetta', req.validated.query);
         expect(res.status).toHaveBeenCalledWith(200);
