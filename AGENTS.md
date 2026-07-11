@@ -32,6 +32,8 @@ Common commands:
 - `npm test` runs backend and frontend test suites from the repository root.
 - `npm run typecheck` runs the backend TypeScript compiler without emitting.
 - `npm run lint` runs both backend and frontend lint checks.
+- `npm run generate:openapi` regenerates the checked-in OpenAPI contract from
+  backend schemas and route metadata.
 - `npm run test:coverage` runs both coverage suites and enforces their configured
   thresholds.
 - `npm --prefix backend run dev` starts the API with Nodemon.
@@ -51,6 +53,25 @@ classes. Prefer clear domain names for files and functions, such as
 
 Keep formatting consistent with nearby code. Use single quotes in backend
 TypeScript and the existing frontend import/component style in TypeScript files.
+
+## API Contract and Validation
+
+The backend uses Zod 4 schemas as the source of truth for request validation and
+OpenAPI request definitions.
+
+- Keep request normalization, validation constraints, defaults, and OpenAPI
+  metadata together in `backend/src/validators/`.
+- Keep operation and response metadata in `backend/src/openapi/document.ts`.
+- Do not edit `docs/openapi.json` manually.
+- After changing routes, validators, response schemas, security requirements,
+  or examples, run `npm run generate:openapi` from the repository root.
+- Keep `backend/test/openapi-contract.test.ts` verifying deterministic
+  generated-file parity, parity between documented and implemented routes, and
+  required request and response examples.
+- Preserve existing `AppError` status codes, error codes, and user-visible
+  messages when changing or migrating schemas.
+- Do not add generated API clients until the improvement plan explicitly
+  prioritizes them.
 
 ## Testing Guidelines
 

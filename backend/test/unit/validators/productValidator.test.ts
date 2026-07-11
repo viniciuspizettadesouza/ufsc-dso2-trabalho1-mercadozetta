@@ -31,6 +31,14 @@ describe('productValidator', () => {
             image: 'draft.png',
             status: '',
         }).status).toBe('active');
+
+        expect(validateCreateProductPayload({
+            name: 'Inventory wins',
+            inventory: 2,
+            quant: 9,
+            image: 'inventory.png',
+            status: null,
+        }).inventory).toBe(2);
     });
 
     it('rejects missing product fields, invalid inventory, and invalid statuses', () => {
@@ -39,6 +47,17 @@ describe('productValidator', () => {
 
         expect(() => validateCreateProductPayload({ name: 'Keyboard', inventory: 1 }))
             .toThrow(expect.objectContaining({ code: 'MISSING_PRODUCT_FIELDS' }));
+
+        expect(() => validateCreateProductPayload({
+            name: 'Keyboard',
+            inventory: '',
+            image: 'keyboard.png',
+        })).toThrow(expect.objectContaining({ code: 'MISSING_PRODUCT_FIELDS' }));
+
+        expect(() => validateCreateProductPayload({
+            inventory: 1,
+            image: 'keyboard.png',
+        })).toThrow(expect.objectContaining({ code: 'MISSING_PRODUCT_FIELDS' }));
 
         expect(() => validateCreateProductPayload({
             name: 'Keyboard',
@@ -71,6 +90,16 @@ describe('productValidator', () => {
             status: 'active',
             availability: 'in_stock',
             sort: 'name_asc',
+        });
+
+        expect(validateProductFilters({ q: 'Direct', search: 'Ignored' })).toEqual({
+            q: 'Direct',
+            category: '',
+            subcategory: '',
+            seller: '',
+            status: '',
+            availability: '',
+            sort: 'created_desc',
         });
     });
 

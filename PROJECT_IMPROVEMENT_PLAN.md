@@ -7,40 +7,34 @@ easier to evolve, and more polished as a white-label marketplace demo.
 
 ## Current Status and Next Session Handoff
 
-The validation and test-organization phase is complete. Do not repeat this
-phase in the next session unless a regression causes the configured coverage
-threshold to fail.
+The validation/test-organization, API contract documentation, and automatic
+OpenAPI generation phases are complete. Do not recreate or edit the checked-in
+contract manually; update its Zod schemas or typed route contract and run the
+generator instead.
 
-The next session should start with **Priority 1 - API Contract Documentation**.
-Begin by inventorying the routes and their existing request validators in
-`backend/src/routes.ts`, then choose how the OpenAPI document will be colocated
-with or generated from those contracts. Do not start ADRs or persistent commerce
-workflows before completing Priority 1.
+The next session should start with **Priority 2 - Architecture Decision
+Records**. Begin with the white-label strategy and tenant isolation decisions,
+using the existing tenant registry and middleware as the verified source of
+truth. Do not start persistent commerce workflows before completing Priority 2.
 
 Validated handoff state:
 
-- Backend: 149 tests passing.
-- Backend branch coverage: 85.20%, above the configured 85% threshold.
+- Backend: 155 tests passing across 28 test files.
+- Frontend: 50 tests passing across 10 test files.
+- Backend branch coverage: 85.87%, above the configured 85% threshold.
 - Focused coverage scenarios are stored in the test files associated with their
   source modules.
 - The test-file organization rule is documented in `AGENTS.md`.
 - Backend TypeScript compilation passes.
-
-## Priority 1 - API Contract Documentation
-
-This should happen before adding generated clients or expanding persistent
-commerce workflows.
-
-- Add OpenAPI documentation for the existing API.
-- Prefer generating or colocating the docs from route validation schemas where
-  practical.
-- Document request/response examples for:
-  - auth
-  - users
-  - products
-  - seller profile/product lookup
-  - health/readiness endpoints
-- Add API client generation only after the documented contract is stable.
+- The OpenAPI 3.1 contract is stored at `docs/openapi.json` and covers every
+  Express route, request constraints, response shapes, and examples.
+- `backend/test/openapi-contract.test.ts` checks route/operation parity and
+  required examples.
+- Zod 4 schemas now drive runtime request validation and OpenAPI request
+  definitions; `backend/src/openapi/document.ts` contains the typed operation
+  and response contract.
+- `npm run generate:openapi` regenerates `docs/openapi.json`, and the contract
+  test rejects checked-in drift.
 
 ## Priority 2 - Architecture Decision Records
 
@@ -72,9 +66,10 @@ demo simulation.
 ## Recommended Order
 
 1. [x] Restore and validate the configured branch-coverage threshold.
-2. [ ] Document the current API with OpenAPI. **Start here in the next session.**
-3. [ ] Add ADRs for existing architecture decisions.
-4. [ ] Persist commerce workflows only if the product scope grows.
+2. [x] Document the current API with OpenAPI.
+3. [x] Generate OpenAPI from shared validation schemas.
+4. [ ] Add ADRs for existing architecture decisions. **Start here in the next session.**
+5. [ ] Persist commerce workflows only if the product scope grows.
 
 ## Definition of Done
 

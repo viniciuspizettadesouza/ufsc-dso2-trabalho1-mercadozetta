@@ -1,0 +1,1262 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MercadoZetta API",
+    "version": "1.0.0",
+    "description": "HTTP contract for the current white-label marketplace API."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3333",
+      "description": "Local development"
+    }
+  ],
+  "tags": [
+    {
+      "name": "System"
+    },
+    {
+      "name": "Authentication"
+    },
+    {
+      "name": "Users"
+    },
+    {
+      "name": "Products"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Describe the API",
+        "responses": {
+          "200": {
+            "description": "Welcome message",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "Welcome to zetta2k app"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Welcome"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Check process health",
+        "responses": {
+          "200": {
+            "description": "The API process is healthy",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ok"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ready": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Check database readiness",
+        "responses": {
+          "200": {
+            "description": "The API is ready",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "ready",
+                  "checks": {
+                    "mongodb": "connected"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Readiness"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "MongoDB is unavailable",
+            "content": {
+              "application/json": {
+                "example": {
+                  "status": "not_ready",
+                  "checks": {
+                    "mongodb": "disconnected"
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Readiness"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Log in",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "email": "seller@example.com",
+                "password": "password123"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authenticated session",
+            "content": {
+              "application/json": {
+                "example": {
+                  "user": {
+                    "_id": "507f1f77bcf86cd799439011",
+                    "tenantId": "mercadozetta",
+                    "email": "seller@example.com",
+                    "username": "seller",
+                    "telephone": "+55 48 99999-0000"
+                  },
+                  "token": "eyJhbGciOiJIUzI1NiJ9.example"
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    },
+                    "token": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "user",
+                    "token"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or tenant",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid tenant",
+                  "code": "INVALID_TENANT"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Log out and invalidate existing access tokens",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Logged out"
+          },
+          "400": {
+            "description": "Invalid input or tenant",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid tenant",
+                  "code": "INVALID_TENANT"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Create an account",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "email": "seller@example.com",
+                "password": "password123",
+                "username": "seller",
+                "telephone": "+55 48 99999-0000"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "newUser": {
+                    "_id": "507f1f77bcf86cd799439011",
+                    "tenantId": "mercadozetta",
+                    "email": "seller@example.com",
+                    "username": "seller",
+                    "telephone": "+55 48 99999-0000"
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "newUser": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  },
+                  "required": [
+                    "newUser"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or tenant",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid tenant",
+                  "code": "INVALID_TENANT"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{userId}": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get a seller profile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "schema": {
+              "$ref": "#/components/schemas/SellerId"
+            },
+            "required": true
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Public seller profile",
+            "content": {
+              "application/json": {
+                "example": {
+                  "_id": "507f1f77bcf86cd799439011",
+                  "tenantId": "mercadozetta",
+                  "email": "seller@example.com",
+                  "username": "seller",
+                  "telephone": "+55 48 99999-0000",
+                  "storeName": "seller store"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SellerProfile"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or tenant",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid tenant",
+                  "code": "INVALID_TENANT"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Seller not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Seller not found",
+                  "code": "SELLER_NOT_FOUND"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/users/{userId}/products": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "List products from one seller",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "userId",
+            "schema": {
+              "$ref": "#/components/schemas/SellerId"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "description": "Alias for q",
+              "type": "string"
+            },
+            "description": "Alias for q"
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "subcategory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "seller",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "active",
+                "paused",
+                "sold_out",
+                "archived"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "availability",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "in_stock",
+                "sold_out"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "created_asc",
+                "created_desc",
+                "name_asc",
+                "inventory_desc"
+              ],
+              "default": "created_desc"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Products from the seller",
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "_id": "507f191e810c19729de860ea",
+                    "tenantId": "mercadozetta",
+                    "name": "mechanical keyboard",
+                    "description": "Compact keyboard",
+                    "category": "electronics",
+                    "subcategory": "keyboards",
+                    "inventory": 5,
+                    "image": "https://example.com/keyboard.jpg",
+                    "status": "active",
+                    "seller": "507f1f77bcf86cd799439011"
+                  }
+                ],
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Product"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or tenant",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid tenant",
+                  "code": "INVALID_TENANT"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Search and list products",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "description": "Alias for q",
+              "type": "string"
+            },
+            "description": "Alias for q"
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "subcategory",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "seller",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "active",
+                "paused",
+                "sold_out",
+                "archived"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "availability",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "in_stock",
+                "sold_out"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "sort",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "created_asc",
+                "created_desc",
+                "name_asc",
+                "inventory_desc"
+              ],
+              "default": "created_desc"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Products in the current tenant",
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "_id": "507f191e810c19729de860ea",
+                    "tenantId": "mercadozetta",
+                    "name": "mechanical keyboard",
+                    "description": "Compact keyboard",
+                    "category": "electronics",
+                    "subcategory": "keyboards",
+                    "inventory": 5,
+                    "image": "https://example.com/keyboard.jpg",
+                    "status": "active",
+                    "seller": "507f1f77bcf86cd799439011"
+                  }
+                ],
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Product"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or tenant",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid tenant",
+                  "code": "INVALID_TENANT"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Create a product",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "Mechanical keyboard",
+                "description": "Compact keyboard",
+                "category": "electronics",
+                "subcategory": "keyboards",
+                "inventory": 5,
+                "image": "https://example.com/keyboard.jpg",
+                "status": "active"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Product created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "newProduct": {
+                    "_id": "507f191e810c19729de860ea",
+                    "tenantId": "mercadozetta",
+                    "name": "mechanical keyboard",
+                    "description": "Compact keyboard",
+                    "category": "electronics",
+                    "subcategory": "keyboards",
+                    "inventory": 5,
+                    "image": "https://example.com/keyboard.jpg",
+                    "status": "active",
+                    "seller": "507f1f77bcf86cd799439011"
+                  }
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "newProduct": {
+                      "$ref": "#/components/schemas/Product"
+                    }
+                  },
+                  "required": [
+                    "newProduct"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or tenant",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid tenant",
+                  "code": "INVALID_TENANT"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/{productId}": {
+      "get": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Get a product",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "productId",
+            "schema": {
+              "$ref": "#/components/schemas/ProductId"
+            },
+            "required": true
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Product detail",
+            "content": {
+              "application/json": {
+                "example": {
+                  "_id": "507f191e810c19729de860ea",
+                  "tenantId": "mercadozetta",
+                  "name": "mechanical keyboard",
+                  "description": "Compact keyboard",
+                  "category": "electronics",
+                  "subcategory": "keyboards",
+                  "inventory": 5,
+                  "image": "https://example.com/keyboard.jpg",
+                  "status": "active",
+                  "seller": "507f1f77bcf86cd799439011"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or tenant",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid tenant",
+                  "code": "INVALID_TENANT"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Product not found",
+                  "code": "PRODUCT_NOT_FOUND"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "LoginRequest": {
+        "description": "Credentials used to create a tenant-bound session.",
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "CreateUserRequest": {
+        "description": "Details required to register a marketplace account.",
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8
+          },
+          "username": {
+            "type": "string"
+          },
+          "telephone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "username",
+          "telephone"
+        ]
+      },
+      "SellerId": {
+        "type": "string",
+        "example": "507f1f77bcf86cd799439011"
+      },
+      "CreateProductRequest": {
+        "description": "Details required to create a product listing.",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "default": ""
+          },
+          "category": {
+            "type": "string",
+            "default": "general"
+          },
+          "subcategory": {
+            "type": "string",
+            "default": ""
+          },
+          "inventory": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "quant": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Legacy alias for inventory"
+          },
+          "image": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "active",
+              "paused",
+              "sold_out",
+              "archived"
+            ],
+            "default": "active"
+          }
+        },
+        "required": [
+          "name",
+          "image"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "inventory"
+            ]
+          },
+          {
+            "required": [
+              "quant"
+            ]
+          }
+        ]
+      },
+      "ProductId": {
+        "example": "507f191e810c19729de860ea",
+        "type": "string"
+      },
+      "Welcome": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "Readiness": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ready",
+              "not_ready"
+            ]
+          },
+          "checks": {
+            "type": "object",
+            "properties": {
+              "mongodb": {
+                "type": "string",
+                "enum": [
+                  "connected",
+                  "disconnected"
+                ]
+              }
+            },
+            "required": [
+              "mongodb"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "status",
+          "checks"
+        ],
+        "additionalProperties": false
+      },
+      "User": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+          },
+          "username": {
+            "type": "string"
+          },
+          "telephone": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "_id",
+          "tenantId",
+          "email",
+          "username",
+          "telephone"
+        ],
+        "additionalProperties": false
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "details": {}
+        },
+        "required": [
+          "error",
+          "code"
+        ],
+        "additionalProperties": false
+      },
+      "SellerProfile": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "username": {
+            "type": "string"
+          },
+          "telephone": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+          },
+          "storeName": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "_id",
+          "username",
+          "telephone",
+          "email",
+          "storeName"
+        ],
+        "additionalProperties": false
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "subcategory": {
+            "type": "string"
+          },
+          "inventory": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "image": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "active",
+              "paused",
+              "sold_out",
+              "archived"
+            ]
+          },
+          "seller": {
+            "anyOf": [
+              {
+                "type": "string",
+                "example": "507f1f77bcf86cd799439011"
+              },
+              {
+                "$ref": "#/components/schemas/SellerProfile"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "_id",
+          "tenantId",
+          "name",
+          "inventory",
+          "image",
+          "status",
+          "seller"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

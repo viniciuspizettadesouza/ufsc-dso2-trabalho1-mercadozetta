@@ -5,6 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "generate:openapi": "ts-node src/scripts/generateOpenApi.ts",
     "seed:demo": "ts-node src/scripts/seedDemoData.ts",
     "compile": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint . --max-warnings 0",
@@ -19,7 +20,9 @@
     "express-rate-limit": "^8.5.2",
     "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.7.4"
+    "mongoose": "^9.7.4",
+    "zod": "^4.4.3",
+    "zod-openapi": "^6.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
