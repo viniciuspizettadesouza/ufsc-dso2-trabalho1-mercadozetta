@@ -64,6 +64,9 @@ const Header = ({ hideLoginAction = false }: HeaderProps) => {
 
       {user ? (
         <div className="mr-[100px] flex items-center gap-4 text-[var(--brand-text)] max-[700px]:mx-5 max-[700px]:items-start">
+          <Link className="font-bold" to={appRoutes.sellerOrders}>
+            Seller orders
+          </Link>
           <div className="flex flex-col items-end leading-[1.3] max-[700px]:items-start">
             <strong className="text-base">
               {user.username || brand.copy.header.loggedUserFallback}

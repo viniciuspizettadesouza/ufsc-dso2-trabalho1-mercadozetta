@@ -76,7 +76,21 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the product creation page for /products/new', async () => {
+  it.each([
+    ['/products/new', 'Entre para criar um anúncio.'],
+    ['/checkout', 'Entre para acessar o checkout.'],
+    ['/admin', 'Entre para acessar o painel administrativo.'],
+    ['/seller/orders', 'Entre para acessar os pedidos de vendedor.'],
+  ])('requires authentication for %s', async (path, prompt) => {
+    await renderAppAt(path);
+
+    expect(await screen.findByRole('status')).toHaveTextContent(prompt);
+    expect(screen.getByPlaceholderText('Email')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/login');
+  });
+
+  it('renders the product creation page for authenticated users', async () => {
+    localStorage.setItem('token', 'token-123');
     await renderAppAt('/products/new');
 
     expect(screen.getByPlaceholderText('Product name')).toBeInTheDocument();
@@ -119,7 +133,8 @@ describe('App', () => {
     expect(apiGet).toHaveBeenCalledWith('/products/product-1');
   });
 
-  it('renders the checkout page', async () => {
+  it('renders the checkout page for authenticated users', async () => {
+    localStorage.setItem('token', 'token-123');
     await renderAppAt('/checkout');
 
     expect(
@@ -127,7 +142,8 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the admin dashboard', async () => {
+  it('renders the admin dashboard for authenticated users', async () => {
+    localStorage.setItem('token', 'token-123');
     apiGet.mockResolvedValueOnce({ data: [] });
 
     await renderAppAt('/admin');

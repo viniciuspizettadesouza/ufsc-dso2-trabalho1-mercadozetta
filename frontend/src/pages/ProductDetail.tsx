@@ -19,6 +19,7 @@ type Product = {
   sellerProfile?: { username?: string; telephone?: string; storeName?: string };
 };
 type Review = { _id: string; rating: number; comment: string };
+type ActionFeedback = { type: 'success' | 'error'; message: string } | null;
 
 export default function ProductDetail() {
   const brand = useBrand();
@@ -30,6 +31,8 @@ export default function ProductDetail() {
   const [rating, setRating] = useState('5');
   const [comment, setComment] = useState('');
   const [error, setError] = useState('');
+  const [pendingAction, setPendingAction] = useState('');
+  const [actionFeedback, setActionFeedback] = useState<ActionFeedback>(null);
 
   useEffect(() => {
     if (!productId) return;
@@ -72,28 +75,64 @@ export default function ProductDetail() {
 
   async function toggleWatch() {
     if (!productId) return;
-    if (watched) await api.delete(apiRoutes.watchlistItem(productId));
-    else await api.put(apiRoutes.watchlistItem(productId));
-    setWatched(!watched);
+    try {
+      setPendingAction('watchlist');
+      setActionFeedback(null);
+      if (watched) await api.delete(apiRoutes.watchlistItem(productId));
+      else await api.put(apiRoutes.watchlistItem(productId));
+      setWatched(!watched);
+      setActionFeedback({
+        type: 'success',
+        message: watched ? 'Removed from watchlist.' : 'Added to watchlist.',
+      });
+    } catch {
+      setActionFeedback({
+        type: 'error',
+        message: 'Unable to update watchlist.',
+      });
+    } finally {
+      setPendingAction('');
+    }
   }
   async function toggleCart() {
     if (!productId) return;
-    if (inCart) await api.delete(apiRoutes.cartItem(productId));
-    else await api.put(apiRoutes.cartItems, { productId, quantity: 1 });
-    setInCart(!inCart);
+    try {
+      setPendingAction('cart');
+      setActionFeedback(null);
+      if (inCart) await api.delete(apiRoutes.cartItem(productId));
+      else await api.put(apiRoutes.cartItems, { productId, quantity: 1 });
+      setInCart(!inCart);
+      setActionFeedback({
+        type: 'success',
+        message: inCart ? 'Removed from cart.' : 'Added to cart.',
+      });
+    } catch {
+      setActionFeedback({ type: 'error', message: 'Unable to update cart.' });
+    } finally {
+      setPendingAction('');
+    }
   }
   async function handleReview(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!productId || !comment.trim()) return;
-    const response = await api.post(apiRoutes.reviews(productId), {
-      rating: Number(rating),
-      comment: comment.trim(),
-    });
-    setReviews((current) => [
-      response.data,
-      ...current.filter((review) => review._id !== response.data._id),
-    ]);
-    setComment('');
+    try {
+      setPendingAction('review');
+      setActionFeedback(null);
+      const response = await api.post(apiRoutes.reviews(productId), {
+        rating: Number(rating),
+        comment: comment.trim(),
+      });
+      setReviews((current) => [
+        response.data,
+        ...current.filter((review) => review._id !== response.data._id),
+      ]);
+      setComment('');
+      setActionFeedback({ type: 'success', message: 'Review added.' });
+    } catch {
+      setActionFeedback({ type: 'error', message: 'Unable to add review.' });
+    } finally {
+      setPendingAction('');
+    }
   }
 
   return (
@@ -144,14 +183,42 @@ export default function ProductDetail() {
                 )}
               </div>
               <div className="mt-5 flex gap-2">
-                <button type="button" onClick={toggleWatch}>
-                  {watched ? 'Watching' : 'Watch'}
+                <button
+                  type="button"
+                  disabled={Boolean(pendingAction)}
+                  onClick={toggleWatch}
+                >
+                  {pendingAction === 'watchlist'
+                    ? 'Updating watchlist...'
+                    : watched
+                      ? 'Watching'
+                      : 'Watch'}
                 </button>
-                <button type="button" onClick={toggleCart}>
-                  {inCart ? 'In cart' : 'Add to cart'}
+                <button
+                  type="button"
+                  disabled={Boolean(pendingAction)}
+                  onClick={toggleCart}
+                >
+                  {pendingAction === 'cart'
+                    ? 'Updating cart...'
+                    : inCart
+                      ? 'In cart'
+                      : 'Add to cart'}
                 </button>
                 <Link to={appRoutes.checkout}>Checkout</Link>
               </div>
+              {actionFeedback && (
+                <p
+                  className={
+                    actionFeedback.type === 'error'
+                      ? 'mt-3 font-bold text-red-600'
+                      : 'mt-3 font-bold text-green-700'
+                  }
+                  role={actionFeedback.type === 'error' ? 'alert' : 'status'}
+                >
+                  {actionFeedback.message}
+                </p>
+              )}
               <section className="mt-8">
                 <h2 className="text-xl font-bold">Reviews and rating</h2>
                 <form className="mt-3 flex gap-2" onSubmit={handleReview}>
@@ -176,7 +243,11 @@ export default function ProductDetail() {
                     onChange={(event) => setComment(event.target.value)}
                     placeholder="Review this product"
                   />
-                  <button type="submit">Add review</button>
+                  <button type="submit" disabled={Boolean(pendingAction)}>
+                    {pendingAction === 'review'
+                      ? 'Adding review...'
+                      : 'Add review'}
+                  </button>
                 </form>
                 <ul>
                   {reviews.map((review) => (

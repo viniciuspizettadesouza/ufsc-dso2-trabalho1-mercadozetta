@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 
 import Header from '@/pages/header';
 import api from '@/services/api';
@@ -8,7 +8,10 @@ import { apiRoutes, appRoutes } from '@/routes';
 
 export default function Login() {
   const brand = useBrand();
+  const location = useLocation();
   const navigate = useNavigate();
+  const routeState = location.state as
+    { from?: string; prompt?: string } | undefined;
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,7 +31,11 @@ export default function Login() {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
 
-      navigate(appRoutes.sellerProducts(response.data.user._id));
+      if (routeState?.from) {
+        navigate(routeState.from, { replace: true });
+      } else {
+        navigate(appRoutes.sellerProducts(response.data.user._id));
+      }
     } catch {
       setError(brand.copy.validation.invalidCredentials);
     }
@@ -42,6 +49,11 @@ export default function Login() {
           className="flex w-full max-w-[300px] flex-col"
           onSubmit={handleSubmit}
         >
+          {routeState?.prompt && (
+            <p className="mt-5 text-center" role="status">
+              {routeState.prompt}
+            </p>
+          )}
           <input
             className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
             type="email"

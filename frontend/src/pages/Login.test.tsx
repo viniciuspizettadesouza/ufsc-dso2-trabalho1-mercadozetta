@@ -24,9 +24,9 @@ vi.mock('react-router', async () => {
   };
 });
 
-function renderLogin() {
+function renderLogin(state?: { from: string; prompt: string }) {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[{ pathname: '/login', state }]}>
       <Login />
     </MemoryRouter>,
   );
@@ -99,5 +99,33 @@ describe('Login', () => {
     ).toBeInTheDocument();
     expect(localStorage.getItem('token')).toBeNull();
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('shows the auth prompt and returns to the protected route after login', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({
+      data: {
+        token: 'token-123',
+        user: { _id: 'user-1' },
+      },
+    });
+
+    renderLogin({
+      from: '/checkout',
+      prompt: 'Entre para acessar o checkout.',
+    });
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Entre para acessar o checkout.',
+    );
+    await userEvent.type(
+      screen.getByPlaceholderText('Email'),
+      'buyer@test.com',
+    );
+    await userEvent.type(screen.getByPlaceholderText('Password'), 'secret123');
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
+
+    await waitFor(() => {
+      expect(navigate).toHaveBeenCalledWith('/checkout', { replace: true });
+    });
   });
 });

@@ -18,6 +18,8 @@ type Product = {
   createdAt?: string;
 };
 
+type ActionFeedback = { type: 'success' | 'error'; message: string } | null;
+
 const productSkeletons = [
   'skeleton-1',
   'skeleton-2',
@@ -38,6 +40,8 @@ export default function Products() {
   const [cart, setCart] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [pendingAction, setPendingAction] = useState('');
+  const [actionFeedback, setActionFeedback] = useState<ActionFeedback>(null);
 
   async function loadProducts() {
     try {
@@ -126,22 +130,60 @@ export default function Products() {
   }, []);
 
   async function toggleFavorite(productId: string) {
-    if (favorites.includes(productId)) {
-      await api.delete(apiRoutes.watchlistItem(productId));
-      setFavorites((current) => current.filter((id) => id !== productId));
-    } else {
-      await api.put(apiRoutes.watchlistItem(productId));
-      setFavorites((current) => [...current, productId]);
+    const action = `watchlist-${productId}`;
+    const isRemoving = favorites.includes(productId);
+    try {
+      setPendingAction(action);
+      setActionFeedback(null);
+      if (isRemoving) {
+        await api.delete(apiRoutes.watchlistItem(productId));
+        setFavorites((current) => current.filter((id) => id !== productId));
+      } else {
+        await api.put(apiRoutes.watchlistItem(productId));
+        setFavorites((current) => [...current, productId]);
+      }
+      setActionFeedback({
+        type: 'success',
+        message: isRemoving
+          ? 'Produto removido dos favoritos.'
+          : 'Produto adicionado aos favoritos.',
+      });
+    } catch {
+      setActionFeedback({
+        type: 'error',
+        message: 'Não foi possível atualizar os favoritos.',
+      });
+    } finally {
+      setPendingAction('');
     }
   }
 
   async function toggleCart(productId: string) {
-    if (cart.includes(productId)) {
-      await api.delete(apiRoutes.cartItem(productId));
-      setCart((current) => current.filter((id) => id !== productId));
-    } else {
-      await api.put(apiRoutes.cartItems, { productId, quantity: 1 });
-      setCart((current) => [...current, productId]);
+    const action = `cart-${productId}`;
+    const isRemoving = cart.includes(productId);
+    try {
+      setPendingAction(action);
+      setActionFeedback(null);
+      if (isRemoving) {
+        await api.delete(apiRoutes.cartItem(productId));
+        setCart((current) => current.filter((id) => id !== productId));
+      } else {
+        await api.put(apiRoutes.cartItems, { productId, quantity: 1 });
+        setCart((current) => [...current, productId]);
+      }
+      setActionFeedback({
+        type: 'success',
+        message: isRemoving
+          ? 'Produto removido do carrinho.'
+          : 'Produto adicionado ao carrinho.',
+      });
+    } catch {
+      setActionFeedback({
+        type: 'error',
+        message: 'Não foi possível atualizar o carrinho.',
+      });
+    } finally {
+      setPendingAction('');
     }
   }
 
@@ -240,6 +282,19 @@ export default function Products() {
           {brand.copy.catalog.searchAction}
         </button>
       </form>
+
+      {actionFeedback && (
+        <p
+          className={`mt-4 rounded border p-3 font-bold ${
+            actionFeedback.type === 'error'
+              ? 'border-red-200 bg-red-50 text-red-700'
+              : 'border-green-200 bg-green-50 text-green-700'
+          }`}
+          role={actionFeedback.type === 'error' ? 'alert' : 'status'}
+        >
+          {actionFeedback.message}
+        </p>
+      )}
 
       <div className="py-8">
         {isLoading ? (
@@ -368,20 +423,26 @@ export default function Products() {
                     <button
                       className="min-h-10 rounded border border-solid border-[#d1d5db] px-2 text-sm font-bold text-[#374151]"
                       type="button"
+                      disabled={Boolean(pendingAction)}
                       onClick={() => toggleFavorite(product._id)}
                     >
-                      {favorites.includes(product._id)
-                        ? brand.copy.catalog.watchingAction
-                        : brand.copy.catalog.watchAction}
+                      {pendingAction === `watchlist-${product._id}`
+                        ? 'Atualizando...'
+                        : favorites.includes(product._id)
+                          ? brand.copy.catalog.watchingAction
+                          : brand.copy.catalog.watchAction}
                     </button>
                     <button
                       className="col-span-2 min-h-10 rounded border border-solid border-[#d1d5db] px-2 text-sm font-bold text-[#374151]"
                       type="button"
+                      disabled={Boolean(pendingAction)}
                       onClick={() => toggleCart(product._id)}
                     >
-                      {cart.includes(product._id)
-                        ? brand.copy.catalog.inCartAction
-                        : brand.copy.catalog.cartAction}
+                      {pendingAction === `cart-${product._id}`
+                        ? 'Atualizando...'
+                        : cart.includes(product._id)
+                          ? brand.copy.catalog.inCartAction
+                          : brand.copy.catalog.cartAction}
                     </button>
                   </div>
                 </div>

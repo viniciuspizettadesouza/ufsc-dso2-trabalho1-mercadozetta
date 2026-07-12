@@ -203,6 +203,26 @@ describe('Products', () => {
       productId: 'product-1',
       quantity: 1,
     });
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Produto adicionado ao carrinho.',
+    );
+  });
+
+  it('shows API errors without changing catalog commerce state', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({ data: products });
+    vi.mocked(api.put).mockRejectedValue(new Error('network error'));
+
+    renderProducts();
+
+    const favoriteButtons = await screen.findAllByRole('button', {
+      name: 'Favoritar',
+    });
+    await userEvent.click(favoriteButtons[0]);
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Não foi possível atualizar os favoritos.',
+    );
+    expect(favoriteButtons[0]).toHaveTextContent('Favoritar');
   });
 
   it('renders image alt text from product name', async () => {
