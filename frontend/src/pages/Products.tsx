@@ -20,22 +20,6 @@ type Product = {
 
 const productSkeletons = ['skeleton-1', 'skeleton-2', 'skeleton-3', 'skeleton-4'];
 
-function getStoredIds(key: string) {
-    try {
-        return JSON.parse(localStorage.getItem(key) || '[]') as string[];
-    } catch {
-        return [];
-    }
-}
-
-function toggleStoredId(key: string, id: string) {
-    const ids = getStoredIds(key);
-    const nextIds = ids.includes(id) ? ids.filter(item => item !== id) : [...ids, id];
-
-    localStorage.setItem(key, JSON.stringify(nextIds));
-    return nextIds;
-}
-
 export default function Products() {
     const brand = useBrand();
     const { sellerId } = useParams();
@@ -45,8 +29,8 @@ export default function Products() {
     const [category, setCategory] = useState('');
     const [availability, setAvailability] = useState('');
     const [sort, setSort] = useState('created_desc');
-    const [favorites, setFavorites] = useState<string[]>(() => getStoredIds('favorites'));
-    const [cart, setCart] = useState<string[]>(() => getStoredIds('cart'));
+    const [favorites, setFavorites] = useState<string[]>([]);
+    const [cart, setCart] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
 
@@ -107,6 +91,34 @@ export default function Products() {
         }
         loadInitialProducts();
     }, [brand.copy.catalog.loadError, sellerId]);
+
+    useEffect(() => {
+        if (!localStorage.getItem('token')) return;
+        Promise.all([api.get(apiRoutes.watchlist), api.get(apiRoutes.cart)]).then(([watchlistResponse, cartResponse]) => {
+            setFavorites(watchlistResponse.data.map((entry: { product: Product | string }) => typeof entry.product === 'string' ? entry.product : entry.product._id));
+            setCart(cartResponse.data.items.map((entry: { product: Product | string }) => typeof entry.product === 'string' ? entry.product : entry.product._id));
+        });
+    }, []);
+
+    async function toggleFavorite(productId: string) {
+        if (favorites.includes(productId)) {
+            await api.delete(apiRoutes.watchlistItem(productId));
+            setFavorites(current => current.filter(id => id !== productId));
+        } else {
+            await api.put(apiRoutes.watchlistItem(productId));
+            setFavorites(current => [...current, productId]);
+        }
+    }
+
+    async function toggleCart(productId: string) {
+        if (cart.includes(productId)) {
+            await api.delete(apiRoutes.cartItem(productId));
+            setCart(current => current.filter(id => id !== productId));
+        } else {
+            await api.put(apiRoutes.cartItems, { productId, quantity: 1 });
+            setCart(current => [...current, productId]);
+        }
+    }
 
     const procure = useCallback((event: ChangeEvent<HTMLInputElement>) => {
         const value = event.currentTarget.value;
@@ -274,14 +286,14 @@ export default function Products() {
                                         <button
                                             className="min-h-10 rounded border border-solid border-[#d1d5db] px-2 text-sm font-bold text-[#374151]"
                                             type="button"
-                                            onClick={() => setFavorites(toggleStoredId('favorites', product._id))}
+                                            onClick={() => toggleFavorite(product._id)}
                                         >
                                             {favorites.includes(product._id) ? brand.copy.catalog.watchingAction : brand.copy.catalog.watchAction}
                                         </button>
                                         <button
                                             className="col-span-2 min-h-10 rounded border border-solid border-[#d1d5db] px-2 text-sm font-bold text-[#374151]"
                                             type="button"
-                                            onClick={() => setCart(toggleStoredId('cart', product._id))}
+                                            onClick={() => toggleCart(product._id)}
                                         >
                                             {cart.includes(product._id) ? brand.copy.catalog.inCartAction : brand.copy.catalog.cartAction}
                                         </button>

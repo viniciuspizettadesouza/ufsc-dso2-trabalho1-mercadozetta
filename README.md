@@ -80,6 +80,12 @@ npm run generate:openapi
 The backend contract test fails if the generated output differs from the
 checked-in file.
 
+Authenticated commerce endpoints persist carts, watchlists, orders, order
+items, reviews, and notifications in MongoDB. Checkout updates inventory,
+reviews require a previous purchase, and order status updates enforce buyer and
+seller authorization. See the generated OpenAPI contract for the complete
+request and response shapes.
+
 ## 3. Prerequisites
 
 Before installing the project, make sure you have:

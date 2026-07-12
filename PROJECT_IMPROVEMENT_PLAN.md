@@ -7,21 +7,23 @@ easier to evolve, and more polished as a white-label marketplace demo.
 
 ## Current Status and Next Session Handoff
 
-The validation/test-organization, API contract documentation, and automatic
-OpenAPI generation phases are complete. Do not recreate or edit the checked-in
-contract manually; update its Zod schemas or typed route contract and run the
-generator instead.
+The validation/test-organization, API contract documentation, automatic OpenAPI
+generation, and persistent commerce phases are complete. Priority 2 -
+Architecture Decision Records was intentionally skipped because this project
+does not need ADRs. Do not recreate or edit the checked-in API contract
+manually; update its Zod schemas or typed route contract and run the generator.
 
-The next session should start with **Priority 2 - Architecture Decision
-Records**. Begin with the white-label strategy and tenant isolation decisions,
-using the existing tenant registry and middleware as the verified source of
-truth. Do not start persistent commerce workflows before completing Priority 2.
+The next session should start by evaluating deployment readiness for the new
+commerce workflows. A concrete first step is to run the Dockerized demo with
+MongoDB, exercise buyer checkout and seller fulfillment with two demo users,
+and record any operational gaps before adding another product phase.
 
 Validated handoff state:
 
-- Backend: 155 tests passing across 28 test files.
+- Backend: 173 tests passing across 30 test files.
 - Frontend: 50 tests passing across 10 test files.
-- Backend branch coverage: 85.87%, above the configured 85% threshold.
+- Backend coverage passes all configured 85% thresholds.
+- Frontend coverage passes all configured 90% thresholds.
 - Focused coverage scenarios are stored in the test files associated with their
   source modules.
 - The test-file organization rule is documented in `AGENTS.md`.
@@ -35,8 +37,16 @@ Validated handoff state:
   and response contract.
 - `npm run generate:openapi` regenerates `docs/openapi.json`, and the contract
   test rejects checked-in drift.
+- Carts, watchlists, orders, order items, reviews, and notifications persist in
+  tenant-scoped MongoDB collections.
+- Buyer checkout, seller fulfillment states, purchase-gated reviews, inventory
+  updates, and user notifications are API-backed and covered by focused tests.
+- The frontend no longer stores commerce state in `localStorage`; only the
+  existing authentication session remains there.
 
 ## Priority 2 - Architecture Decision Records
+
+Skipped by product decision: ADRs are not needed for this project.
 
 Capture decisions that are already shaping the project so future changes have a
 clear reference point.
@@ -53,8 +63,8 @@ clear reference point.
 
 ## Priority 3 - Persistent Commerce Domain
 
-Only start this if the project needs real buyer workflows beyond the current
-demo simulation.
+Completed: the project now supports real buyer and seller workflows beyond the
+previous browser-only demo simulation.
 
 - Persist carts, watchlists, orders, order items, reviews, and notifications in
   MongoDB.
@@ -68,8 +78,8 @@ demo simulation.
 1. [x] Restore and validate the configured branch-coverage threshold.
 2. [x] Document the current API with OpenAPI.
 3. [x] Generate OpenAPI from shared validation schemas.
-4. [ ] Add ADRs for existing architecture decisions. **Start here in the next session.**
-5. [ ] Persist commerce workflows only if the product scope grows.
+4. [x] Skip ADRs by explicit project decision.
+5. [x] Persist commerce workflows.
 
 ## Definition of Done
 

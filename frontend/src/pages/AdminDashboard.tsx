@@ -12,23 +12,15 @@ type Product = {
     category?: string;
 };
 
-function readArray<T>(key: string): T[] {
-    try {
-        return JSON.parse(localStorage.getItem(key) || '[]') as T[];
-    } catch {
-        return [];
-    }
-}
-
 export default function AdminDashboard() {
     const [products, setProducts] = useState<Product[]>([]);
-    const [notifications] = useState<string[]>(() => readArray('notifications'));
+    const [notifications, setNotifications] = useState<Array<{ _id: string; message: string }>>([]);
 
     useEffect(() => {
         async function loadProducts() {
-            const response = await api.get(apiRoutes.products);
-
+            const [response, notificationResponse] = await Promise.all([api.get(apiRoutes.products), api.get(apiRoutes.notifications)]);
             setProducts(response.data);
+            setNotifications(notificationResponse.data);
         }
 
         loadProducts();
@@ -61,9 +53,9 @@ export default function AdminDashboard() {
                                 Product {product.name} is {product.status || 'active'} in {product.category || 'general'}
                             </li>
                         ))}
-                        {notifications.map((notification, index) => (
-                            <li className="rounded border border-solid border-[#ddd] p-3" key={`${notification}-${index}`}>
-                                {notification}
+                        {notifications.map(notification => (
+                            <li className="rounded border border-solid border-[#ddd] p-3" key={notification._id}>
+                                {notification.message}
                             </li>
                         ))}
                     </ul>
