@@ -1,4 +1,10 @@
-import { createBrowserRouter, RouterProvider } from 'react-router';
+import {
+  createBrowserRouter,
+  Navigate,
+  RouterProvider,
+  useLocation,
+} from 'react-router';
+import type { ReactNode } from 'react';
 
 import AddProduct from '@/pages/AddProduct';
 import AddUser from '@/pages/AddUser';
@@ -8,8 +14,30 @@ import Checkout from '@/pages/Checkout';
 import AdminDashboard from '@/pages/AdminDashboard';
 import ProductDetail from '@/pages/ProductDetail';
 import SellerProfile from '@/pages/SellerProfile';
+import SellerOrders from '@/pages/SellerOrders';
 import { BrandProvider } from '@/brands/BrandProvider';
 import { routePatterns } from '@/routes';
+
+type AuthenticatedRouteProps = {
+  children: ReactNode;
+  prompt: string;
+};
+
+function AuthenticatedRoute({ children, prompt }: AuthenticatedRouteProps) {
+  const location = useLocation();
+
+  if (!localStorage.getItem('token')) {
+    return (
+      <Navigate
+        replace
+        state={{ from: location.pathname, prompt }}
+        to={routePatterns.login}
+      />
+    );
+  }
+
+  return children;
+}
 
 const router = createBrowserRouter([
   {
@@ -34,7 +62,11 @@ const router = createBrowserRouter([
   },
   {
     path: routePatterns.newProduct,
-    element: <AddProduct />,
+    element: (
+      <AuthenticatedRoute prompt="Entre para criar um anúncio.">
+        <AddProduct />
+      </AuthenticatedRoute>
+    ),
   },
   {
     path: routePatterns.productDetail,
@@ -42,11 +74,27 @@ const router = createBrowserRouter([
   },
   {
     path: routePatterns.checkout,
-    element: <Checkout />,
+    element: (
+      <AuthenticatedRoute prompt="Entre para acessar o checkout.">
+        <Checkout />
+      </AuthenticatedRoute>
+    ),
   },
   {
     path: routePatterns.admin,
-    element: <AdminDashboard />,
+    element: (
+      <AuthenticatedRoute prompt="Entre para acessar o painel administrativo.">
+        <AdminDashboard />
+      </AuthenticatedRoute>
+    ),
+  },
+  {
+    path: routePatterns.sellerOrders,
+    element: (
+      <AuthenticatedRoute prompt="Entre para acessar os pedidos de vendedor.">
+        <SellerOrders />
+      </AuthenticatedRoute>
+    ),
   },
 ]);
 

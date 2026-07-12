@@ -14,7 +14,7 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   release; version 8.63.0 and its current canary support TypeScript only through
   versions earlier than 6.1.0.
 - Backend: 175 tests across 30 test files.
-- Frontend: 50 tests across 10 test files.
+- Frontend: 64 tests across 11 test files.
 - Type checks, lint, formatting, OpenAPI generation, and the frontend production
   build pass.
 - The Dockerized buyer-to-seller workflow passes against MongoDB for both
@@ -34,23 +34,32 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   logout revocation, and repeatable non-destructive demo seeding.
 - The full backend and frontend tests, lint, formatting, and frontend build pass.
 - Backend coverage passes under the required Node.js 24.18.0 runtime, with all
-  175 tests passing and 85.18% branch coverage against the 85% threshold.
-- Next action: add shared authenticated route protection and sign-in prompts.
-  Start in `frontend/src/App.tsx`, add focused route-guard tests alongside it,
-  and cover `/checkout`, `/products/new`, and `/admin` while keeping catalog,
-  product detail, seller, login, and registration routes public.
+  175 tests passing and 85.55% branch coverage against the 85% threshold.
+- Shared authenticated route protection now redirects anonymous visitors from
+  `/checkout`, `/products/new`, and `/admin` to login with a route-specific
+  prompt, then returns them to the requested route after successful sign-in.
+  Catalog, product detail, seller, login, and registration routes remain public.
+- Buyer and seller workflow UI polish is complete. Cart, watchlist, review, and
+  order actions expose loading, success, and API error states; checkout supports
+  quantity editing and item removal and prevents orders with unavailable
+  inventory; authenticated sellers have a dedicated order view with scoped line
+  items and fulfillment actions.
+- Next action: add notification read/unread operations and an unread count in the
+  header. Start with the notification model and commerce routes, keep the API
+  contract generated from Zod and OpenAPI metadata, then add focused header and
+  workflow tests.
 
 ## Next Steps
 
 ### 1. Polish buyer and seller workflow UI
 
-- Add authenticated route guards and clear sign-in prompts for commerce
-  actions.
-- Add loading, success, and API error feedback to cart, watchlist, review, and
-  order actions.
-- Add quantity editing, item removal, and disabled checkout for unavailable
-  inventory.
-- Give sellers a dedicated order view with permitted fulfillment actions.
+- [x] Add authenticated route guards and clear sign-in prompts for commerce
+      actions.
+- [x] Add loading, success, and API error feedback to cart, watchlist, review,
+      and order actions.
+- [x] Add quantity editing, item removal, and disabled checkout for unavailable
+      inventory.
+- [x] Give sellers a dedicated order view with permitted fulfillment actions.
 
 ### 2. Improve notification and order lifecycle behavior
 

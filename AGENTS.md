@@ -58,6 +58,45 @@ classes. Prefer clear domain names for files and functions, such as
 Keep formatting consistent with nearby code. Use single quotes in backend
 TypeScript and the existing frontend import/component style in TypeScript files.
 
+## Architectural Conventions
+
+### Imports and Module Boundaries
+
+- Use the `@/` path alias for project-internal imports in both backend and
+  frontend source and tests. Avoid introducing deep relative imports such as
+  `../../services/api`.
+- Keep backend dependencies flowing from routes to controllers to services and
+  models. Controllers translate HTTP requests and responses; business rules,
+  ownership checks, and persistence belong in services.
+- Keep frontend API paths in `frontend/src/routes.ts`. Do not embed API endpoint
+  strings directly in pages or components.
+
+### Frontend Routing and Authentication
+
+- Define application URLs and route patterns in `frontend/src/routes.ts`, add
+  routes in `frontend/src/App.tsx`, and update `frontend/src/routes.test.ts`
+  together.
+- Authenticated pages must use the shared route-protection mechanism and
+  preserve the requested destination through login. Do not duplicate
+  authentication checks independently in individual protected pages.
+- Treat client-side route guards and hidden UI controls as usability features,
+  not authorization. Tenant, ownership, and permitted-operation checks must be
+  enforced by the backend.
+
+### Commerce and White-Label UI
+
+- The backend is authoritative for inventory availability, order ownership, and
+  allowed lifecycle transitions. Frontend controls may anticipate these rules
+  for feedback but must not define or replace them.
+- Seller-facing order data must be scoped by the backend. Do not fetch data for
+  other sellers and rely only on client-side filtering.
+- Put reusable user-visible marketplace copy in the brand configuration rather
+  than hard-coding it in pages. Update both the default MercadoZetta and
+  CampusMarket configurations when adding brand-sensitive copy.
+- Commerce mutations must expose pending, success, and API-error states, disable
+  conflicting actions while pending, and preserve the previous UI state when
+  the request fails.
+
 ## API Contract and Validation
 
 The backend uses Zod 4 schemas as the source of truth for request validation and
