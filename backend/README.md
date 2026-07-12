@@ -59,21 +59,22 @@ npm test
 npm audit
 ```
 
-CI runs backend tests, frontend tests, frontend lint/build, and `npm audit
---audit-level=high` for the root, backend, and frontend dependency trees.
+CI runs formatting and lint checks, backend and frontend tests, the frontend
+build, and `npm audit --audit-level=high` for the root, backend, and frontend
+dependency trees.
 
 ## Routes
 
-| Method | Route | Auth | Description |
-| --- | --- | --- | --- |
-| `GET` | `/` | No | API welcome response |
-| `GET` | `/health` | No | Liveness check |
-| `GET` | `/ready` | No | MongoDB readiness check |
-| `GET` | `/products` | No | List all products |
-| `GET` | `/users/:userId/products` | No | List products for one seller |
-| `POST` | `/users` | No | Create a user |
-| `POST` | `/auth/login` | No | Authenticate and return `{ user, token }` |
-| `POST` | `/products` | Yes | Create a product for the authenticated seller |
+| Method | Route                     | Auth | Description                                   |
+| ------ | ------------------------- | ---- | --------------------------------------------- |
+| `GET`  | `/`                       | No   | API welcome response                          |
+| `GET`  | `/health`                 | No   | Liveness check                                |
+| `GET`  | `/ready`                  | No   | MongoDB readiness check                       |
+| `GET`  | `/products`               | No   | List all products                             |
+| `GET`  | `/users/:userId/products` | No   | List products for one seller                  |
+| `POST` | `/users`                  | No   | Create a user                                 |
+| `POST` | `/auth/login`             | No   | Authenticate and return `{ user, token }`     |
+| `POST` | `/products`               | Yes  | Create a product for the authenticated seller |
 
 Authenticated routes expect:
 

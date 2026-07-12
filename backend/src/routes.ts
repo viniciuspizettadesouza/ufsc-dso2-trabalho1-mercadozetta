@@ -16,7 +16,12 @@ import {
 } from './validators/productValidator';
 import { validateCreateUserPayload } from './validators/userValidator';
 import { validateLoginPayload } from './validators/authValidator';
-import { validateCartItem, validateOrderStatus, validateResourceId, validateReview } from './validators/commerceValidator';
+import {
+  validateCartItem,
+  validateOrderStatus,
+  validateResourceId,
+  validateReview,
+} from './validators/commerceValidator';
 
 const routes = express.Router();
 
@@ -42,15 +47,15 @@ routes.get('/ready', (req, res) => {
 routes.get(
   '/products',
   validateRequest({ query: validateProductFilters }),
-  asyncHandler(ProductController.index)
+  asyncHandler(ProductController.index),
 );
 
 routes.get(
   '/products/:productId',
   validateRequest({
-    params: params => ({ productId: validateProductId(params.productId) }),
+    params: (params) => ({ productId: validateProductId(params.productId) }),
   }),
-  asyncHandler(ProductController.detail)
+  asyncHandler(ProductController.detail),
 );
 
 routes.get('/users/:userId', asyncHandler(UserController.sellerProfile));
@@ -58,54 +63,113 @@ routes.get('/users/:userId', asyncHandler(UserController.sellerProfile));
 routes.get(
   '/users/:userId/products',
   validateRequest({
-    params: params => ({ userId: validateSellerId(String(params.userId || params.userID || '')) }),
+    params: (params) => ({
+      userId: validateSellerId(String(params.userId || params.userID || '')),
+    }),
     query: validateProductFilters,
   }),
-  asyncHandler(ProductController.listBySeller)
+  asyncHandler(ProductController.listBySeller),
 );
 
 routes.post(
   '/users',
   registerRateLimiter,
   validateRequest({ body: validateCreateUserPayload }),
-  asyncHandler(UserController.add)
+  asyncHandler(UserController.add),
 );
 
 routes.post(
   '/auth/login',
   authRateLimiter,
   validateRequest({ body: validateLoginPayload }),
-  asyncHandler(AuthController.authenticate)
+  asyncHandler(AuthController.authenticate),
 );
 
 routes.post(
   '/auth/logout',
   authMiddleware,
-  asyncHandler(AuthController.logout)
+  asyncHandler(AuthController.logout),
 );
 
 routes.post(
   '/products',
   authMiddleware,
   validateRequest({ body: validateCreateProductPayload }),
-  asyncHandler(ProductController.add)
+  asyncHandler(ProductController.add),
 );
 
-const resourceParams = (key: 'productId' | 'orderId') => (params: Record<string, unknown>) => ({
-  [key]: validateResourceId(params[key]),
-});
+const resourceParams =
+  (key: 'productId' | 'orderId') => (params: Record<string, unknown>) => ({
+    [key]: validateResourceId(params[key]),
+  });
 
 routes.get('/cart', authMiddleware, asyncHandler(CommerceController.getCart));
-routes.put('/cart/items', authMiddleware, validateRequest({ body: validateCartItem }), asyncHandler(CommerceController.setCartItem));
-routes.delete('/cart/items/:productId', authMiddleware, validateRequest({ params: resourceParams('productId') }), asyncHandler(CommerceController.removeCartItem));
-routes.get('/watchlist', authMiddleware, asyncHandler(CommerceController.listWatchlist));
-routes.put('/watchlist/:productId', authMiddleware, validateRequest({ params: resourceParams('productId') }), asyncHandler(CommerceController.addWatchlist));
-routes.delete('/watchlist/:productId', authMiddleware, validateRequest({ params: resourceParams('productId') }), asyncHandler(CommerceController.removeWatchlist));
-routes.get('/orders', authMiddleware, asyncHandler(CommerceController.listOrders));
-routes.post('/orders', authMiddleware, asyncHandler(CommerceController.createOrder));
-routes.patch('/orders/:orderId/status', authMiddleware, validateRequest({ params: resourceParams('orderId'), body: validateOrderStatus }), asyncHandler(CommerceController.updateOrderStatus));
-routes.get('/products/:productId/reviews', validateRequest({ params: resourceParams('productId') }), asyncHandler(CommerceController.listReviews));
-routes.post('/products/:productId/reviews', authMiddleware, validateRequest({ params: resourceParams('productId'), body: validateReview }), asyncHandler(CommerceController.createReview));
-routes.get('/notifications', authMiddleware, asyncHandler(CommerceController.listNotifications));
+routes.put(
+  '/cart/items',
+  authMiddleware,
+  validateRequest({ body: validateCartItem }),
+  asyncHandler(CommerceController.setCartItem),
+);
+routes.delete(
+  '/cart/items/:productId',
+  authMiddleware,
+  validateRequest({ params: resourceParams('productId') }),
+  asyncHandler(CommerceController.removeCartItem),
+);
+routes.get(
+  '/watchlist',
+  authMiddleware,
+  asyncHandler(CommerceController.listWatchlist),
+);
+routes.put(
+  '/watchlist/:productId',
+  authMiddleware,
+  validateRequest({ params: resourceParams('productId') }),
+  asyncHandler(CommerceController.addWatchlist),
+);
+routes.delete(
+  '/watchlist/:productId',
+  authMiddleware,
+  validateRequest({ params: resourceParams('productId') }),
+  asyncHandler(CommerceController.removeWatchlist),
+);
+routes.get(
+  '/orders',
+  authMiddleware,
+  asyncHandler(CommerceController.listOrders),
+);
+routes.post(
+  '/orders',
+  authMiddleware,
+  asyncHandler(CommerceController.createOrder),
+);
+routes.patch(
+  '/orders/:orderId/status',
+  authMiddleware,
+  validateRequest({
+    params: resourceParams('orderId'),
+    body: validateOrderStatus,
+  }),
+  asyncHandler(CommerceController.updateOrderStatus),
+);
+routes.get(
+  '/products/:productId/reviews',
+  validateRequest({ params: resourceParams('productId') }),
+  asyncHandler(CommerceController.listReviews),
+);
+routes.post(
+  '/products/:productId/reviews',
+  authMiddleware,
+  validateRequest({
+    params: resourceParams('productId'),
+    body: validateReview,
+  }),
+  asyncHandler(CommerceController.createReview),
+);
+routes.get(
+  '/notifications',
+  authMiddleware,
+  asyncHandler(CommerceController.listNotifications),
+);
 
 export default routes;

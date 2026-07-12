@@ -8,45 +8,55 @@ import api from '../services/api';
 const navigate = vi.fn();
 
 vi.mock('../services/api', () => ({
-    default: {
-        get: vi.fn(),
-    },
+  default: {
+    get: vi.fn(),
+  },
 }));
 
 vi.mock('react-router', async () => {
-    const actual = await vi.importActual<typeof import('react-router')>('react-router');
+  const actual =
+    await vi.importActual<typeof import('react-router')>('react-router');
 
-    return {
-        ...actual,
-        useNavigate: () => navigate,
-    };
+  return {
+    ...actual,
+    useNavigate: () => navigate,
+  };
 });
 
 function renderIndex() {
-    return render(
-        <MemoryRouter>
-            <Index />
-        </MemoryRouter>
-    );
+  return render(
+    <MemoryRouter>
+      <Index />
+    </MemoryRouter>,
+  );
 }
 
 describe('Index', () => {
-    afterEach(() => {
-        cleanup();
-    });
+  afterEach(() => {
+    cleanup();
+  });
 
-    beforeEach(() => {
-        localStorage.clear();
-        navigate.mockReset();
-        vi.mocked(api.get).mockResolvedValue({ data: [] });
-    });
+  beforeEach(() => {
+    localStorage.clear();
+    navigate.mockReset();
+    vi.mocked(api.get).mockResolvedValue({ data: [] });
+  });
 
-    it('renders the main marketplace experience', async () => {
-        renderIndex();
+  it('renders the main marketplace experience', async () => {
+    renderIndex();
 
-        expect(screen.getByRole('heading', { name: 'Encontre ofertas do marketplace' })).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: 'Criar conta' })).toHaveAttribute('href', '/register');
-        expect(screen.getByRole('link', { name: 'Anunciar produto' })).toHaveAttribute('href', '/products/new');
-        expect(await screen.findByText('Nenhum produto encontrado')).toBeInTheDocument();
-    });
+    expect(
+      screen.getByRole('heading', { name: 'Encontre ofertas do marketplace' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Criar conta' })).toHaveAttribute(
+      'href',
+      '/register',
+    );
+    expect(
+      screen.getByRole('link', { name: 'Anunciar produto' }),
+    ).toHaveAttribute('href', '/products/new');
+    expect(
+      await screen.findByText('Nenhum produto encontrado'),
+    ).toBeInTheDocument();
+  });
 });

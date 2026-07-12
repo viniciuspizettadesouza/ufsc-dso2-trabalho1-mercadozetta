@@ -21,10 +21,11 @@ describe('parseAppSchema', () => {
   });
 
   it('maps ordinary Zod failures to the shared request error', () => {
-    expect(() => parseAppSchema(z.string(), 42)).toThrow(expect.objectContaining({
-      statusCode: 400,
-      code: 'INVALID_REQUEST',
-    }));
+    expect(() => parseAppSchema(z.string(), 42)).toThrow(
+      expect.objectContaining({
+        statusCode: 400,
+        code: 'INVALID_REQUEST',
+      }),
+    );
   });
-
 });

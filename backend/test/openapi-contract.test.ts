@@ -1,7 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { createOpenApiDocument, serializeOpenApiDocument } from '../src/openapi/document';
+import {
+  createOpenApiDocument,
+  serializeOpenApiDocument,
+} from '../src/openapi/document';
 import routes from '../src/routes';
 
 type OpenApiDocument = {
@@ -18,22 +21,28 @@ function normalizeExpressPath(routePath: string) {
 }
 
 function implementedOperations() {
-  return routes.stack.flatMap((layer: any) => {
-    if (!layer.route)
-      return [];
+  return routes.stack
+    .flatMap((layer: any) => {
+      if (!layer.route) return [];
 
-    return Object.keys(layer.route.methods).map(method => (
-      `${method.toLowerCase()} ${normalizeExpressPath(layer.route.path)}`
-    ));
-  }).sort();
+      return Object.keys(layer.route.methods).map(
+        (method) =>
+          `${method.toLowerCase()} ${normalizeExpressPath(layer.route.path)}`,
+      );
+    })
+    .sort();
 }
 
 function documentedOperations() {
-  return Object.entries(document.paths).flatMap(([routePath, pathItem]) => (
-    Object.keys(pathItem)
-      .filter(method => ['get', 'post', 'put', 'patch', 'delete'].includes(method))
-      .map(method => `${method} ${routePath}`)
-  )).sort();
+  return Object.entries(document.paths)
+    .flatMap(([routePath, pathItem]) =>
+      Object.keys(pathItem)
+        .filter((method) =>
+          ['get', 'post', 'put', 'patch', 'delete'].includes(method),
+        )
+        .map((method) => `${method} ${routePath}`),
+    )
+    .sort();
 }
 
 describe('OpenAPI contract', () => {
@@ -47,11 +56,23 @@ describe('OpenAPI contract', () => {
   });
 
   it('includes request and response examples for API operations with payloads', () => {
-    expect(document.paths['/auth/login'].post).toHaveProperty('requestBody.content.application/json.example');
-    expect(document.paths['/auth/login'].post).toHaveProperty('responses.200.content.application/json.example');
-    expect(document.paths['/users'].post).toHaveProperty('requestBody.content.application/json.example');
-    expect(document.paths['/products'].post).toHaveProperty('requestBody.content.application/json.example');
-    expect(document.paths['/products/{productId}'].get).toHaveProperty('responses.200.content.application/json.example');
-    expect(document.paths['/ready'].get).toHaveProperty('responses.503.content.application/json.example');
+    expect(document.paths['/auth/login'].post).toHaveProperty(
+      'requestBody.content.application/json.example',
+    );
+    expect(document.paths['/auth/login'].post).toHaveProperty(
+      'responses.200.content.application/json.example',
+    );
+    expect(document.paths['/users'].post).toHaveProperty(
+      'requestBody.content.application/json.example',
+    );
+    expect(document.paths['/products'].post).toHaveProperty(
+      'requestBody.content.application/json.example',
+    );
+    expect(document.paths['/products/{productId}'].get).toHaveProperty(
+      'responses.200.content.application/json.example',
+    );
+    expect(document.paths['/ready'].get).toHaveProperty(
+      'responses.503.content.application/json.example',
+    );
   });
 });

@@ -39,7 +39,12 @@ describe('request middleware', () => {
     };
     const errorNext = vi.fn();
 
-    errorHandler(new AppError(422, 'VALIDATION_ERROR', 'Invalid payload'), {} as any, errorResponse as any, errorNext);
+    errorHandler(
+      new AppError(422, 'VALIDATION_ERROR', 'Invalid payload'),
+      {} as any,
+      errorResponse as any,
+      errorNext,
+    );
 
     expect(errorResponse.status).toHaveBeenCalledWith(422);
     expect(errorResponse.send).toHaveBeenCalledWith({

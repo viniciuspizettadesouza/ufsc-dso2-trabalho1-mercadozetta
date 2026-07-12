@@ -1,18 +1,27 @@
-import type { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
+import type {
+  Request,
+  Response,
+  NextFunction,
+  ErrorRequestHandler,
+} from 'express';
 import AppError from '../errors/AppError';
 
 function isJsonParseError(err: Error | object) {
   return (
-    typeof err === 'object'
-    && err !== null
-    && 'type' in err
-    && err.type === 'entity.parse.failed'
+    typeof err === 'object' &&
+    err !== null &&
+    'type' in err &&
+    err.type === 'entity.parse.failed'
   );
 }
 
-const errorHandler: ErrorRequestHandler = (err, req: Request, res: Response, next: NextFunction) => {
-  if (res.headersSent)
-    return next(err);
+const errorHandler: ErrorRequestHandler = (
+  err,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  if (res.headersSent) return next(err);
 
   if (err instanceof AppError)
     return res.status(err.statusCode).send({

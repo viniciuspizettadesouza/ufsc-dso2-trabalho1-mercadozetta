@@ -10,12 +10,18 @@ type CreateUserRequest = Request & {
 
 const userController = {
   async add(req: CreateUserRequest, res: Response) {
-    const createdUser = await UserService.createUser(req.validated.body, req.tenant?.id ?? '');
+    const createdUser = await UserService.createUser(
+      req.validated.body,
+      req.tenant?.id ?? '',
+    );
     return res.status(201).send({ newUser: createdUser });
   },
 
   async sellerProfile(req: Request, res: Response) {
-    const seller = await UserService.getPublicSellerProfile(req.params.userId, req.tenant?.id ?? '');
+    const seller = await UserService.getPublicSellerProfile(
+      req.params.userId,
+      req.tenant?.id ?? '',
+    );
     return res.status(200).send(seller);
   },
 };

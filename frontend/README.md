@@ -55,13 +55,13 @@ npm audit
 
 ## Routes
 
-| Route | Description |
-| --- | --- |
-| `/` | Home page with product search and product list |
-| `/sellers/:sellerId` | Seller page with products for that seller |
-| `/login` | Login form |
-| `/register` | User registration form |
-| `/products/new` | Authenticated product creation form |
+| Route                | Description                                    |
+| -------------------- | ---------------------------------------------- |
+| `/`                  | Home page with product search and product list |
+| `/sellers/:sellerId` | Seller page with products for that seller      |
+| `/login`             | Login form                                     |
+| `/register`          | User registration form                         |
+| `/products/new`      | Authenticated product creation form            |
 
 ## Authentication Flow
 

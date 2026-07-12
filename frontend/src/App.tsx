@@ -1,7 +1,4 @@
-import {
-  createBrowserRouter,
-  RouterProvider
-} from "react-router";
+import { createBrowserRouter, RouterProvider } from 'react-router';
 
 import AddProduct from './pages/AddProduct';
 import AddUser from './pages/AddUser';

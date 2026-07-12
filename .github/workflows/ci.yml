@@ -62,6 +62,9 @@ jobs:
       - name: Typecheck backend
         run: npm run typecheck
 
+      - name: Check formatting
+        run: npm run format:check
+
       - name: Lint backend
         run: npm run lint:backend
 

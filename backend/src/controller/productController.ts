@@ -1,7 +1,10 @@
 import type { Request, Response } from 'express';
 import AppError from '../errors/AppError';
 import ProductService from '../services/productService';
-import type { CreateProductData, ProductListFilters } from '../validators/productValidator';
+import type {
+  CreateProductData,
+  ProductListFilters,
+} from '../validators/productValidator';
 
 type ProductIdParams = { productId: string };
 type SellerIdParams = { userId: string };
@@ -33,12 +36,18 @@ type SellerProductsRequest = Request & {
 
 const productController = {
   async index(req: ProductListRequest, res: Response) {
-    const products = await ProductService.listProducts(req.tenant?.id ?? '', req.validated.query);
+    const products = await ProductService.listProducts(
+      req.tenant?.id ?? '',
+      req.validated.query,
+    );
     return res.status(200).send(products);
   },
 
   async detail(req: ProductDetailRequest, res: Response) {
-    const product = await ProductService.getProductById(req.validated.params.productId, req.tenant?.id ?? '');
+    const product = await ProductService.getProductById(
+      req.validated.params.productId,
+      req.tenant?.id ?? '',
+    );
 
     if (!product)
       throw new AppError(404, 'PRODUCT_NOT_FOUND', 'Product not found');
@@ -47,7 +56,11 @@ const productController = {
   },
 
   async add(req: CreateProductRequest, res: Response) {
-    const createdProduct = await ProductService.createProduct(req.validated.body, req.userId ?? '', req.tenant?.id ?? '');
+    const createdProduct = await ProductService.createProduct(
+      req.validated.body,
+      req.userId ?? '',
+      req.tenant?.id ?? '',
+    );
     return res.status(201).send({ newProduct: createdProduct });
   },
 
@@ -55,7 +68,7 @@ const productController = {
     const products = await ProductService.listProductsBySeller(
       req.validated.params.userId,
       req.tenant?.id ?? '',
-      req.validated.query
+      req.validated.query,
     );
     return res.status(200).send(products);
   },

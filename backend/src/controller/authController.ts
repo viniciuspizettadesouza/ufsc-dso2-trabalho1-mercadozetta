@@ -10,7 +10,10 @@ type LoginRequest = Request & {
 
 const authController = {
   async authenticate(req: LoginRequest, res: Response) {
-    const result = await AuthService.authenticate(req.validated.body, req.tenant?.id ?? '');
+    const result = await AuthService.authenticate(
+      req.validated.body,
+      req.tenant?.id ?? '',
+    );
     return res.status(200).send(result);
   },
   async logout(req: Request, res: Response) {

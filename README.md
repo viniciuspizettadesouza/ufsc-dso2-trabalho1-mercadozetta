@@ -448,8 +448,25 @@ Run all automated tests with coverage thresholds from the project root:
 npm run test:coverage
 ```
 
+Check ESLint and Prettier from the project root:
+
+```bash
+npm run lint
+npm run format:check
+```
+
+Apply Prettier formatting to supported repository files:
+
+```bash
+npm run format
+```
+
+The pre-commit hook formats supported staged files with `lint-staged`. The
+pre-push hook runs the repository-wide formatting check and test suite without
+rewriting files.
+
 CI validates pull requests and supported branch pushes with dependency audits,
-backend tests, frontend tests, frontend lint, and frontend build.
+formatting and lint checks, backend and frontend tests, and the frontend build.
 
 Backend:
 
