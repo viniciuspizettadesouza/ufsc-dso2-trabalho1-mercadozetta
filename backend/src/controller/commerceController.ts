@@ -95,6 +95,27 @@ export async function listNotifications(req: Request, res: Response) {
   const { userId, tenantId } = context(req);
   res.send(await Commerce.listNotifications(userId, tenantId));
 }
+export async function countUnreadNotifications(req: Request, res: Response) {
+  const { userId, tenantId } = context(req);
+  res.send({
+    count: await Commerce.countUnreadNotifications(userId, tenantId),
+  });
+}
+export async function updateNotificationRead(req: Request, res: Response) {
+  const { userId, tenantId } = context(req);
+  const { notificationId } = req.validated?.params as {
+    notificationId: string;
+  };
+  const { read } = req.validated?.body as { read: boolean };
+  res.send(
+    await Commerce.updateNotificationRead(
+      userId,
+      tenantId,
+      notificationId,
+      read,
+    ),
+  );
+}
 
 export default {
   getCart,
@@ -109,4 +130,6 @@ export default {
   listReviews,
   createReview,
   listNotifications,
+  countUnreadNotifications,
+  updateNotificationRead,
 };

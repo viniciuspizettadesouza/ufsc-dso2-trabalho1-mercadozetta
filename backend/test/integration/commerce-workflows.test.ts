@@ -144,8 +144,29 @@ describe('persistent commerce workflows', () => {
       .patch(`/orders/${orderId}/status`)
       .set('Authorization', authorization(seller._id))
       .send({ status: 'shipped' })
+      .expect(409);
+    await request(app)
+      .patch(`/orders/${orderId}/status`)
+      .set('Authorization', authorization(seller._id))
+      .send({ status: 'confirmed' })
       .expect(200);
-    expect((await Order.findById(orderId))?.status).toBe('shipped');
+    await request(app)
+      .patch(`/orders/${orderId}/status`)
+      .set('Authorization', authorization(seller._id))
+      .send({ status: 'shipped' })
+      .expect(200);
+    const storedOrder = await Order.findById(orderId);
+    expect(storedOrder?.status).toBe('shipped');
+    expect(
+      storedOrder?.statusHistory.map(({ status, actor }) => ({
+        status,
+        actor: String(actor),
+      })),
+    ).toEqual([
+      { status: 'placed', actor: String(buyer._id) },
+      { status: 'confirmed', actor: String(seller._id) },
+      { status: 'shipped', actor: String(seller._id) },
+    ]);
 
     await request(app)
       .post(`/products/${product._id}/reviews`)
@@ -188,6 +209,26 @@ describe('persistent commerce workflows', () => {
         'New review for purchased product',
       ]),
     );
+    await request(app)
+      .get('/notifications/unread-count')
+      .set('Authorization', authorization(seller._id))
+      .expect(200, { count: sellerNotifications.body.length });
+    const notificationId = sellerNotifications.body[0]._id;
+    await request(app)
+      .patch(`/notifications/${notificationId}`)
+      .set('Authorization', authorization(buyer._id))
+      .send({ read: true })
+      .expect(404);
+    await request(app)
+      .patch(`/notifications/${notificationId}`)
+      .set('Authorization', authorization(seller._id))
+      .send({ read: true })
+      .expect(200)
+      .expect(({ body }) => expect(body.read).toBe(true));
+    await request(app)
+      .get('/notifications/unread-count')
+      .set('Authorization', authorization(seller._id))
+      .expect(200, { count: sellerNotifications.body.length - 1 });
     const buyerNotifications = await Notification.find({
       tenantId,
       user: buyer._id,

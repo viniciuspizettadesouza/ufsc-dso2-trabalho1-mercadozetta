@@ -3,7 +3,11 @@ import mongoose from 'mongoose';
 import Cart from '@/model/cart';
 import Notification from '@/model/notification';
 import Order from '@/model/order';
-import type { OrderStatus } from '@/orderStatus';
+import {
+  buyerCancellableStatuses,
+  type OrderStatus,
+  sellerOrderTransitions,
+} from '@/orderStatus';
 import OrderItem from '@/model/orderItem';
 import Product from '@/model/product';
 import Review from '@/model/review';
@@ -131,7 +135,14 @@ export async function createOrder(userId: string, tenantId: string) {
       }
 
       const [order] = await Order.create(
-        [{ tenantId, buyer: userId, status: 'placed' }],
+        [
+          {
+            tenantId,
+            buyer: userId,
+            status: 'placed',
+            statusHistory: [{ status: 'placed', actor: userId }],
+          },
+        ],
         { session },
       );
       const items = cart.items.map((item) => {
@@ -249,7 +260,18 @@ export async function updateOrderStatus(
       'ORDER_FORBIDDEN',
       'Not authorized to update this order',
     );
+  const isValidSellerTransition =
+    Boolean(sellerItem) && sellerOrderTransitions[order.status] === status;
+  const isValidBuyerCancellation =
+    isBuyerCancellation && buyerCancellableStatuses.includes(order.status);
+  if (!isValidSellerTransition && !isValidBuyerCancellation)
+    throw new AppError(
+      409,
+      'ORDER_STATUS_TRANSITION_INVALID',
+      `Order cannot transition from ${order.status} to ${status}`,
+    );
   order.status = status;
+  order.statusHistory.push({ status, actor: userId, changedAt: new Date() });
   await order.save();
   await Notification.create({
     tenantId,
@@ -310,4 +332,27 @@ export async function createReview(
 
 export async function listNotifications(userId: string, tenantId: string) {
   return Notification.find({ tenantId, user: userId }).sort({ createdAt: -1 });
+}
+
+export async function countUnreadNotifications(
+  userId: string,
+  tenantId: string,
+) {
+  return Notification.countDocuments({ tenantId, user: userId, read: false });
+}
+
+export async function updateNotificationRead(
+  userId: string,
+  tenantId: string,
+  notificationId: string,
+  read: boolean,
+) {
+  const notification = await Notification.findOneAndUpdate(
+    { _id: notificationId, tenantId, user: userId },
+    { read },
+    { new: true },
+  );
+  if (!notification)
+    throw new AppError(404, 'NOTIFICATION_NOT_FOUND', 'Notification not found');
+  return notification;
 }

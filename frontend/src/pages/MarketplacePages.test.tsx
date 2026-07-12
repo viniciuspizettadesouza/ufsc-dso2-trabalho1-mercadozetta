@@ -15,6 +15,7 @@ vi.mock('@/services/api', () => ({
     put: vi.fn(),
     post: vi.fn(),
     delete: vi.fn(),
+    patch: vi.fn(),
   },
 }));
 
@@ -58,6 +59,7 @@ describe('marketplace pages', () => {
     vi.mocked(api.put).mockReset();
     vi.mocked(api.post).mockReset();
     vi.mocked(api.delete).mockReset();
+    vi.mocked(api.patch).mockReset();
   });
 
   it('loads product details and records watchlist, cart, review, and notifications', async () => {
@@ -137,6 +139,13 @@ describe('marketplace pages', () => {
         _id: 'order-1',
         status: 'placed',
         items: [{ productName: 'Coffee', quantity: 1 }],
+        statusHistory: [
+          {
+            status: 'placed',
+            actor: 'buyer-1',
+            changedAt: '2026-07-13T10:00:00.000Z',
+          },
+        ],
       },
     });
 
@@ -151,6 +160,7 @@ describe('marketplace pages', () => {
       expect(screen.getByText(/order-1/)).toBeInTheDocument(),
     );
     expect(api.post).toHaveBeenCalledWith('/orders');
+    expect(screen.getByText(/placed by buyer-1 at/)).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(
       'Order placed successfully.',
     );
@@ -248,8 +258,17 @@ describe('marketplace pages', () => {
         ],
       })
       .mockResolvedValueOnce({
-        data: [{ _id: 'notification-1', message: 'Order created' }],
+        data: [
+          { _id: 'notification-1', message: 'Order created', read: false },
+        ],
       });
+    vi.mocked(api.patch).mockResolvedValue({
+      data: {
+        _id: 'notification-1',
+        message: 'Order created',
+        read: true,
+      },
+    });
 
     renderAt('/admin', '/admin', <AdminDashboard />);
 
@@ -260,6 +279,13 @@ describe('marketplace pages', () => {
       screen.getByText('Product Tea is paused in drinks'),
     ).toBeInTheDocument();
     expect(screen.getByText('Order created')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Mark as read' }));
+    expect(api.patch).toHaveBeenCalledWith('/notifications/notification-1', {
+      read: true,
+    });
+    expect(
+      screen.getByRole('button', { name: 'Mark as unread' }),
+    ).toBeInTheDocument();
   });
 
   it('loads seller profiles with product links', async () => {

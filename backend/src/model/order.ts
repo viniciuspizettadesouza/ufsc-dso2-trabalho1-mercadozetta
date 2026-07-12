@@ -11,6 +11,24 @@ const OrderSchema = new Schema(
       default: 'placed',
       required: true,
     },
+    statusHistory: {
+      type: [
+        new Schema(
+          {
+            status: { type: String, enum: orderStatuses, required: true },
+            actor: {
+              type: Schema.Types.ObjectId,
+              ref: 'user',
+              required: true,
+            },
+            changedAt: { type: Date, default: Date.now, required: true },
+          },
+          { _id: false },
+        ),
+      ],
+      default: [],
+      required: true,
+    },
   },
   { timestamps: true },
 );

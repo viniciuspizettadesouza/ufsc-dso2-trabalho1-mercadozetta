@@ -121,6 +121,13 @@ const orderSchema = z.object({
   tenantId: z.string(),
   buyer: objectId,
   status: orderStatus,
+  statusHistory: z.array(
+    z.object({
+      status: orderStatus,
+      actor: objectId,
+      changedAt: z.iso.datetime(),
+    }),
+  ),
   items: z.array(orderItemSchema),
 });
 const reviewSchema = z.object({
@@ -136,6 +143,8 @@ const notificationSchema = z.object({
   message: z.string(),
   read: z.boolean(),
 });
+const unreadCountSchema = z.object({ count: z.int().min(0) });
+const notificationReadRequest = z.object({ read: z.boolean() });
 
 const productExample = {
   _id: '507f191e810c19729de860ea',
@@ -558,6 +567,13 @@ export function createOpenApiDocument() {
                 tenantId: 'mercadozetta',
                 buyer: userExample._id,
                 status: 'placed',
+                statusHistory: [
+                  {
+                    status: 'placed',
+                    actor: userExample._id,
+                    changedAt: '2026-07-13T10:00:00.000Z',
+                  },
+                ],
                 items: [],
               }),
             },
@@ -587,10 +603,29 @@ export function createOpenApiDocument() {
                 tenantId: 'mercadozetta',
                 buyer: userExample._id,
                 status: 'shipped',
+                statusHistory: [
+                  {
+                    status: 'placed',
+                    actor: userExample._id,
+                    changedAt: '2026-07-13T10:00:00.000Z',
+                  },
+                  {
+                    status: 'shipped',
+                    actor: userExample._id,
+                    changedAt: '2026-07-13T11:00:00.000Z',
+                  },
+                ],
                 items: [],
               }),
             },
             401: unauthorized,
+            409: {
+              description: 'Invalid order status transition',
+              content: json(errorSchema, {
+                error: 'Order cannot transition from placed to shipped',
+                code: 'ORDER_STATUS_TRANSITION_INVALID',
+              }),
+            },
           },
         },
       },
@@ -647,6 +682,49 @@ export function createOpenApiDocument() {
               content: json(z.array(notificationSchema), []),
             },
             401: unauthorized,
+          },
+        },
+      },
+      '/notifications/unread-count': {
+        get: {
+          tags: ['Commerce'],
+          summary: 'Count current user unread notifications',
+          security: [{ bearerAuth: [] }],
+          parameters: [tenantHeader],
+          responses: {
+            200: {
+              description: 'Unread notification count',
+              content: json(unreadCountSchema, { count: 2 }),
+            },
+            401: unauthorized,
+          },
+        },
+      },
+      '/notifications/{notificationId}': {
+        patch: {
+          tags: ['Commerce'],
+          summary: 'Mark a current user notification as read or unread',
+          security: [{ bearerAuth: [] }],
+          parameters: [tenantHeader],
+          requestParams: {
+            path: z.object({ notificationId: objectId }),
+          },
+          requestBody: {
+            required: true,
+            content: json(notificationReadRequest, { read: true }),
+          },
+          responses: {
+            200: {
+              description: 'Updated notification',
+              content: json(notificationSchema, {
+                _id: productExample._id,
+                user: userExample._id,
+                message: 'Order created',
+                read: true,
+              }),
+            },
+            401: unauthorized,
+            404: notFound('Notification'),
           },
         },
       },

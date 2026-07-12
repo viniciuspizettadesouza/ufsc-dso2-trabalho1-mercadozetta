@@ -16,6 +16,11 @@ type Order = {
   _id: string;
   status: string;
   items: Array<{ productName: string; quantity: number }>;
+  statusHistory: Array<{
+    status: string;
+    actor: string;
+    changedAt: string;
+  }>;
 };
 
 export default function Checkout() {
@@ -204,6 +209,14 @@ export default function Checkout() {
                 {order.items
                   .map((item) => `${item.productName} × ${item.quantity}`)
                   .join(', ')}
+                <ol aria-label={`Status history for order ${order._id}`}>
+                  {order.statusHistory?.map((entry) => (
+                    <li key={`${entry.status}-${entry.changedAt}`}>
+                      {entry.status} by {entry.actor} at{' '}
+                      {new Date(entry.changedAt).toLocaleString()}
+                    </li>
+                  ))}
+                </ol>
               </li>
             ))}
           </ul>

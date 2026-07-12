@@ -11,10 +11,16 @@ type OrderItem = {
   quantity: number;
   seller: string;
 };
+type StatusHistoryEntry = {
+  status: OrderStatus;
+  actor: string;
+  changedAt: string;
+};
 type Order = {
   _id: string;
   status: OrderStatus;
   items: OrderItem[];
+  statusHistory: StatusHistoryEntry[];
 };
 
 const nextStatus: Partial<Record<OrderStatus, OrderStatus>> = {
@@ -75,10 +81,19 @@ export default function SellerOrders() {
     try {
       setPendingOrder(order._id);
       setFeedback(null);
-      await api.patch(apiRoutes.orderStatus(order._id), { status });
+      const response = await api.patch(apiRoutes.orderStatus(order._id), {
+        status,
+      });
       setOrders((current) =>
         current.map((entry) =>
-          entry._id === order._id ? { ...entry, status } : entry,
+          entry._id === order._id
+            ? {
+                ...entry,
+                status,
+                statusHistory:
+                  response.data.statusHistory ?? entry.statusHistory,
+              }
+            : entry,
         ),
       );
       setFeedback({
@@ -115,6 +130,15 @@ export default function SellerOrders() {
                 <li key={order._id}>
                   <h2>Order {order._id}</h2>
                   <p>Status: {order.status}</p>
+                  <h3>Status history</h3>
+                  <ol>
+                    {order.statusHistory?.map((entry) => (
+                      <li key={`${entry.status}-${entry.changedAt}`}>
+                        {entry.status} by {entry.actor} at{' '}
+                        {new Date(entry.changedAt).toLocaleString()}
+                      </li>
+                    ))}
+                  </ol>
                   <ul>
                     {order.items.map((item) => (
                       <li key={`${order._id}-${item.productName}`}>

@@ -83,8 +83,10 @@ checked-in file.
 Authenticated commerce endpoints persist carts, watchlists, orders, order
 items, reviews, and notifications in MongoDB. Checkout updates inventory,
 reviews require a previous purchase, and order status updates enforce buyer and
-seller authorization. See the generated OpenAPI contract for the complete
-request and response shapes.
+seller authorization and allowed lifecycle transitions. Order responses include
+status history entries with the acting user and timestamp for buyer and seller
+visibility. See the generated OpenAPI contract for the complete request and
+response shapes.
 
 ## 3. Prerequisites
 

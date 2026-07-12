@@ -40,4 +40,6 @@ export const apiRoutes = {
   orderStatus: (orderId: string) => `/orders/${orderId}/status`,
   reviews: (productId: string) => `/products/${productId}/reviews`,
   notifications: '/notifications',
+  notification: (notificationId: string) => `/notifications/${notificationId}`,
+  unreadNotificationCount: '/notifications/unread-count',
 };

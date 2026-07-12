@@ -11,6 +11,7 @@ const navigate = vi.fn();
 
 vi.mock('@/services/api', () => ({
   default: {
+    get: vi.fn(),
     post: vi.fn(),
   },
 }));
@@ -52,6 +53,8 @@ describe('AddProduct', () => {
     localStorage.clear();
     navigate.mockReset();
     vi.mocked(api.post).mockReset();
+    vi.mocked(api.get).mockReset();
+    vi.mocked(api.get).mockResolvedValue({ data: { count: 0 } } as never);
   });
 
   it('shows an auth error when the user is not logged in', async () => {

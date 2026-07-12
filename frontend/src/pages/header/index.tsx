@@ -1,7 +1,8 @@
+import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 
 import { useBrand } from '@/brands/brandContext';
-import { appRoutes } from '@/routes';
+import { apiRoutes, appRoutes } from '@/routes';
 import api from '@/services/api';
 
 type StoredUser = {
@@ -34,7 +35,25 @@ const Header = ({ hideLoginAction = false }: HeaderProps) => {
   const brand = useBrand();
   const navigate = useNavigate();
   const location = useLocation();
-  const user = getStoredUser();
+  const [user] = useState(getStoredUser);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+
+    let active = true;
+    api
+      .get(apiRoutes.unreadNotificationCount)
+      .then(({ data }) => {
+        if (active) setUnreadCount(data.count);
+      })
+      .catch(() => {
+        // A badge failure must not disrupt the shared navigation.
+      });
+    return () => {
+      active = false;
+    };
+  }, [user]);
 
   async function handleLogout() {
     try {
@@ -66,6 +85,15 @@ const Header = ({ hideLoginAction = false }: HeaderProps) => {
         <div className="mr-[100px] flex items-center gap-4 text-[var(--brand-text)] max-[700px]:mx-5 max-[700px]:items-start">
           <Link className="font-bold" to={appRoutes.sellerOrders}>
             Seller orders
+          </Link>
+          <Link className="font-bold" to={appRoutes.admin}>
+            Notifications
+            {unreadCount > 0 && (
+              <span aria-label={`${unreadCount} unread notifications`}>
+                {' '}
+                ({unreadCount})
+              </span>
+            )}
           </Link>
           <div className="flex flex-col items-end leading-[1.3] max-[700px]:items-start">
             <strong className="text-base">

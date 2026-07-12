@@ -21,6 +21,7 @@ const reviewSchema = z.object({
 });
 
 const statusSchema = z.object({ status: z.enum(orderStatuses) });
+const notificationReadSchema = z.object({ read: z.boolean() });
 
 export const validateResourceId = (value: unknown) =>
   parseAppSchema(objectId, value);
@@ -30,3 +31,5 @@ export const validateReview = (value: object) =>
   parseAppSchema(reviewSchema, value);
 export const validateOrderStatus = (value: object) =>
   parseAppSchema(statusSchema, value);
+export const validateNotificationRead = (value: object) =>
+  parseAppSchema(notificationReadSchema, value);

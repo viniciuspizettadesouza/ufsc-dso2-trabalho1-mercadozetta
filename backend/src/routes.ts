@@ -18,6 +18,7 @@ import { validateCreateUserPayload } from '@/validators/userValidator';
 import { validateLoginPayload } from '@/validators/authValidator';
 import {
   validateCartItem,
+  validateNotificationRead,
   validateOrderStatus,
   validateResourceId,
   validateReview,
@@ -99,7 +100,8 @@ routes.post(
 );
 
 const resourceParams =
-  (key: 'productId' | 'orderId') => (params: Record<string, unknown>) => ({
+  (key: 'productId' | 'orderId' | 'notificationId') =>
+  (params: Record<string, unknown>) => ({
     [key]: validateResourceId(params[key]),
   });
 
@@ -167,9 +169,23 @@ routes.post(
   asyncHandler(CommerceController.createReview),
 );
 routes.get(
+  '/notifications/unread-count',
+  authMiddleware,
+  asyncHandler(CommerceController.countUnreadNotifications),
+);
+routes.get(
   '/notifications',
   authMiddleware,
   asyncHandler(CommerceController.listNotifications),
+);
+routes.patch(
+  '/notifications/:notificationId',
+  authMiddleware,
+  validateRequest({
+    params: resourceParams('notificationId'),
+    body: validateNotificationRead,
+  }),
+  asyncHandler(CommerceController.updateNotificationRead),
 );
 
 export default routes;

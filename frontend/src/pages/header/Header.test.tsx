@@ -11,7 +11,7 @@ import api from '@/services/api';
 const navigate = vi.fn();
 
 vi.mock('@/services/api', () => ({
-  default: { post: vi.fn() },
+  default: { get: vi.fn(), post: vi.fn() },
 }));
 
 vi.mock('react-router', async () => {
@@ -47,6 +47,8 @@ describe('Header', () => {
     localStorage.clear();
     navigate.mockReset();
     vi.mocked(api.post).mockReset();
+    vi.mocked(api.get).mockReset();
+    vi.mocked(api.get).mockResolvedValue({ data: { count: 0 } } as never);
     vi.mocked(api.post).mockResolvedValue({} as never);
   });
 
@@ -114,6 +116,49 @@ describe('Header', () => {
     expect(localStorage.getItem('token')).toBeNull();
     expect(localStorage.getItem('user')).toBeNull();
     expect(navigate).toHaveBeenCalledWith('/');
+  });
+
+  it('shows the unread notification count for authenticated users', async () => {
+    localStorage.setItem(
+      'user',
+      JSON.stringify({ _id: 'seller-1', username: 'Seller' }),
+    );
+    vi.mocked(api.get).mockResolvedValue({ data: { count: 3 } } as never);
+
+    renderHeader();
+
+    expect(
+      await screen.findByLabelText('3 unread notifications'),
+    ).toBeInTheDocument();
+    expect(api.get).toHaveBeenCalledWith('/notifications/unread-count');
+  });
+
+  it('keeps navigation usable when the unread count request fails', async () => {
+    localStorage.setItem('user', JSON.stringify({ username: 'Seller' }));
+    vi.mocked(api.get).mockRejectedValue(new Error('network error'));
+
+    renderHeader();
+
+    expect(screen.getByRole('link', { name: 'Notifications' })).toHaveAttribute(
+      'href',
+      '/admin',
+    );
+  });
+
+  it('ignores an unread count response after unmounting', async () => {
+    localStorage.setItem('user', JSON.stringify({ username: 'Seller' }));
+    let resolveRequest!: (value: { data: { count: number } }) => void;
+    vi.mocked(api.get).mockReturnValue(
+      new Promise((resolve) => {
+        resolveRequest = resolve;
+      }) as never,
+    );
+
+    const { unmount } = renderHeader();
+    unmount();
+    resolveRequest({ data: { count: 4 } });
+
+    await Promise.resolve();
   });
 
   it('clears the local session even when server-side logout fails', async () => {

@@ -15,8 +15,19 @@ type Product = {
 export default function AdminDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [notifications, setNotifications] = useState<
-    Array<{ _id: string; message: string }>
+    Array<{ _id: string; message: string; read: boolean }>
   >([]);
+
+  async function setNotificationRead(notificationId: string, read: boolean) {
+    const response = await api.patch(apiRoutes.notification(notificationId), {
+      read,
+    });
+    setNotifications((current) =>
+      current.map((notification) =>
+        notification._id === notificationId ? response.data : notification,
+      ),
+    );
+  }
 
   useEffect(() => {
     async function loadProducts() {
@@ -76,6 +87,15 @@ export default function AdminDashboard() {
                 key={notification._id}
               >
                 {notification.message}
+                <button
+                  className="ml-3 cursor-pointer underline"
+                  type="button"
+                  onClick={() =>
+                    setNotificationRead(notification._id, !notification.read)
+                  }
+                >
+                  Mark as {notification.read ? 'unread' : 'read'}
+                </button>
               </li>
             ))}
           </ul>

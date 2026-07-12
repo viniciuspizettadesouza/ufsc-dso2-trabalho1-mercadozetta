@@ -13,6 +13,8 @@ vi.mock('@/services/commerceService', () => ({
   listReviews: vi.fn(),
   createReview: vi.fn(),
   listNotifications: vi.fn(),
+  countUnreadNotifications: vi.fn(),
+  updateNotificationRead: vi.fn(),
 }));
 
 import type { Request, Response } from 'express';
@@ -107,6 +109,11 @@ describe('commerce controller', () => {
       response,
     );
     await Controller.listNotifications(request(), response);
+    await Controller.countUnreadNotifications(request(), response);
+    await Controller.updateNotificationRead(
+      request({ read: true }, { notificationId: 'notification-1' }),
+      response,
+    );
     expect(Commerce.listReviews).toHaveBeenCalledWith(
       'mercadozetta',
       'product-1',
@@ -121,6 +128,16 @@ describe('commerce controller', () => {
     expect(Commerce.listNotifications).toHaveBeenCalledWith(
       'user-1',
       'mercadozetta',
+    );
+    expect(Commerce.countUnreadNotifications).toHaveBeenCalledWith(
+      'user-1',
+      'mercadozetta',
+    );
+    expect(Commerce.updateNotificationRead).toHaveBeenCalledWith(
+      'user-1',
+      'mercadozetta',
+      'notification-1',
+      true,
     );
   });
 

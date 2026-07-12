@@ -7,68 +7,46 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 
 ## Verified Handoff
 
-- Local development, CI, and Docker target Node.js 24.18.0 LTS, with backend
-  declarations provided by the lockfile-installed `@types/node` 24.13.3.
-- Backend and frontend use the lockfile-installed TypeScript 6.0.3 compiler.
+- Local development, CI, and Docker target Node.js 24.18.0 LTS. Backend and
+  frontend use the lockfile-installed TypeScript 6.0.3 compiler and backend uses
+  `@types/node` 24.13.3.
 - TypeScript 7 is deferred until `typescript-eslint` publishes a compatible
   release; version 8.63.0 and its current canary support TypeScript only through
   versions earlier than 6.1.0.
-- Backend: 175 tests across 30 test files.
-- Frontend: 64 tests across 11 test files.
-- Type checks, lint, formatting, OpenAPI generation, and the frontend production
-  build pass.
-- The Dockerized buyer-to-seller workflow passes against MongoDB for both
-  tenant isolation and persisted cart, order, inventory, notification, and
-  review behavior.
-- Checkout now commits order creation, order items, conditional inventory
-  decrements, cart clearing, and notifications in one MongoDB transaction.
-- The Dockerized MongoDB service runs as a single-node replica set so local
-  checkout behavior matches the transaction requirement.
+- Backend has 180 tests across 30 files and passes the 85% branch threshold with
+  86.07%. Frontend has 68 tests across 11 files. Type checks, tests, lint,
+  formatting, OpenAPI generation, coverage, and the production build pass.
+- Checkout commits order creation, items, conditional inventory decrements, cart
+  clearing, and notifications in one transaction. Dockerized MongoDB uses a
+  single-node replica set so local behavior matches this requirement.
 - A separate `npm run test:integration` lane builds an ephemeral MongoDB 7
   replica set, runs 7 database-backed tests across 4 files against the real
   Express app and Mongoose models, and cleans up its isolated Compose project
   and database deterministically.
-- Database-backed coverage now verifies atomic checkout and rollback, cart and
+- Database-backed tests verify atomic checkout and rollback, cart and
   watchlist persistence, order visibility and fulfillment, verified-purchase
   reviews, notifications, tenant and compound-index isolation, token-version
   logout revocation, and repeatable non-destructive demo seeding.
-- The full backend and frontend tests, lint, formatting, and frontend build pass.
-- Backend coverage passes under the required Node.js 24.18.0 runtime, with all
-  175 tests passing and 85.55% branch coverage against the 85% threshold.
 - Shared authenticated route protection now redirects anonymous visitors from
   `/checkout`, `/products/new`, and `/admin` to login with a route-specific
   prompt, then returns them to the requested route after successful sign-in.
   Catalog, product detail, seller, login, and registration routes remain public.
-- Buyer and seller workflow UI polish is complete. Cart, watchlist, review, and
+- Buyer and seller workflow UI is complete. Cart, watchlist, review, and
   order actions expose loading, success, and API error states; checkout supports
   quantity editing and item removal and prevents orders with unavailable
   inventory; authenticated sellers have a dedicated order view with scoped line
   items and fulfillment actions.
-- Next action: add notification read/unread operations and an unread count in the
-  header. Start with the notification model and commerce routes, keep the API
-  contract generated from Zod and OpenAPI metadata, then add focused header and
-  workflow tests.
+- Notifications support tenant-scoped read/unread updates and a resilient header
+  unread count. Orders enforce seller progression from placed through confirmed,
+  shipped, and delivered; buyers can cancel only placed or confirmed orders.
+  Status history records the actor and timestamp for buyer and seller views.
+- Next action: begin production authentication hardening by designing the cookie
+  and session-renewal contract, then migrate token transport with focused CSRF,
+  CORS, login, and logout tests.
 
 ## Next Steps
 
-### 1. Polish buyer and seller workflow UI
-
-- [x] Add authenticated route guards and clear sign-in prompts for commerce
-      actions.
-- [x] Add loading, success, and API error feedback to cart, watchlist, review,
-      and order actions.
-- [x] Add quantity editing, item removal, and disabled checkout for unavailable
-      inventory.
-- [x] Give sellers a dedicated order view with permitted fulfillment actions.
-
-### 2. Improve notification and order lifecycle behavior
-
-- Add notification read/unread operations and unread counts in the header.
-- Define and enforce allowed order-state transitions instead of accepting any
-  lifecycle state change.
-- Record status history with actor and timestamp for buyer/seller visibility.
-
-### 3. Harden production authentication
+### 1. Harden production authentication
 
 - Replace access-token storage in `localStorage` with `HttpOnly`, `Secure`, and
   `SameSite` cookies when preparing a production deployment.

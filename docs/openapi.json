@@ -1572,6 +1572,39 @@
                           "cancelled"
                         ]
                       },
+                      "statusHistory": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "status": {
+                              "type": "string",
+                              "enum": [
+                                "placed",
+                                "confirmed",
+                                "shipped",
+                                "delivered",
+                                "cancelled"
+                              ]
+                            },
+                            "actor": {
+                              "type": "string",
+                              "example": "507f1f77bcf86cd799439011"
+                            },
+                            "changedAt": {
+                              "type": "string",
+                              "format": "date-time",
+                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                            }
+                          },
+                          "required": [
+                            "status",
+                            "actor",
+                            "changedAt"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
                       "items": {
                         "type": "array",
                         "items": {
@@ -1609,6 +1642,7 @@
                       "tenantId",
                       "buyer",
                       "status",
+                      "statusHistory",
                       "items"
                     ],
                     "additionalProperties": false
@@ -1665,6 +1699,13 @@
                   "tenantId": "mercadozetta",
                   "buyer": "507f1f77bcf86cd799439011",
                   "status": "placed",
+                  "statusHistory": [
+                    {
+                      "status": "placed",
+                      "actor": "507f1f77bcf86cd799439011",
+                      "changedAt": "2026-07-13T10:00:00.000Z"
+                    }
+                  ],
                   "items": []
                 },
                 "schema": {
@@ -1690,6 +1731,39 @@
                         "delivered",
                         "cancelled"
                       ]
+                    },
+                    "statusHistory": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "placed",
+                              "confirmed",
+                              "shipped",
+                              "delivered",
+                              "cancelled"
+                            ]
+                          },
+                          "actor": {
+                            "type": "string",
+                            "example": "507f1f77bcf86cd799439011"
+                          },
+                          "changedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "status",
+                          "actor",
+                          "changedAt"
+                        ],
+                        "additionalProperties": false
+                      }
                     },
                     "items": {
                       "type": "array",
@@ -1728,6 +1802,7 @@
                     "tenantId",
                     "buyer",
                     "status",
+                    "statusHistory",
                     "items"
                   ],
                   "additionalProperties": false
@@ -1836,6 +1911,18 @@
                   "tenantId": "mercadozetta",
                   "buyer": "507f1f77bcf86cd799439011",
                   "status": "shipped",
+                  "statusHistory": [
+                    {
+                      "status": "placed",
+                      "actor": "507f1f77bcf86cd799439011",
+                      "changedAt": "2026-07-13T10:00:00.000Z"
+                    },
+                    {
+                      "status": "shipped",
+                      "actor": "507f1f77bcf86cd799439011",
+                      "changedAt": "2026-07-13T11:00:00.000Z"
+                    }
+                  ],
                   "items": []
                 },
                 "schema": {
@@ -1861,6 +1948,39 @@
                         "delivered",
                         "cancelled"
                       ]
+                    },
+                    "statusHistory": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "placed",
+                              "confirmed",
+                              "shipped",
+                              "delivered",
+                              "cancelled"
+                            ]
+                          },
+                          "actor": {
+                            "type": "string",
+                            "example": "507f1f77bcf86cd799439011"
+                          },
+                          "changedAt": {
+                            "type": "string",
+                            "format": "date-time",
+                            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                          }
+                        },
+                        "required": [
+                          "status",
+                          "actor",
+                          "changedAt"
+                        ],
+                        "additionalProperties": false
+                      }
                     },
                     "items": {
                       "type": "array",
@@ -1899,6 +2019,7 @@
                     "tenantId",
                     "buyer",
                     "status",
+                    "statusHistory",
                     "items"
                   ],
                   "additionalProperties": false
@@ -1913,6 +2034,20 @@
                 "example": {
                   "error": "Invalid authorization token",
                   "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Invalid order status transition",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Order cannot transition from placed to shipped",
+                  "code": "ORDER_STATUS_TRANSITION_INVALID"
                 },
                 "schema": {
                   "$ref": "#/components/schemas/Error"
@@ -2189,6 +2324,195 @@
                 "example": {
                   "error": "Invalid authorization token",
                   "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications/unread-count": {
+      "get": {
+        "tags": [
+          "Commerce"
+        ],
+        "summary": "Count current user unread notifications",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unread notification count",
+            "content": {
+              "application/json": {
+                "example": {
+                  "count": 2
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "count"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications/{notificationId}": {
+      "patch": {
+        "tags": [
+          "Commerce"
+        ],
+        "summary": "Mark a current user notification as read or unread",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "notificationId",
+            "schema": {
+              "type": "string",
+              "example": "507f1f77bcf86cd799439011"
+            },
+            "required": true
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "read": true
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "read": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "read"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated notification",
+            "content": {
+              "application/json": {
+                "example": {
+                  "_id": "507f191e810c19729de860ea",
+                  "user": "507f1f77bcf86cd799439011",
+                  "message": "Order created",
+                  "read": true
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    },
+                    "user": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "read": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "_id",
+                    "user",
+                    "message",
+                    "read"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Notification not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Notification not found",
+                  "code": "NOTIFICATION_NOT_FOUND"
                 },
                 "schema": {
                   "$ref": "#/components/schemas/Error"
