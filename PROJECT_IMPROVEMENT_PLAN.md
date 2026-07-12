@@ -15,8 +15,8 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   versions earlier than 6.1.0.
 - Backend: 175 tests across 30 test files.
 - Frontend: 50 tests across 10 test files.
-- Type checks, lint, formatting, coverage, OpenAPI generation, and the frontend
-  production build pass.
+- Type checks, lint, formatting, OpenAPI generation, and the frontend production
+  build pass.
 - The Dockerized buyer-to-seller workflow passes against MongoDB for both
   tenant isolation and persisted cart, order, inventory, notification, and
   review behavior.
@@ -33,43 +33,16 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   reviews, notifications, tenant and compound-index isolation, token-version
   logout revocation, and repeatable non-destructive demo seeding.
 - The full backend and frontend tests, lint, formatting, and frontend build pass.
-  Recheck backend coverage with Node.js 24: the available Node.js 22 host reports
-  82.59% branch coverage against the 85% threshold, and the Node.js 24 container
-  verification could not be run in the current session.
-- Next action: polish authenticated buyer and seller workflow UI, beginning with
-  route guards and clear sign-in prompts for commerce actions.
+- Backend coverage passes under the required Node.js 24.18.0 runtime, with all
+  175 tests passing and 85.18% branch coverage against the 85% threshold.
+- Next action: add shared authenticated route protection and sign-in prompts.
+  Start in `frontend/src/App.tsx`, add focused route-guard tests alongside it,
+  and cover `/checkout`, `/products/new`, and `/admin` while keeping catalog,
+  product detail, seller, login, and registration routes public.
 
 ## Next Steps
 
-### 1. Add database-backed integration coverage
-
-Status: complete. The isolated replica-set lane covers the planned persistence,
-isolation, authentication, and seeding behavior locally and in CI.
-
-- [x] Add an isolated integration-test database backed by a MongoDB replica set,
-      with deterministic setup, cleanup, and a command suitable for local and CI
-      execution.
-- [x] Run the real Express routes, Mongoose models, middleware, indexes, and
-      transactions without replacing persistence modules with mocks.
-- [x] Verify two buyers concurrently checking out the final unit produce exactly
-      one successful order and one inventory conflict, without negative inventory.
-- [x] Verify a failed checkout rolls back the order, order items, inventory,
-      notifications, and cart clearing while preserving the losing buyer's cart.
-- [x] Cover cart and watchlist persistence, order visibility and fulfillment,
-      verified-purchase reviews, notification creation, and their important error
-      states across real database reads and writes.
-- [x] Cover tenant isolation for users, products, carts, watchlists, orders, order
-      items, reviews, and notifications, including duplicate-email and compound
-      index behavior that mocked models cannot enforce.
-- [x] Verify authentication token-version persistence and logout revocation through
-      real user records, while keeping detailed validation and controller mapping
-      scenarios in focused unit tests.
-- [x] Verify demo seeding is repeatable for both tenants and does not overwrite or
-      remove unrelated records.
-- [x] Keep browser end-to-end tests out of this phase; add them with the upcoming UI
-      workflow work where they can validate navigation and user-visible feedback.
-
-### 2. Polish buyer and seller workflow UI
+### 1. Polish buyer and seller workflow UI
 
 - Add authenticated route guards and clear sign-in prompts for commerce
   actions.
@@ -79,14 +52,14 @@ isolation, authentication, and seeding behavior locally and in CI.
   inventory.
 - Give sellers a dedicated order view with permitted fulfillment actions.
 
-### 3. Improve notification and order lifecycle behavior
+### 2. Improve notification and order lifecycle behavior
 
 - Add notification read/unread operations and unread counts in the header.
 - Define and enforce allowed order-state transitions instead of accepting any
   lifecycle state change.
 - Record status history with actor and timestamp for buyer/seller visibility.
 
-### 4. Harden production authentication
+### 3. Harden production authentication
 
 - Replace access-token storage in `localStorage` with `HttpOnly`, `Secure`, and
   `SameSite` cookies when preparing a production deployment.
