@@ -7,6 +7,8 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 
 ## Verified Handoff
 
+- Local development, CI, and Docker target Node.js 24.18.0 LTS, with backend
+  declarations provided by the lockfile-installed `@types/node` 24.13.3.
 - Backend and frontend use the lockfile-installed TypeScript 6.0.3 compiler.
 - TypeScript 7 is deferred until `typescript-eslint` publishes a compatible
   release; version 8.63.0 and its current canary support TypeScript only through

@@ -2,7 +2,7 @@
   "name": "ufsc-dso2-trabalho1-mercadozetta",
   "private": true,
   "engines": {
-    "node": ">=22.22.0"
+    "node": ">=24.18.0"
   },
   "scripts": {
     "prepare": "husky",
