@@ -182,8 +182,8 @@ async function upsertProduct(seed: SeedProduct, sellerId: Types.ObjectId) {
   );
 }
 
-async function seedDemoData() {
-  await mongoose.connect(requireMongoUri());
+export async function seedDemoData(options: { connect?: boolean } = {}) {
+  if (options.connect !== false) await mongoose.connect(requireMongoUri());
   await User.init();
   await Product.init();
 
@@ -215,11 +215,13 @@ async function seedDemoData() {
   console.log('campus-market -> vinicius@campus-market.test / campusmarket123');
 }
 
-seedDemoData()
-  .catch((err) => {
-    console.error('Demo seed failed', err);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await mongoose.connection.close();
-  });
+if (require.main === module) {
+  seedDemoData()
+    .catch((err) => {
+      console.error('Demo seed failed', err);
+      process.exitCode = 1;
+    })
+    .finally(async () => {
+      await mongoose.connection.close();
+    });
+}

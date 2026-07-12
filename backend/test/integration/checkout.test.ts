@@ -1,5 +1,3 @@
-import jwt from 'jsonwebtoken';
-import mongoose from 'mongoose';
 import request from 'supertest';
 import app from '../../src/app';
 import Cart from '../../src/model/cart';
@@ -8,37 +6,19 @@ import Order from '../../src/model/order';
 import OrderItem from '../../src/model/orderItem';
 import Product from '../../src/model/product';
 import User from '../../src/model/user';
+import {
+  authorization,
+  clearDatabase,
+  connectDatabase,
+  disconnectDatabase,
+} from './helpers/database';
 
 const tenantId = 'mercadozetta';
-const jwtSecret = 'integration-test-secret';
-
-function authorization(userId: mongoose.Types.ObjectId) {
-  const token = jwt.sign(
-    { id: String(userId), tenantId, tokenVersion: 0 },
-    jwtSecret,
-  );
-  return `Bearer ${token}`;
-}
 
 describe('checkout with a MongoDB replica set', () => {
-  beforeAll(async () => {
-    process.env.JWT_SECRET = jwtSecret;
-    const uri = process.env.MONGODB_URI;
-    if (!uri) throw new Error('MONGODB_URI is required for integration tests');
-
-    await mongoose.connect(uri);
-    await Promise.all(
-      Object.values(mongoose.models).map((model) => model.syncIndexes()),
-    );
-  });
-
-  afterEach(async () => {
-    await mongoose.connection.dropDatabase();
-  });
-
-  afterAll(async () => {
-    await mongoose.disconnect();
-  });
+  beforeAll(connectDatabase);
+  afterEach(clearDatabase);
+  afterAll(disconnectDatabase);
 
   it('atomically sells the final unit and rolls back the losing checkout', async () => {
     const [seller, firstBuyer, secondBuyer] = await User.create([

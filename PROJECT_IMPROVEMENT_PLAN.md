@@ -24,45 +24,50 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   decrements, cart clearing, and notifications in one MongoDB transaction.
 - The Dockerized MongoDB service runs as a single-node replica set so local
   checkout behavior matches the transaction requirement.
-- A separate `npm run test:integration` lane now builds an ephemeral MongoDB 7
-  replica set, runs the real Express checkout route and Mongoose models, and
-  cleans up its isolated Compose project and database deterministically.
-- Database-backed checkout coverage verifies that two buyers racing for the
-  final unit produce one order and one inventory conflict, with no negative
-  inventory and no losing order, order item, notification, or cart mutation.
-- Next action: extend the database-backed suite with cart and watchlist
-  persistence, tenant isolation, and compound-index behavior.
+- A separate `npm run test:integration` lane builds an ephemeral MongoDB 7
+  replica set, runs 7 database-backed tests across 4 files against the real
+  Express app and Mongoose models, and cleans up its isolated Compose project
+  and database deterministically.
+- Database-backed coverage now verifies atomic checkout and rollback, cart and
+  watchlist persistence, order visibility and fulfillment, verified-purchase
+  reviews, notifications, tenant and compound-index isolation, token-version
+  logout revocation, and repeatable non-destructive demo seeding.
+- The full backend and frontend tests, lint, formatting, and frontend build pass.
+  Recheck backend coverage with Node.js 24: the available Node.js 22 host reports
+  82.59% branch coverage against the 85% threshold, and the Node.js 24 container
+  verification could not be run in the current session.
+- Next action: polish authenticated buyer and seller workflow UI, beginning with
+  route guards and clear sign-in prompts for commerce actions.
 
 ## Next Steps
 
 ### 1. Add database-backed integration coverage
 
-Foundation complete: the isolated replica-set runner and atomic checkout
-concurrency/rollback scenario run locally and in CI. Continue this phase with
-cart/watchlist persistence and tenant/index isolation coverage.
+Status: complete. The isolated replica-set lane covers the planned persistence,
+isolation, authentication, and seeding behavior locally and in CI.
 
-- Add an isolated integration-test database backed by a MongoDB replica set,
-  with deterministic setup, cleanup, and a command suitable for local and CI
-  execution.
-- Run the real Express routes, Mongoose models, middleware, indexes, and
-  transactions without replacing persistence modules with mocks.
-- Verify two buyers concurrently checking out the final unit produce exactly
-  one successful order and one inventory conflict, without negative inventory.
-- Verify a failed checkout rolls back the order, order items, inventory,
-  notifications, and cart clearing while preserving the losing buyer's cart.
-- Cover cart and watchlist persistence, order visibility and fulfillment,
-  verified-purchase reviews, notification creation, and their important error
-  states across real database reads and writes.
-- Cover tenant isolation for users, products, carts, watchlists, orders, order
-  items, reviews, and notifications, including duplicate-email and compound
-  index behavior that mocked models cannot enforce.
-- Verify authentication token-version persistence and logout revocation through
-  real user records, while keeping detailed validation and controller mapping
-  scenarios in focused unit tests.
-- Verify demo seeding is repeatable for both tenants and does not overwrite or
-  remove unrelated records.
-- Keep browser end-to-end tests out of this phase; add them with the upcoming UI
-  workflow work where they can validate navigation and user-visible feedback.
+- [x] Add an isolated integration-test database backed by a MongoDB replica set,
+      with deterministic setup, cleanup, and a command suitable for local and CI
+      execution.
+- [x] Run the real Express routes, Mongoose models, middleware, indexes, and
+      transactions without replacing persistence modules with mocks.
+- [x] Verify two buyers concurrently checking out the final unit produce exactly
+      one successful order and one inventory conflict, without negative inventory.
+- [x] Verify a failed checkout rolls back the order, order items, inventory,
+      notifications, and cart clearing while preserving the losing buyer's cart.
+- [x] Cover cart and watchlist persistence, order visibility and fulfillment,
+      verified-purchase reviews, notification creation, and their important error
+      states across real database reads and writes.
+- [x] Cover tenant isolation for users, products, carts, watchlists, orders, order
+      items, reviews, and notifications, including duplicate-email and compound
+      index behavior that mocked models cannot enforce.
+- [x] Verify authentication token-version persistence and logout revocation through
+      real user records, while keeping detailed validation and controller mapping
+      scenarios in focused unit tests.
+- [x] Verify demo seeding is repeatable for both tenants and does not overwrite or
+      remove unrelated records.
+- [x] Keep browser end-to-end tests out of this phase; add them with the upcoming UI
+      workflow work where they can validate navigation and user-visible feedback.
 
 ### 2. Polish buyer and seller workflow UI
 
