@@ -45,6 +45,14 @@ Toolchain Priority 1 is complete on `chore/eslint-prettier-tooling`:
 - The pre-commit hook formats supported staged files with `lint-staged`, while
   pre-push and CI enforce the non-mutating repository-wide formatting check.
 
+Toolchain Priority 2 is complete on `chore/typescript-6`:
+
+- Backend and frontend use the lockfile-installed TypeScript 6.0.3 compiler.
+- The existing strict compiler settings remain enabled without migration
+  exceptions.
+- ESLint, Vitest, Vite, `ts-node`, `ts-node-dev`, and OpenAPI generation remain
+  compatible with the aligned compiler toolchain.
+
 ## Verified Handoff
 
 - Backend: 173 tests across 30 test files.
@@ -56,9 +64,10 @@ Toolchain Priority 1 is complete on `chore/eslint-prettier-tooling`:
 - The repository-wide Prettier check passes.
 - `docs/openapi.json` is generated from Zod schemas and typed operation metadata;
   do not edit it manually.
-- Next action: create `chore/typescript-6` after this branch is merged, align the
-  backend with the frontend's TypeScript 6 release, and verify runtime TypeScript
-  tooling compatibility.
+- Next action: after `chore/typescript-6` is merged, check whether a stable,
+  project-compatible TypeScript 7 release is available before creating
+  `chore/typescript-7`; if it is not viable, record the blockers and continue
+  with the MongoDB commerce-workflow validation.
 
 ## Recommended Next Steps
 
@@ -86,7 +95,7 @@ Suggested branch: `chore/eslint-prettier-tooling`
 - Document the contributor commands and update the verified handoff before
   merging the branch.
 
-### 2. Complete the TypeScript 6 migration
+### 2. Complete the TypeScript 6 migration (complete)
 
 Suggested branch: `chore/typescript-6`
 
