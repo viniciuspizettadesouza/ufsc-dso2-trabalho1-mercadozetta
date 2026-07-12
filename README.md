@@ -151,8 +151,8 @@ With Docker installed, start the local MongoDB container from the project root:
 npm run db:up
 ```
 
-The command starts the `mercadozetta-mongo` container. If the container does not
-exist yet, Docker Compose creates it from `docker-compose.yml`.
+The command starts the `mercadozetta-mongo` container as a single-node replica
+set. Transactions used by checkout require this replica-set configuration.
 
 To stop the local MongoDB container:
 
@@ -169,8 +169,11 @@ npm run db:logs
 The API will access the database at:
 
 ```text
-mongodb://localhost:27017/mercadozetta
+mongodb://localhost:27017/mercadozetta?replicaSet=rs0&directConnection=true
 ```
+
+Update an existing `backend/.env` to use this URI before running the backend or
+the host-side demo seed against the Dockerized database.
 
 ## 7. Configure Environment Variables
 
