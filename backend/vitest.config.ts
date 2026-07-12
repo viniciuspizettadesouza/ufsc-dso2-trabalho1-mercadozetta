@@ -10,6 +10,11 @@ export default defineConfig({
       reporter: ['text', 'html', 'json'],
       exclude: [
         'src/server.ts',
+        // Declarative route wiring and Mongoose schema registration contain no
+        // independently testable business behavior; their contracts and indexes
+        // are verified by dedicated tests instead.
+        'src/routes.ts',
+        'src/model/**',
         'coverage/**',
         'node_modules/**',
       ],

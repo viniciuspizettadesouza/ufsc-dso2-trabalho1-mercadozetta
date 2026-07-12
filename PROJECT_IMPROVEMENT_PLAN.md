@@ -1,88 +1,104 @@
-# MercadoZetta Next Improvement Plan
+# MercadoZetta Improvement Plan
 
 ## Goal
 
-Focus the next work on improvements that make MercadoZetta easier to run,
-easier to evolve, and more polished as a white-label marketplace demo.
+Keep MercadoZetta reliable, easy to run, and useful as a white-label
+marketplace demo while evolving the new persistent commerce workflows safely.
 
-## Current Status and Next Session Handoff
+## Current Status
 
-The validation/test-organization, API contract documentation, and automatic
-OpenAPI generation phases are complete. Do not recreate or edit the checked-in
-contract manually; update its Zod schemas or typed route contract and run the
-generator instead.
+The original improvement plan is complete on
+`feat/persistent-commerce-domain`.
 
-The next session should start with **Priority 2 - Architecture Decision
-Records**. Begin with the white-label strategy and tenant isolation decisions,
-using the existing tenant registry and middleware as the verified source of
-truth. Do not start persistent commerce workflows before completing Priority 2.
+- [x] Restore and validate the configured coverage thresholds.
+- [x] Document the current API with OpenAPI.
+- [x] Generate OpenAPI from shared Zod validation schemas.
+- [x] Skip Architecture Decision Records by explicit project decision.
+- [x] Persist commerce workflows in MongoDB.
 
-Validated handoff state:
+Priority 2 was intentionally skipped because this project does not need ADRs.
+Do not add them unless the project scope changes.
 
-- Backend: 155 tests passing across 28 test files.
-- Frontend: 50 tests passing across 10 test files.
-- Backend branch coverage: 85.87%, above the configured 85% threshold.
-- Focused coverage scenarios are stored in the test files associated with their
-  source modules.
-- The test-file organization rule is documented in `AGENTS.md`.
-- Backend TypeScript compilation passes.
-- The OpenAPI 3.1 contract is stored at `docs/openapi.json` and covers every
-  Express route, request constraints, response shapes, and examples.
-- `backend/test/openapi-contract.test.ts` checks route/operation parity and
-  required examples.
-- Zod 4 schemas now drive runtime request validation and OpenAPI request
-  definitions; `backend/src/openapi/document.ts` contains the typed operation
-  and response contract.
-- `npm run generate:openapi` regenerates `docs/openapi.json`, and the contract
-  test rejects checked-in drift.
+Priority 3 is complete:
 
-## Priority 2 - Architecture Decision Records
+- Carts, watchlists, orders, order items, reviews, and notifications use
+  tenant-scoped MongoDB collections.
+- Buyer and seller authorization protects order status and review operations.
+- Checkout updates inventory and creates persisted orders and notifications.
+- Orders support `placed`, `confirmed`, `shipped`, `delivered`, and `cancelled`
+  lifecycle states.
+- Reviews require a previous purchase and sellers cannot review their own
+  products.
+- The frontend uses the commerce API instead of `localStorage` for marketplace
+  state. `localStorage` remains only for the existing authentication session.
+- The generated OpenAPI 3.1 document covers the commerce endpoints.
+- Focused backend and frontend regression tests cover the new workflows.
 
-Capture decisions that are already shaping the project so future changes have a
-clear reference point.
+## Verified Handoff
 
-- Add ADRs for:
-  - white-label strategy
-  - auth/session model
-  - tenant isolation model
-  - validation and error response format
-- Keep each ADR short:
-  - context
-  - decision
-  - consequences
+- Backend: 173 tests across 30 test files.
+- Frontend: 50 tests across 10 test files.
+- Backend coverage passes the configured 85% thresholds.
+- Frontend coverage passes the configured 90% thresholds.
+- Backend TypeScript compilation, repository lint, and frontend production
+  build pass.
+- `docs/openapi.json` is generated from Zod schemas and typed operation metadata;
+  do not edit it manually.
 
-## Priority 3 - Persistent Commerce Domain
+## Recommended Next Steps
 
-Only start this if the project needs real buyer workflows beyond the current
-demo simulation.
+### 1. Validate the commerce workflows against MongoDB
 
-- Persist carts, watchlists, orders, order items, reviews, and notifications in
-  MongoDB.
-- Add buyer/seller authorization rules for order and review operations.
-- Replace localStorage checkout and order history with API-backed flows.
-- Add lifecycle states for orders and seller fulfillment actions.
-- Add focused backend and frontend regression tests for each persisted workflow.
+- Run the Dockerized demo and seed both tenants.
+- Exercise a complete buyer-to-seller flow with two users: add to cart, place an
+  order, update fulfillment status, deliver it, and submit a review.
+- Verify inventory changes, tenant isolation, notifications, and error states
+  against the real database rather than mocked models.
+- Add a database-backed workflow test for any defect found.
 
-## Recommended Order
+### 2. Make checkout inventory updates atomic
 
-1. [x] Restore and validate the configured branch-coverage threshold.
-2. [x] Document the current API with OpenAPI.
-3. [x] Generate OpenAPI from shared validation schemas.
-4. [ ] Add ADRs for existing architecture decisions. **Start here in the next session.**
-5. [ ] Persist commerce workflows only if the product scope grows.
+- Use a MongoDB transaction for order creation, order-item insertion, inventory
+  decrement, cart clearing, and notification creation.
+- Make inventory decrements conditional so concurrent checkouts cannot sell
+  more units than are available.
+- Add concurrency and rollback regression tests.
 
-## Definition of Done
+### 3. Polish buyer and seller workflow UI
+
+- Add authenticated route guards and clear sign-in prompts for commerce
+  actions.
+- Add loading, success, and API error feedback to cart, watchlist, review, and
+  order actions.
+- Add quantity editing, item removal, and disabled checkout for unavailable
+  inventory.
+- Give sellers a dedicated order view with permitted fulfillment actions.
+
+### 4. Improve notification and order lifecycle behavior
+
+- Add notification read/unread operations and unread counts in the header.
+- Define and enforce allowed order-state transitions instead of accepting any
+  lifecycle state change.
+- Record status history with actor and timestamp for buyer/seller visibility.
+
+### 5. Harden production authentication
+
+- Replace access-token storage in `localStorage` with `HttpOnly`, `Secure`, and
+  `SameSite` cookies when preparing a production deployment.
+- Add refresh-token rotation or an equivalent short-session renewal strategy.
+- Recheck CSRF, CORS, and logout behavior after changing token transport.
+
+## Definition of Done for Future Phases
 
 - `npm test` passes from the repository root.
 - `npm run lint` passes from the repository root.
 - `npm --prefix frontend run build` passes.
-- `npm run test:coverage` passes when behavior or coverage-sensitive code
-  changes.
-- New product, architecture, or UI behavior has focused regression tests.
-- New unit scenarios are added to the test file associated with the source
-  module; aggregate test files are used only for genuine integration, contract,
-  routing, or workflow behavior.
-- Tenant-scoped behavior remains isolated.
-- Default MercadoZetta and sample tenant branding continue to work.
-- README or relevant docs are updated when commands, configuration, or API
-  contracts change.
+- `npm run test:coverage` passes for behavior or coverage-sensitive changes.
+- New scenarios are added to the focused test file associated with their source
+  module; aggregate files remain limited to integration, contract, routing, or
+  genuine workflow tests.
+- Tenant-owned reads and writes remain tenant-scoped.
+- Default MercadoZetta and CampusMarket branding continue to work.
+- Request or response changes update Zod schemas, typed OpenAPI metadata, and
+  the generated contract.
+- Configuration, behavior, and operational changes update the relevant docs.

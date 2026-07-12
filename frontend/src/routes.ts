@@ -29,4 +29,13 @@ export const apiRoutes = {
     productDetail: (productId: string) => `/products/${productId}`,
     sellerProfile: (sellerId: string) => `/users/${sellerId}`,
     sellerProducts: (sellerId: string) => `/users/${sellerId}/products`,
+    cart: '/cart',
+    cartItems: '/cart/items',
+    cartItem: (productId: string) => `/cart/items/${productId}`,
+    watchlist: '/watchlist',
+    watchlistItem: (productId: string) => `/watchlist/${productId}`,
+    orders: '/orders',
+    orderStatus: (orderId: string) => `/orders/${orderId}/status`,
+    reviews: (productId: string) => `/products/${productId}/reviews`,
+    notifications: '/notifications',
 };

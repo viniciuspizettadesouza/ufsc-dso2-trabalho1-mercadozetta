@@ -100,7 +100,7 @@ describe('App', () => {
     it('renders the checkout page', async () => {
         await renderAppAt('/checkout');
 
-        expect(screen.getByRole('heading', { name: 'Checkout simulation' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { name: 'Checkout' })).toBeInTheDocument();
     });
 
     it('renders the admin dashboard', async () => {

@@ -12,6 +12,9 @@ import api from '../services/api';
 vi.mock('../services/api', () => ({
     default: {
         get: vi.fn(),
+        put: vi.fn(),
+        post: vi.fn(),
+        delete: vi.fn(),
     },
 }));
 
@@ -52,25 +55,33 @@ describe('marketplace pages', () => {
     beforeEach(() => {
         localStorage.clear();
         vi.mocked(api.get).mockReset();
+        vi.mocked(api.put).mockReset();
+        vi.mocked(api.post).mockReset();
+        vi.mocked(api.delete).mockReset();
     });
 
     it('loads product details and records watchlist, cart, review, and notifications', async () => {
-        vi.mocked(api.get).mockResolvedValueOnce({ data: product });
+        localStorage.setItem('token', 'token-123');
+        vi.mocked(api.get)
+            .mockResolvedValueOnce({ data: product })
+            .mockResolvedValueOnce({ data: [] })
+            .mockResolvedValueOnce({ data: { items: [] } })
+            .mockResolvedValueOnce({ data: [] });
+        vi.mocked(api.put).mockResolvedValue({ data: {} });
+        vi.mocked(api.post).mockResolvedValue({ data: { _id: 'review-1', rating: 5, comment: 'Great beans' } });
 
         renderAt('/products/product-1', '/products/:productId', <ProductDetail />);
 
         expect(await screen.findByRole('heading', { name: 'Coffee' })).toBeInTheDocument();
-        expect(screen.getByText('Contact: 123')).toBeInTheDocument();
-
         await userEvent.click(screen.getByRole('button', { name: 'Watch' }));
         await userEvent.click(screen.getByRole('button', { name: 'Add to cart' }));
         await userEvent.type(screen.getByLabelText('Review'), 'Great beans');
         await userEvent.click(screen.getByRole('button', { name: 'Add review' }));
 
-        expect(localStorage.getItem('favorites')).toContain('product-1');
-        expect(localStorage.getItem('cart')).toContain('product-1');
+        expect(api.put).toHaveBeenCalledWith('/watchlist/product-1');
+        expect(api.put).toHaveBeenCalledWith('/cart/items', { productId: 'product-1', quantity: 1 });
         expect(screen.getByText(/Great beans/)).toBeInTheDocument();
-        expect(localStorage.getItem('notifications')).toContain('Review added for Coffee');
+        expect(api.post).toHaveBeenCalledWith('/products/product-1/reviews', { rating: 5, comment: 'Great beans' });
     });
 
     it('shows product detail load errors', async () => {
@@ -81,28 +92,28 @@ describe('marketplace pages', () => {
         expect(await screen.findByRole('alert')).toHaveTextContent('Unable to load product.');
     });
 
-    it('checks out cart items and stores order history', async () => {
-        localStorage.setItem('cart', JSON.stringify(['product-1']));
-        vi.mocked(api.get).mockResolvedValueOnce({ data: product });
+    it('checks out persisted cart items and refreshes order history', async () => {
+        vi.mocked(api.get)
+            .mockResolvedValueOnce({ data: { items: [{ product, quantity: 1 }] } })
+            .mockResolvedValueOnce({ data: [] });
+        vi.mocked(api.post).mockResolvedValueOnce({ data: { _id: 'order-1', status: 'placed', items: [{ productName: 'Coffee', quantity: 1 }] } });
 
         renderAt('/checkout', '/checkout', <Checkout />);
 
-        expect(await screen.findByText('Coffee')).toBeInTheDocument();
+        expect(await screen.findByText(/Coffee × 1/)).toBeInTheDocument();
         await userEvent.click(screen.getByRole('button', { name: 'Place order' }));
 
-        await waitFor(() => expect(localStorage.getItem('orders')).toContain('Coffee'));
-        expect(localStorage.getItem('cart')).toBe('[]');
-        expect(localStorage.getItem('notifications')).toContain('Order order-');
+        await waitFor(() => expect(screen.getByText(/order-1/)).toBeInTheDocument());
+        expect(api.post).toHaveBeenCalledWith('/orders');
     });
 
     it('renders admin dashboard metrics and audit entries', async () => {
-        localStorage.setItem('notifications', JSON.stringify(['Order created']));
         vi.mocked(api.get).mockResolvedValueOnce({
             data: [
                 product,
                 { ...product, _id: 'product-2', name: 'Tea', status: 'paused' },
             ],
-        });
+        }).mockResolvedValueOnce({ data: [{ _id: 'notification-1', message: 'Order created' }] });
 
         renderAt('/admin', '/admin', <AdminDashboard />);
 

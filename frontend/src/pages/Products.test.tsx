@@ -9,6 +9,8 @@ import api from '../services/api';
 vi.mock('../services/api', () => ({
     default: {
         get: vi.fn(),
+        put: vi.fn(),
+        delete: vi.fn(),
     },
 }));
 
@@ -51,6 +53,8 @@ describe('Products', () => {
     beforeEach(() => {
         localStorage.clear();
         vi.mocked(api.get).mockReset();
+        vi.mocked(api.put).mockReset();
+        vi.mocked(api.delete).mockReset();
     });
 
     it('loads all products on the home page', async () => {
@@ -135,10 +139,13 @@ describe('Products', () => {
         expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível carregar os produtos.');
     });
 
-    it('toggles watchlist and cart state from storage', async () => {
-        localStorage.setItem('favorites', JSON.stringify(['product-1']));
-        localStorage.setItem('cart', JSON.stringify(['product-1']));
-        vi.mocked(api.get).mockResolvedValueOnce({ data: products });
+    it('toggles persisted watchlist and cart state', async () => {
+        localStorage.setItem('token', 'token-123');
+        vi.mocked(api.get)
+            .mockResolvedValueOnce({ data: products })
+            .mockResolvedValueOnce({ data: [{ product: products[0] }] })
+            .mockResolvedValueOnce({ data: { items: [{ product: products[0], quantity: 1 }] } });
+        vi.mocked(api.delete).mockResolvedValue({ data: {} });
 
         renderProducts();
 
@@ -148,19 +155,22 @@ describe('Products', () => {
         await userEvent.click(screen.getByRole('button', { name: 'Favorito' }));
         await userEvent.click(screen.getByRole('button', { name: 'No carrinho' }));
 
-        expect(localStorage.getItem('favorites')).toBe('[]');
-        expect(localStorage.getItem('cart')).toBe('[]');
+        expect(api.delete).toHaveBeenCalledWith('/watchlist/product-1');
+        expect(api.delete).toHaveBeenCalledWith('/cart/items/product-1');
     });
 
-    it('handles invalid stored marketplace state', async () => {
-        localStorage.setItem('favorites', '{');
-        localStorage.setItem('cart', '{');
+    it('adds catalog products to persisted commerce collections', async () => {
         vi.mocked(api.get).mockResolvedValueOnce({ data: products });
+        vi.mocked(api.put).mockResolvedValue({ data: {} });
 
         renderProducts();
 
-        expect(await screen.findAllByRole('button', { name: 'Favoritar' })).toHaveLength(2);
-        expect(screen.getAllByRole('button', { name: 'Carrinho' })).toHaveLength(2);
+        const favoriteButtons = await screen.findAllByRole('button', { name: 'Favoritar' });
+        const cartButtons = screen.getAllByRole('button', { name: 'Carrinho' });
+        await userEvent.click(favoriteButtons[0]);
+        await userEvent.click(cartButtons[0]);
+        expect(api.put).toHaveBeenCalledWith('/watchlist/product-1');
+        expect(api.put).toHaveBeenCalledWith('/cart/items', { productId: 'product-1', quantity: 1 });
     });
 
     it('renders image alt text from product name', async () => {

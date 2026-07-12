@@ -23,6 +23,9 @@
     },
     {
       "name": "Products"
+    },
+    {
+      "name": "Commerce"
     }
   ],
   "paths": {
@@ -906,6 +909,1286 @@
                 "example": {
                   "error": "Product not found",
                   "code": "PRODUCT_NOT_FOUND"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cart": {
+      "get": {
+        "tags": [
+          "Commerce"
+        ],
+        "summary": "Get the current buyer cart",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cart",
+            "content": {
+              "application/json": {
+                "example": {
+                  "tenantId": "mercadozetta",
+                  "buyer": "507f1f77bcf86cd799439011",
+                  "items": []
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "buyer": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "product": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "example": "507f1f77bcf86cd799439011"
+                              },
+                              {
+                                "$ref": "#/components/schemas/Product"
+                              }
+                            ]
+                          },
+                          "quantity": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "product",
+                          "quantity"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "tenantId",
+                    "buyer",
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cart/items": {
+      "put": {
+        "tags": [
+          "Commerce"
+        ],
+        "summary": "Add or update a cart item",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "productId": "507f191e810c19729de860ea",
+                "quantity": 1
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "productId": {
+                    "type": "string",
+                    "example": "507f1f77bcf86cd799439011"
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "productId",
+                  "quantity"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated cart",
+            "content": {
+              "application/json": {
+                "example": {
+                  "tenantId": "mercadozetta",
+                  "buyer": "507f1f77bcf86cd799439011",
+                  "items": []
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "buyer": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "product": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "example": "507f1f77bcf86cd799439011"
+                              },
+                              {
+                                "$ref": "#/components/schemas/Product"
+                              }
+                            ]
+                          },
+                          "quantity": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "product",
+                          "quantity"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "tenantId",
+                    "buyer",
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or tenant",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid tenant",
+                  "code": "INVALID_TENANT"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cart/items/{productId}": {
+      "delete": {
+        "tags": [
+          "Commerce"
+        ],
+        "summary": "Remove a cart item",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "productId",
+            "schema": {
+              "type": "string",
+              "example": "507f1f77bcf86cd799439011"
+            },
+            "required": true
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated cart",
+            "content": {
+              "application/json": {
+                "example": {
+                  "tenantId": "mercadozetta",
+                  "buyer": "507f1f77bcf86cd799439011",
+                  "items": []
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "buyer": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "product": {
+                            "anyOf": [
+                              {
+                                "type": "string",
+                                "example": "507f1f77bcf86cd799439011"
+                              },
+                              {
+                                "$ref": "#/components/schemas/Product"
+                              }
+                            ]
+                          },
+                          "quantity": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "product",
+                          "quantity"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "tenantId",
+                    "buyer",
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/watchlist": {
+      "get": {
+        "tags": [
+          "Commerce"
+        ],
+        "summary": "List watched products",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Watchlist",
+            "content": {
+              "application/json": {
+                "example": [],
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "_id": {
+                        "type": "string",
+                        "example": "507f1f77bcf86cd799439011"
+                      },
+                      "tenantId": {
+                        "type": "string"
+                      },
+                      "user": {
+                        "type": "string",
+                        "example": "507f1f77bcf86cd799439011"
+                      },
+                      "product": {
+                        "anyOf": [
+                          {
+                            "type": "string",
+                            "example": "507f1f77bcf86cd799439011"
+                          },
+                          {
+                            "$ref": "#/components/schemas/Product"
+                          }
+                        ]
+                      }
+                    },
+                    "required": [
+                      "_id",
+                      "tenantId",
+                      "user",
+                      "product"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/watchlist/{productId}": {
+      "put": {
+        "tags": [
+          "Commerce"
+        ],
+        "summary": "Watch a product",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "productId",
+            "schema": {
+              "type": "string",
+              "example": "507f1f77bcf86cd799439011"
+            },
+            "required": true
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Watchlist entry",
+            "content": {
+              "application/json": {
+                "example": {
+                  "_id": "507f191e810c19729de860ea",
+                  "tenantId": "mercadozetta",
+                  "user": "507f1f77bcf86cd799439011",
+                  "product": "507f191e810c19729de860ea"
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "user": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    },
+                    "product": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "example": "507f1f77bcf86cd799439011"
+                        },
+                        {
+                          "$ref": "#/components/schemas/Product"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "_id",
+                    "tenantId",
+                    "user",
+                    "product"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Commerce"
+        ],
+        "summary": "Stop watching a product",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "productId",
+            "schema": {
+              "type": "string",
+              "example": "507f1f77bcf86cd799439011"
+            },
+            "required": true
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Watchlist entry removed"
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders": {
+      "get": {
+        "tags": [
+          "Commerce"
+        ],
+        "summary": "List buyer and seller orders",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Orders",
+            "content": {
+              "application/json": {
+                "example": [],
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "_id": {
+                        "type": "string",
+                        "example": "507f1f77bcf86cd799439011"
+                      },
+                      "tenantId": {
+                        "type": "string"
+                      },
+                      "buyer": {
+                        "type": "string",
+                        "example": "507f1f77bcf86cd799439011"
+                      },
+                      "status": {
+                        "type": "string",
+                        "enum": [
+                          "placed",
+                          "confirmed",
+                          "shipped",
+                          "delivered",
+                          "cancelled"
+                        ]
+                      },
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "product": {
+                              "type": "string",
+                              "example": "507f1f77bcf86cd799439011"
+                            },
+                            "productName": {
+                              "type": "string"
+                            },
+                            "seller": {
+                              "type": "string",
+                              "example": "507f1f77bcf86cd799439011"
+                            },
+                            "quantity": {
+                              "type": "integer",
+                              "minimum": -9007199254740991,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "product",
+                            "productName",
+                            "seller",
+                            "quantity"
+                          ],
+                          "additionalProperties": false
+                        }
+                      }
+                    },
+                    "required": [
+                      "_id",
+                      "tenantId",
+                      "buyer",
+                      "status",
+                      "items"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Commerce"
+        ],
+        "summary": "Place an order from the current cart",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Order placed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "_id": "507f191e810c19729de860ea",
+                  "tenantId": "mercadozetta",
+                  "buyer": "507f1f77bcf86cd799439011",
+                  "status": "placed",
+                  "items": []
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "buyer": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "placed",
+                        "confirmed",
+                        "shipped",
+                        "delivered",
+                        "cancelled"
+                      ]
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "product": {
+                            "type": "string",
+                            "example": "507f1f77bcf86cd799439011"
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "seller": {
+                            "type": "string",
+                            "example": "507f1f77bcf86cd799439011"
+                          },
+                          "quantity": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "product",
+                          "productName",
+                          "seller",
+                          "quantity"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "_id",
+                    "tenantId",
+                    "buyer",
+                    "status",
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or tenant",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid tenant",
+                  "code": "INVALID_TENANT"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/{orderId}/status": {
+      "patch": {
+        "tags": [
+          "Commerce"
+        ],
+        "summary": "Update an order lifecycle status",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "orderId",
+            "schema": {
+              "type": "string",
+              "example": "507f1f77bcf86cd799439011"
+            },
+            "required": true
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "status": "shipped"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "placed",
+                      "confirmed",
+                      "shipped",
+                      "delivered",
+                      "cancelled"
+                    ]
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated order",
+            "content": {
+              "application/json": {
+                "example": {
+                  "_id": "507f191e810c19729de860ea",
+                  "tenantId": "mercadozetta",
+                  "buyer": "507f1f77bcf86cd799439011",
+                  "status": "shipped",
+                  "items": []
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    },
+                    "tenantId": {
+                      "type": "string"
+                    },
+                    "buyer": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "placed",
+                        "confirmed",
+                        "shipped",
+                        "delivered",
+                        "cancelled"
+                      ]
+                    },
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "product": {
+                            "type": "string",
+                            "example": "507f1f77bcf86cd799439011"
+                          },
+                          "productName": {
+                            "type": "string"
+                          },
+                          "seller": {
+                            "type": "string",
+                            "example": "507f1f77bcf86cd799439011"
+                          },
+                          "quantity": {
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "product",
+                          "productName",
+                          "seller",
+                          "quantity"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "_id",
+                    "tenantId",
+                    "buyer",
+                    "status",
+                    "items"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/{productId}/reviews": {
+      "get": {
+        "tags": [
+          "Commerce"
+        ],
+        "summary": "List product reviews",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "productId",
+            "schema": {
+              "type": "string",
+              "example": "507f1f77bcf86cd799439011"
+            },
+            "required": true
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reviews",
+            "content": {
+              "application/json": {
+                "example": [],
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "_id": {
+                        "type": "string",
+                        "example": "507f1f77bcf86cd799439011"
+                      },
+                      "product": {
+                        "type": "string",
+                        "example": "507f1f77bcf86cd799439011"
+                      },
+                      "author": {
+                        "type": "string",
+                        "example": "507f1f77bcf86cd799439011"
+                      },
+                      "rating": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 5
+                      },
+                      "comment": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "_id",
+                      "product",
+                      "author",
+                      "rating",
+                      "comment"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Commerce"
+        ],
+        "summary": "Create or update a verified-buyer review",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "productId",
+            "schema": {
+              "type": "string",
+              "example": "507f1f77bcf86cd799439011"
+            },
+            "required": true
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "rating": 5,
+                "comment": "Excellent product"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rating": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5
+                  },
+                  "comment": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "rating",
+                  "comment"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Review",
+            "content": {
+              "application/json": {
+                "example": {
+                  "_id": "507f191e810c19729de860ea",
+                  "product": "507f191e810c19729de860ea",
+                  "author": "507f1f77bcf86cd799439011",
+                  "rating": 5,
+                  "comment": "Excellent product"
+                },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "_id": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    },
+                    "product": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    },
+                    "author": {
+                      "type": "string",
+                      "example": "507f1f77bcf86cd799439011"
+                    },
+                    "rating": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 5
+                    },
+                    "comment": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "_id",
+                    "product",
+                    "author",
+                    "rating",
+                    "comment"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications": {
+      "get": {
+        "tags": [
+          "Commerce"
+        ],
+        "summary": "List current user notifications",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notifications",
+            "content": {
+              "application/json": {
+                "example": [],
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "_id": {
+                        "type": "string",
+                        "example": "507f1f77bcf86cd799439011"
+                      },
+                      "user": {
+                        "type": "string",
+                        "example": "507f1f77bcf86cd799439011"
+                      },
+                      "message": {
+                        "type": "string"
+                      },
+                      "read": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "_id",
+                      "user",
+                      "message",
+                      "read"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
                 },
                 "schema": {
                   "$ref": "#/components/schemas/Error"

@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import AuthController from './controller/authController';
 import UserController from './controller/userController';
 import ProductController from './controller/productController';
+import CommerceController from './controller/commerceController';
 import authMiddleware from './middleware/auth';
 import asyncHandler from './middleware/asyncHandler';
 import { authRateLimiter, registerRateLimiter } from './middleware/rateLimit';
@@ -15,6 +16,7 @@ import {
 } from './validators/productValidator';
 import { validateCreateUserPayload } from './validators/userValidator';
 import { validateLoginPayload } from './validators/authValidator';
+import { validateCartItem, validateOrderStatus, validateResourceId, validateReview } from './validators/commerceValidator';
 
 const routes = express.Router();
 
@@ -88,5 +90,22 @@ routes.post(
   validateRequest({ body: validateCreateProductPayload }),
   asyncHandler(ProductController.add)
 );
+
+const resourceParams = (key: 'productId' | 'orderId') => (params: Record<string, unknown>) => ({
+  [key]: validateResourceId(params[key]),
+});
+
+routes.get('/cart', authMiddleware, asyncHandler(CommerceController.getCart));
+routes.put('/cart/items', authMiddleware, validateRequest({ body: validateCartItem }), asyncHandler(CommerceController.setCartItem));
+routes.delete('/cart/items/:productId', authMiddleware, validateRequest({ params: resourceParams('productId') }), asyncHandler(CommerceController.removeCartItem));
+routes.get('/watchlist', authMiddleware, asyncHandler(CommerceController.listWatchlist));
+routes.put('/watchlist/:productId', authMiddleware, validateRequest({ params: resourceParams('productId') }), asyncHandler(CommerceController.addWatchlist));
+routes.delete('/watchlist/:productId', authMiddleware, validateRequest({ params: resourceParams('productId') }), asyncHandler(CommerceController.removeWatchlist));
+routes.get('/orders', authMiddleware, asyncHandler(CommerceController.listOrders));
+routes.post('/orders', authMiddleware, asyncHandler(CommerceController.createOrder));
+routes.patch('/orders/:orderId/status', authMiddleware, validateRequest({ params: resourceParams('orderId'), body: validateOrderStatus }), asyncHandler(CommerceController.updateOrderStatus));
+routes.get('/products/:productId/reviews', validateRequest({ params: resourceParams('productId') }), asyncHandler(CommerceController.listReviews));
+routes.post('/products/:productId/reviews', authMiddleware, validateRequest({ params: resourceParams('productId'), body: validateReview }), asyncHandler(CommerceController.createReview));
+routes.get('/notifications', authMiddleware, asyncHandler(CommerceController.listNotifications));
 
 export default routes;
