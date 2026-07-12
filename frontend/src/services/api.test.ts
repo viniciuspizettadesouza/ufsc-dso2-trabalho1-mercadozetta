@@ -22,7 +22,7 @@ async function loadApi() {
   };
 
   create.mockReturnValueOnce(apiClient);
-  const module = await import('./api');
+  const module = await import('@/services/api');
 
   return {
     api: module.default,

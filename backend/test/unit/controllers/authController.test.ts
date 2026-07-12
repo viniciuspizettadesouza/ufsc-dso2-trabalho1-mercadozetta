@@ -1,9 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { clearModules, mockModule } from '../helpers/moduleMock';
 
-const controllerPath =
-  require.resolve('../../../src/controller/authController');
-const servicePath = require.resolve('../../../src/services/authService');
+const controllerPath = require.resolve('@/controller/authController');
+const servicePath = require.resolve('@/services/authService');
 
 function createResponse() {
   return {
@@ -15,7 +14,7 @@ function createResponse() {
 function loadController(authenticate = vi.fn(), logout = vi.fn()) {
   clearModules(controllerPath, servicePath);
   mockModule(servicePath, { authenticate, logout });
-  return require('../../../src/controller/authController');
+  return require('@/controller/authController');
 }
 
 afterEach(() => {

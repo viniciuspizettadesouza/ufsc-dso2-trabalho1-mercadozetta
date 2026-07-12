@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import asyncHandler from '../../../src/middleware/asyncHandler';
+import asyncHandler from '@/middleware/asyncHandler';
 
 describe('asyncHandler', () => {
   it('passes through resolved handlers', async () => {

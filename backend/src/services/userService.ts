@@ -1,11 +1,11 @@
-import AppError from '../errors/AppError';
-import User from '../model/user';
-import { defaultTenantId } from '../tenants';
+import AppError from '@/errors/AppError';
+import User from '@/model/user';
+import { defaultTenantId } from '@/tenants';
 import {
   type CreateUserData,
   type CreateUserRequestBody,
   validateCreateUserPayload,
-} from '../validators/userValidator';
+} from '@/validators/userValidator';
 
 type MongoDuplicateKeyError = {
   code?: number;

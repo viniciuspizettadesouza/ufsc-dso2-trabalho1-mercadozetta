@@ -27,6 +27,12 @@ export default [
       'react-refresh': reactRefresh,
     },
     rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: ['../**'],
+        },
+      ],
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },

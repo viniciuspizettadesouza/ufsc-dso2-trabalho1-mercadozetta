@@ -4,7 +4,7 @@ import {
   validateProductFilters,
   validateProductId,
   validateSellerId,
-} from '../../../src/validators/productValidator';
+} from '@/validators/productValidator';
 
 describe('productValidator', () => {
   it('normalizes product creation payloads and supports the quant alias', () => {

@@ -1,7 +1,7 @@
 import { Types } from 'mongoose';
-import Product from '../../src/model/product';
-import User from '../../src/model/user';
-import { seedDemoData } from '../../src/scripts/seedDemoData';
+import Product from '@/model/product';
+import User from '@/model/user';
+import { seedDemoData } from '@/scripts/seedDemoData';
 import {
   clearDatabase,
   connectDatabase,

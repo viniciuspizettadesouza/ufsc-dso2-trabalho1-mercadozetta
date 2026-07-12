@@ -1,10 +1,10 @@
 import type { Request, Response } from 'express';
-import AppError from '../errors/AppError';
-import ProductService from '../services/productService';
+import AppError from '@/errors/AppError';
+import ProductService from '@/services/productService';
 import type {
   CreateProductData,
   ProductListFilters,
-} from '../validators/productValidator';
+} from '@/validators/productValidator';
 
 type ProductIdParams = { productId: string };
 type SellerIdParams = { userId: string };

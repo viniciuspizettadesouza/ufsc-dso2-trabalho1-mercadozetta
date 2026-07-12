@@ -1,6 +1,6 @@
-import Product, { type ProductRecord } from '../model/product';
-import { defaultTenantId } from '../tenants';
-import UserService from './userService';
+import Product, { type ProductRecord } from '@/model/product';
+import { defaultTenantId } from '@/tenants';
+import UserService from '@/services/userService';
 import {
   type CreateProductData,
   type CreateProductRequestBody,
@@ -10,7 +10,7 @@ import {
   validateProductFilters,
   validateProductId,
   validateSellerId,
-} from '../validators/productValidator';
+} from '@/validators/productValidator';
 
 type ProductListItem = Pick<
   ProductRecord,

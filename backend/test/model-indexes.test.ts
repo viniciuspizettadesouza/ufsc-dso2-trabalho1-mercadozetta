@@ -1,5 +1,5 @@
-const Product = require('../src/model/product');
-const User = require('../src/model/user');
+const Product = require('@/model/product');
+const User = require('@/model/user');
 
 describe('model indexes', () => {
   it('keeps user emails unique per tenant', () => {

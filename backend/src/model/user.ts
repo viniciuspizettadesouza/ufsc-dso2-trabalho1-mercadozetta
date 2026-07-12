@@ -1,6 +1,6 @@
 import { Schema, model, Types, type InferSchemaType } from 'mongoose';
 import bcrypt from 'bcryptjs';
-import { defaultTenantId } from '../tenants';
+import { defaultTenantId } from '@/tenants';
 
 const UserSchema = new Schema(
   {

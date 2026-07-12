@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 import {
   createOpenApiDocument,
   serializeOpenApiDocument,
-} from '../src/openapi/document';
-import routes from '../src/routes';
+} from '@/openapi/document';
+import routes from '@/routes';
 
 type OpenApiDocument = {
   openapi: string;

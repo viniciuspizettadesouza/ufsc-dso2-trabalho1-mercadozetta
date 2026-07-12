@@ -1,4 +1,4 @@
-import type { AppErrorDetails } from '../types/errors';
+import type { AppErrorDetails } from '@/types/errors';
 
 class AppError extends Error {
   statusCode: number;

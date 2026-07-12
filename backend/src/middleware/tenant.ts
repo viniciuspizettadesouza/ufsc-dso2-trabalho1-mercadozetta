@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
-import AppError from '../errors/AppError';
-import { isTenantHeaderRequired } from '../config/security';
-import { resolveTenant } from '../tenants';
+import AppError from '@/errors/AppError';
+import { isTenantHeaderRequired } from '@/config/security';
+import { resolveTenant } from '@/tenants';
 
 function tenantMiddleware(req: Request, res: Response, next: NextFunction) {
   const tenantHeader = req.headers['x-tenant-id'] as string | undefined;

@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import * as security from '../../../src/config/security';
+import * as security from '@/config/security';
 
-const securityPath = require.resolve('../../../src/config/security');
+const securityPath = require.resolve('@/config/security');
 
 function loadSecurityWithEnv(env = {}) {
   delete require.cache[securityPath];
   process.env = {
     ...env,
   };
-  return require('../../../src/config/security');
+  return require('@/config/security');
 }
 
 describe('security config', () => {

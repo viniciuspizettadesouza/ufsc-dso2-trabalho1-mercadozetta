@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import validateRequest from '../../../src/middleware/validateRequest';
+import validateRequest from '@/middleware/validateRequest';
 
 describe('validateRequest', () => {
   it('stores validated body, params, and query without dropping previous data', () => {

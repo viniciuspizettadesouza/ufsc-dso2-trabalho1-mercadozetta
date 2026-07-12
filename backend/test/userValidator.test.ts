@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import AppError from '../src/errors/AppError';
-import { validateCreateUserPayload } from '../src/validators/userValidator';
+import AppError from '@/errors/AppError';
+import { validateCreateUserPayload } from '@/validators/userValidator';
 
 describe('user validator', () => {
   it('validates create-user payloads and enforces strong email/password rules', () => {

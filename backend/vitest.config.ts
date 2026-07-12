@@ -1,6 +1,12 @@
+const path = require('node:path');
 const { defineConfig } = require('vitest/config');
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, 'src'),
+    },
+  },
   test: {
     environment: 'node',
     globals: true,

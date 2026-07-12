@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../src/model/user', () => ({
+vi.mock('@/model/user', () => ({
   default: {
     findOne: vi.fn(),
   },
 }));
 
-vi.mock('../src/config/security', () => ({
+vi.mock('@/config/security', () => ({
   getJwtSecret: vi.fn(() => 'test-secret'),
   getJwtAccessTokenTtl: vi.fn(() => '15m'),
 }));
@@ -25,8 +25,8 @@ vi.mock('jsonwebtoken', () => ({
 
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import User from '../src/model/user';
-import { authenticate } from '../src/services/authService';
+import User from '@/model/user';
+import { authenticate } from '@/services/authService';
 
 const mockedUser = User as typeof User & {
   findOne: ReturnType<typeof vi.fn>;

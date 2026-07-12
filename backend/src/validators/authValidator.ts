@@ -1,6 +1,6 @@
-import type { RequestFieldValue } from '../types/request';
+import type { RequestFieldValue } from '@/types/request';
 import { z } from 'zod';
-import { parseAppSchema, requestString } from './parseSchema';
+import { parseAppSchema, requestString } from '@/validators/parseSchema';
 
 export type LoginRequestBody = {
   email?: RequestFieldValue;

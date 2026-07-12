@@ -1,9 +1,9 @@
 import dotenv from 'dotenv';
 import mongoose, { Types } from 'mongoose';
-import Product from '../model/product';
-import User from '../model/user';
-import { tenants } from '../tenants';
-import type { ProductStatus } from '../productStatus';
+import Product from '@/model/product';
+import User from '@/model/user';
+import { tenants } from '@/tenants';
+import type { ProductStatus } from '@/productStatus';
 
 dotenv.config();
 

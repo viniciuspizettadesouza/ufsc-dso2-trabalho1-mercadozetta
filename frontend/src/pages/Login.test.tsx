@@ -3,12 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import Login from './Login';
-import api from '../services/api';
+import Login from '@/pages/Login';
+import api from '@/services/api';
 
 const navigate = vi.fn();
 
-vi.mock('../services/api', () => ({
+vi.mock('@/services/api', () => ({
   default: {
     post: vi.fn(),
   },

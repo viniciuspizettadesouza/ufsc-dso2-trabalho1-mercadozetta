@@ -5,7 +5,7 @@ import {
   hasRequestValue,
   parseAppSchema,
   requestString,
-} from '../../../src/validators/parseSchema';
+} from '@/validators/parseSchema';
 
 describe('parseAppSchema', () => {
   it('normalizes request values with the legacy fallback semantics', () => {

@@ -5,11 +5,11 @@ const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const request = require('supertest');
 
-const app = require('../src/app');
-const authMiddleware = require('../src/middleware/auth');
-const Product = require('../src/model/product');
-const routes = require('../src/routes');
-const User = require('../src/model/user');
+const app = require('@/app');
+const authMiddleware = require('@/middleware/auth');
+const Product = require('@/model/product');
+const routes = require('@/routes');
+const User = require('@/model/user');
 
 function findRoute(path: string, method: string) {
   return routes.stack.find(

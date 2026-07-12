@@ -4,7 +4,7 @@ import type {
   NextFunction,
   ErrorRequestHandler,
 } from 'express';
-import AppError from '../errors/AppError';
+import AppError from '@/errors/AppError';
 
 function isJsonParseError(err: Error | object) {
   return (

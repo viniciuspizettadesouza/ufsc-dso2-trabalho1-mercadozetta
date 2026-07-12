@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import tenantMiddleware from '../../../src/middleware/tenant';
+import tenantMiddleware from '@/middleware/tenant';
 
 describe('tenantMiddleware', () => {
   afterEach(() => {

@@ -3,13 +3,13 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import AdminDashboard from './AdminDashboard';
-import Checkout from './Checkout';
-import ProductDetail from './ProductDetail';
-import SellerProfile from './SellerProfile';
-import api from '../services/api';
+import AdminDashboard from '@/pages/AdminDashboard';
+import Checkout from '@/pages/Checkout';
+import ProductDetail from '@/pages/ProductDetail';
+import SellerProfile from '@/pages/SellerProfile';
+import api from '@/services/api';
 
-vi.mock('../services/api', () => ({
+vi.mock('@/services/api', () => ({
   default: {
     get: vi.fn(),
     put: vi.fn(),

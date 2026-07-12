@@ -1,18 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Types } from 'mongoose';
 
-vi.mock('../src/model/user', () => ({
+vi.mock('@/model/user', () => ({
   default: {
     findOne: vi.fn(),
     create: vi.fn(),
   },
 }));
 
-import User from '../src/model/user';
-import {
-  createUser,
-  getPublicSellerProfile,
-} from '../src/services/userService';
+import User from '@/model/user';
+import { createUser, getPublicSellerProfile } from '@/services/userService';
 
 const mockedUser = User as typeof User & {
   findOne: ReturnType<typeof vi.fn>;

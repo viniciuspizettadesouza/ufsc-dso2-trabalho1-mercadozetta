@@ -2,12 +2,12 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import Index from './Index';
-import api from '../services/api';
+import Index from '@/pages/Index';
+import api from '@/services/api';
 
 const navigate = vi.fn();
 
-vi.mock('../services/api', () => ({
+vi.mock('@/services/api', () => ({
   default: {
     get: vi.fn(),
   },

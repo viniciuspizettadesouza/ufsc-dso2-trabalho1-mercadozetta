@@ -1,14 +1,14 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { getJwtAccessTokenTtl, getJwtSecret } from '../config/security';
-import AppError from '../errors/AppError';
-import User from '../model/user';
-import { defaultTenantId } from '../tenants';
+import { getJwtAccessTokenTtl, getJwtSecret } from '@/config/security';
+import AppError from '@/errors/AppError';
+import User from '@/model/user';
+import { defaultTenantId } from '@/tenants';
 import {
   type LoginCredentials,
   type LoginRequestBody,
   validateLoginPayload,
-} from '../validators/authValidator';
+} from '@/validators/authValidator';
 
 function stripSensitiveFields<
   T extends { password?: string; tokenVersion?: number },

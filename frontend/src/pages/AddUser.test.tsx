@@ -4,12 +4,12 @@ import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AxiosError, AxiosHeaders } from 'axios';
 
-import AddUser from './AddUser';
-import api from '../services/api';
+import AddUser from '@/pages/AddUser';
+import api from '@/services/api';
 
 const navigate = vi.fn();
 
-vi.mock('../services/api', () => ({
+vi.mock('@/services/api', () => ({
   default: {
     post: vi.fn(),
   },

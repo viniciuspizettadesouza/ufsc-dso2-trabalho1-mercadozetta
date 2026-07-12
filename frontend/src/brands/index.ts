@@ -1,6 +1,6 @@
-import { campusMarketBrand } from './campusMarket';
-import { defaultBrand } from './default';
-import type { BrandConfig } from './schema';
+import { campusMarketBrand } from '@/brands/campusMarket';
+import { defaultBrand } from '@/brands/default';
+import type { BrandConfig } from '@/brands/schema';
 
 const brands = {
   [defaultBrand.tenantId]: defaultBrand,

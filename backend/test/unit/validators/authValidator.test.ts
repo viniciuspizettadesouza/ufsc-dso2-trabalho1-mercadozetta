@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateLoginPayload } from '../../../src/validators/authValidator';
+import { validateLoginPayload } from '@/validators/authValidator';
 
 describe('authValidator', () => {
   it('normalizes login email and keeps the password unchanged', () => {

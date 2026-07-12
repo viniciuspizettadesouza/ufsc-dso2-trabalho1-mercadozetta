@@ -1,15 +1,15 @@
 import { createBrowserRouter, RouterProvider } from 'react-router';
 
-import AddProduct from './pages/AddProduct';
-import AddUser from './pages/AddUser';
-import Login from './pages/Login';
-import Index from './pages/Index';
-import Checkout from './pages/Checkout';
-import AdminDashboard from './pages/AdminDashboard';
-import ProductDetail from './pages/ProductDetail';
-import SellerProfile from './pages/SellerProfile';
-import { BrandProvider } from './brands/BrandProvider';
-import { routePatterns } from './routes';
+import AddProduct from '@/pages/AddProduct';
+import AddUser from '@/pages/AddUser';
+import Login from '@/pages/Login';
+import Index from '@/pages/Index';
+import Checkout from '@/pages/Checkout';
+import AdminDashboard from '@/pages/AdminDashboard';
+import ProductDetail from '@/pages/ProductDetail';
+import SellerProfile from '@/pages/SellerProfile';
+import { BrandProvider } from '@/brands/BrandProvider';
+import { routePatterns } from '@/routes';
 
 const router = createBrowserRouter([
   {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { apiRoutes, appRoutes, routePatterns } from './routes';
+import { apiRoutes, appRoutes, routePatterns } from '@/routes';
 
 describe('routes', () => {
   it('builds stable app URLs', () => {

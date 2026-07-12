@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('../../../src/services/commerceService', () => ({
+vi.mock('@/services/commerceService', () => ({
   getCart: vi.fn(),
   setCartItem: vi.fn(),
   removeCartItem: vi.fn(),
@@ -16,8 +16,8 @@ vi.mock('../../../src/services/commerceService', () => ({
 }));
 
 import type { Request, Response } from 'express';
-import * as Controller from '../../../src/controller/commerceController';
-import * as Commerce from '../../../src/services/commerceService';
+import * as Controller from '@/controller/commerceController';
+import * as Commerce from '@/services/commerceService';
 
 describe('commerce controller', () => {
   const send = vi.fn();

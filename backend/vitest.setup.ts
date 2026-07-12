@@ -1,4 +1,5 @@
 require('ts-node/register/transpile-only');
+require('tsconfig-paths/register');
 // Make CommonJS `require()` return the default export for ESM-style TS modules
 // This keeps legacy CommonJS tests working without changing all test files.
 {

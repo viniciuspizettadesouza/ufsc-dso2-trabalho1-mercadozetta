@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import AppError from '../src/errors/AppError';
+import AppError from '@/errors/AppError';
 import {
   validateCreateProductPayload,
   validateProductFilters,
   validateProductId,
   validateSellerId,
-} from '../src/validators/productValidator';
+} from '@/validators/productValidator';
 
 describe('product validator', () => {
   it('validates create-product payloads and filters with the same rules as the controllers', () => {

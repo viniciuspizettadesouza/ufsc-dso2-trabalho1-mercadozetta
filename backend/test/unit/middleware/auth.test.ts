@@ -2,9 +2,9 @@ import jwt from 'jsonwebtoken';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { clearModules, mockModule } from '../helpers/moduleMock';
 
-const authPath = require.resolve('../../../src/middleware/auth');
-const securityPath = require.resolve('../../../src/config/security');
-const userModelPath = require.resolve('../../../src/model/user');
+const authPath = require.resolve('@/middleware/auth');
+const securityPath = require.resolve('@/config/security');
+const userModelPath = require.resolve('@/model/user');
 
 function loadAuthMiddleware(
   secret = 'test-secret',
@@ -15,7 +15,7 @@ function loadAuthMiddleware(
     getJwtSecret: () => secret,
   });
   mockModule(userModelPath, { exists });
-  return require('../../../src/middleware/auth');
+  return require('@/middleware/auth');
 }
 
 afterEach(() => {

@@ -1,6 +1,6 @@
-import { defaultBrand } from './default';
-import logo from '../assets/campusmarket-logo.png';
-import type { BrandConfig } from './schema';
+import { defaultBrand } from '@/brands/default';
+import logo from '@/assets/campusmarket-logo.png';
+import type { BrandConfig } from '@/brands/schema';
 
 export const campusMarketBrand: BrandConfig = {
   ...defaultBrand,

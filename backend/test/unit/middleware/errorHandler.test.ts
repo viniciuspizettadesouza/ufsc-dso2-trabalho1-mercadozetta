@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import AppError from '../../../src/errors/AppError';
-import errorHandler from '../../../src/middleware/errorHandler';
+import AppError from '@/errors/AppError';
+import errorHandler from '@/middleware/errorHandler';
 
 function createResponse() {
   return {

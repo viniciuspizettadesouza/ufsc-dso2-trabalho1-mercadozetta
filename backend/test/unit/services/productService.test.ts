@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { clearModules, mockModule } from '../helpers/moduleMock';
 
-const servicePath = require.resolve('../../../src/services/productService');
-const productModelPath = require.resolve('../../../src/model/product');
-const userServicePath = require.resolve('../../../src/services/userService');
+const servicePath = require.resolve('@/services/productService');
+const productModelPath = require.resolve('@/model/product');
+const userServicePath = require.resolve('@/services/userService');
 
 function loadProductService(
   productModel: NodeModule['exports'],
@@ -14,7 +14,7 @@ function loadProductService(
   mockModule(userServicePath, {
     getPublicSellerProfile: userService.getPublicSellerProfile || vi.fn(),
   });
-  return require('../../../src/services/productService');
+  return require('@/services/productService');
 }
 
 afterEach(() => {

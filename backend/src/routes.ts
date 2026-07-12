@@ -1,27 +1,27 @@
 import express from 'express';
 import mongoose from 'mongoose';
-import AuthController from './controller/authController';
-import UserController from './controller/userController';
-import ProductController from './controller/productController';
-import CommerceController from './controller/commerceController';
-import authMiddleware from './middleware/auth';
-import asyncHandler from './middleware/asyncHandler';
-import { authRateLimiter, registerRateLimiter } from './middleware/rateLimit';
-import validateRequest from './middleware/validateRequest';
+import AuthController from '@/controller/authController';
+import UserController from '@/controller/userController';
+import ProductController from '@/controller/productController';
+import CommerceController from '@/controller/commerceController';
+import authMiddleware from '@/middleware/auth';
+import asyncHandler from '@/middleware/asyncHandler';
+import { authRateLimiter, registerRateLimiter } from '@/middleware/rateLimit';
+import validateRequest from '@/middleware/validateRequest';
 import {
   validateCreateProductPayload,
   validateProductFilters,
   validateProductId,
   validateSellerId,
-} from './validators/productValidator';
-import { validateCreateUserPayload } from './validators/userValidator';
-import { validateLoginPayload } from './validators/authValidator';
+} from '@/validators/productValidator';
+import { validateCreateUserPayload } from '@/validators/userValidator';
+import { validateLoginPayload } from '@/validators/authValidator';
 import {
   validateCartItem,
   validateOrderStatus,
   validateResourceId,
   validateReview,
-} from './validators/commerceValidator';
+} from '@/validators/commerceValidator';
 
 const routes = express.Router();
 

@@ -1,9 +1,9 @@
 /* v8 ignore file -- API-backed checkout workflow is covered by MarketplacePages integration tests. */
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import Header from './header';
-import api from '../services/api';
-import { apiRoutes, appRoutes } from '../routes';
+import Header from '@/pages/header';
+import api from '@/services/api';
+import { apiRoutes, appRoutes } from '@/routes';
 
 type Product = { _id: string; name: string };
 type CartItem = { product: Product; quantity: number };
