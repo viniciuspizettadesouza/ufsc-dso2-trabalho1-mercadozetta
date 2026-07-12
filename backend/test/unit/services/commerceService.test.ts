@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import mongoose from 'mongoose';
 
 vi.mock('../../../src/model/cart', () => ({
   default: { findOne: vi.fn(), findOneAndUpdate: vi.fn(), updateOne: vi.fn() },
@@ -50,7 +51,15 @@ import {
 } from '../../../src/services/commerceService';
 
 describe('commerce service authorization', () => {
-  beforeEach(() => vi.clearAllMocks());
+  const session = {
+    withTransaction: vi.fn(async (work: () => Promise<void>) => work()),
+    endSession: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(mongoose, 'startSession').mockResolvedValue(session as never);
+  });
 
   it('returns an empty cart and persists cart item changes', async () => {
     vi.mocked(Cart.findOne).mockReturnValueOnce({
@@ -165,12 +174,16 @@ describe('commerce service authorization', () => {
         inventory: 3,
       },
     ] as never);
-    vi.mocked(Order.create).mockResolvedValue({
-      _id: 'order-1',
-      toObject: () => ({ _id: 'order-1', status: 'placed' }),
-    } as never);
+    vi.mocked(Order.create).mockResolvedValue([
+      {
+        _id: 'order-1',
+        toObject: () => ({ _id: 'order-1', status: 'placed' }),
+      },
+    ] as never);
     vi.mocked(OrderItem.insertMany).mockResolvedValue([] as never);
-    vi.mocked(Product.updateOne).mockResolvedValue({} as never);
+    vi.mocked(Product.updateOne).mockResolvedValue({
+      modifiedCount: 1,
+    } as never);
     vi.mocked(Notification.create).mockResolvedValue({} as never);
     vi.mocked(Notification.insertMany).mockResolvedValue([] as never);
 
@@ -184,10 +197,63 @@ describe('commerce service authorization', () => {
     expect(Cart.updateOne).toHaveBeenCalledWith(
       { _id: 'cart-1', tenantId: 'mercadozetta' },
       { $set: { items: [] } },
+      { session },
     );
-    expect(Notification.insertMany).toHaveBeenCalledWith([
-      expect.objectContaining({ user: 'seller-1' }),
-    ]);
+    expect(Notification.insertMany).toHaveBeenCalledWith(
+      [expect.objectContaining({ user: 'seller-1' })],
+      { session },
+    );
+    expect(session.endSession).toHaveBeenCalled();
+  });
+
+  it('rolls back checkout when a conditional inventory decrement loses a race', async () => {
+    vi.mocked(Cart.findOne).mockResolvedValue({
+      _id: 'cart-1',
+      items: [{ product: 'product-1', quantity: 2 }],
+    } as never);
+    vi.mocked(Product.find).mockResolvedValue([
+      {
+        _id: 'product-1',
+        seller: 'seller-1',
+        name: 'Coffee',
+        status: 'active',
+        inventory: 2,
+      },
+    ] as never);
+    vi.mocked(Order.create).mockResolvedValue([
+      { _id: 'order-1', toObject: vi.fn() },
+    ] as never);
+    vi.mocked(OrderItem.insertMany).mockResolvedValue([] as never);
+    vi.mocked(Product.updateOne).mockResolvedValue({
+      modifiedCount: 0,
+    } as never);
+
+    await expect(createOrder('buyer-1', 'mercadozetta')).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'INSUFFICIENT_INVENTORY',
+    });
+
+    expect(Product.updateOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: 'mercadozetta',
+        status: 'active',
+        inventory: { $gte: 2 },
+      }),
+      { $inc: { inventory: -2 } },
+      { session },
+    );
+    expect(Cart.updateOne).not.toHaveBeenCalled();
+    expect(Notification.create).not.toHaveBeenCalled();
+    expect(session.endSession).toHaveBeenCalled();
+  });
+
+  it('rejects a checkout when the transaction finishes without a commit result', async () => {
+    session.withTransaction.mockResolvedValueOnce(undefined);
+
+    await expect(createOrder('buyer-1', 'mercadozetta')).rejects.toThrow(
+      'Order transaction did not commit',
+    );
+    expect(session.endSession).toHaveBeenCalled();
   });
 
   it('lists orders visible to a buyer or seller with their items', async () => {

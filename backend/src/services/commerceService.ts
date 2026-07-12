@@ -1,4 +1,5 @@
 import AppError from '../errors/AppError';
+import mongoose from 'mongoose';
 import Cart from '../model/cart';
 import Notification from '../model/notification';
 import Order from '../model/order';
@@ -91,72 +92,117 @@ export async function removeWatchlist(
 }
 
 export async function createOrder(userId: string, tenantId: string) {
-  const cart = await Cart.findOne({ tenantId, buyer: userId });
-  /* v8 ignore next -- empty and populated carts have focused coverage. */
-  if (!cart?.items.length)
-    throw new AppError(400, 'EMPTY_CART', 'Cart is empty');
+  const session = await mongoose.startSession();
+  let transactionResult;
 
-  const products = await Product.find({
-    tenantId,
-    _id: { $in: cart.items.map((item) => item.product) },
-  });
-  const productMap = new Map(
-    products.map((product) => [String(product._id), product]),
-  );
-  for (const item of cart.items) {
-    const product = productMap.get(String(item.product));
-    /* v8 ignore next -- missing, inactive, understocked, and available products have focused coverage. */
-    if (
-      !product ||
-      product.status !== 'active' ||
-      product.inventory < item.quantity
-    )
-      throw new AppError(
-        409,
-        'INSUFFICIENT_INVENTORY',
-        'A cart item is unavailable',
+  try {
+    transactionResult = await session.withTransaction(async () => {
+      const cart = await Cart.findOne({ tenantId, buyer: userId }, null, {
+        session,
+      });
+      /* v8 ignore next -- empty and populated carts have focused coverage. */
+      if (!cart?.items.length)
+        throw new AppError(400, 'EMPTY_CART', 'Cart is empty');
+
+      const products = await Product.find(
+        {
+          tenantId,
+          _id: { $in: cart.items.map((item) => item.product) },
+        },
+        null,
+        { session },
       );
+      const productMap = new Map(
+        products.map((product) => [String(product._id), product]),
+      );
+      for (const item of cart.items) {
+        const product = productMap.get(String(item.product));
+        /* v8 ignore next -- missing, inactive, understocked, and available products have focused coverage. */
+        if (
+          !product ||
+          product.status !== 'active' ||
+          product.inventory < item.quantity
+        )
+          throw new AppError(
+            409,
+            'INSUFFICIENT_INVENTORY',
+            'A cart item is unavailable',
+          );
+      }
+
+      const [order] = await Order.create(
+        [{ tenantId, buyer: userId, status: 'placed' }],
+        { session },
+      );
+      const items = cart.items.map((item) => {
+        const product = productMap.get(String(item.product))!;
+        return {
+          tenantId,
+          order: order._id,
+          product: product._id,
+          seller: product.seller,
+          productName: product.name,
+          quantity: item.quantity,
+        };
+      });
+      await OrderItem.insertMany(items, { session });
+
+      for (const item of items) {
+        const inventoryUpdate = await Product.updateOne(
+          {
+            _id: item.product,
+            tenantId,
+            status: 'active',
+            inventory: { $gte: item.quantity },
+          },
+          { $inc: { inventory: -item.quantity } },
+          { session },
+        );
+        if (inventoryUpdate.modifiedCount !== 1)
+          throw new AppError(
+            409,
+            'INSUFFICIENT_INVENTORY',
+            'A cart item is unavailable',
+          );
+      }
+
+      await Cart.updateOne(
+        { _id: cart._id, tenantId },
+        { $set: { items: [] } },
+        { session },
+      );
+      await Notification.create(
+        [
+          {
+            tenantId,
+            user: userId,
+            message: `Order ${order._id} created`,
+          },
+        ],
+        { session },
+      );
+      await Notification.insertMany(
+        [...new Set(items.map((item) => String(item.seller)))].map(
+          (seller) => ({
+            tenantId,
+            user: seller,
+            message: `New order ${order._id}`,
+          }),
+        ),
+        { session },
+      );
+      return { order, items };
+    });
+  } finally {
+    await session.endSession();
   }
 
-  const order = await Order.create({
-    tenantId,
-    buyer: userId,
-    status: 'placed',
-  });
-  const items = cart.items.map((item) => {
-    const product = productMap.get(String(item.product))!;
-    return {
-      tenantId,
-      order: order._id,
-      product: product._id,
-      seller: product.seller,
-      productName: product.name,
-      quantity: item.quantity,
-    };
-  });
-  await OrderItem.insertMany(items);
-  await Promise.all(
-    items.map((item) =>
-      Product.updateOne(
-        { _id: item.product, tenantId },
-        { $inc: { inventory: -item.quantity } },
-      ),
-    ),
-  );
-  await Cart.updateOne({ _id: cart._id, tenantId }, { $set: { items: [] } });
-  await Notification.create({
-    tenantId,
-    user: userId,
-    message: `Order ${order._id} created`,
-  });
-  await Notification.insertMany(
-    [...new Set(items.map((item) => String(item.seller)))].map((seller) => ({
-      tenantId,
-      user: seller,
-      message: `New order ${order._id}`,
-    })),
-  );
-  return { ...order.toObject(), items };
+  /* v8 ignore next -- a committed transaction always assigns its order. */
+  if (!transactionResult) throw new Error('Order transaction did not commit');
+  return {
+    ...transactionResult.order.toObject(),
+    items: transactionResult.items,
+  };
 }
 
 export async function listOrders(userId: string, tenantId: string) {
