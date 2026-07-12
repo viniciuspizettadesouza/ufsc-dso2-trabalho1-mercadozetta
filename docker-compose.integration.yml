@@ -1,0 +1,27 @@
+services:
+  mongo-integration:
+    image: mongo:7
+    command: ['mongod', '--replSet', 'rs0', '--bind_ip_all']
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'mongosh --quiet --eval "try { rs.status().ok } catch (error) { rs.initiate({_id: ''rs0'', members: [{_id: 0, host: ''mongo-integration:27017''}]}).ok }"',
+        ]
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    tmpfs:
+      - /data/db
+
+  integration-tests:
+    build:
+      context: ./backend
+    environment:
+      NODE_ENV: test
+      JWT_SECRET: integration-test-secret
+      MONGODB_URI: mongodb://mongo-integration:27017/mercadozetta_integration?replicaSet=rs0
+    depends_on:
+      mongo-integration:
+        condition: service_healthy
+    command: ['npm', 'run', 'test:integration']

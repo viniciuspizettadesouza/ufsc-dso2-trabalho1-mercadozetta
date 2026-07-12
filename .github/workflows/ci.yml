@@ -71,6 +71,9 @@ jobs:
       - name: Test backend
         run: npm run test:backend
 
+      - name: Test database integration
+        run: npm run test:integration
+
       - name: Test frontend
         run: npm run test:frontend
 
