@@ -16,7 +16,7 @@ The frontend lets users browse and search products, create accounts, log in, cre
 
 ## Environment
 
-Use Node.js 22.22 or newer. From the repository root, run `nvm use` to use the version pinned by `.nvmrc`.
+Use Node.js 24.18 or newer. From the repository root, run `nvm use` to use the version pinned by `.nvmrc`.
 
 Create a local `.env` file:
 

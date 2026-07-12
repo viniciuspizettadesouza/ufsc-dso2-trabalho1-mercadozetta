@@ -90,7 +90,7 @@ request and response shapes.
 
 Before installing the project, make sure you have:
 
-- Node.js 22.22 or newer
+- Node.js 24.18 or newer
 - npm
 - Docker, if you want to use a local MongoDB for development
 - Git

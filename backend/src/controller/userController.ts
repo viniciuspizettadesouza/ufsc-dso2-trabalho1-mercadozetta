@@ -17,7 +17,7 @@ const userController = {
     return res.status(201).send({ newUser: createdUser });
   },
 
-  async sellerProfile(req: Request, res: Response) {
+  async sellerProfile(req: Request<{ userId: string }>, res: Response) {
     const seller = await UserService.getPublicSellerProfile(
       req.params.userId,
       req.tenant?.id ?? '',
