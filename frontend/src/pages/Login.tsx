@@ -7,62 +7,64 @@ import { useBrand } from '../brands/brandContext';
 import { apiRoutes, appRoutes } from '../routes';
 
 export default function Login() {
-    const brand = useBrand();
-    const navigate = useNavigate();
+  const brand = useBrand();
+  const navigate = useNavigate();
 
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
-    async function handleSubmit(e: FormEvent<HTMLFormElement>) {
-        e.preventDefault();
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
 
-        try {
-            setError('');
+    try {
+      setError('');
 
-            const response = await api.post(apiRoutes.login, {
-                email,
-                password,
-            });
+      const response = await api.post(apiRoutes.login, {
+        email,
+        password,
+      });
 
-            localStorage.setItem('token', response.data.token);
-            localStorage.setItem('user', JSON.stringify(response.data.user));
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
 
-            navigate(appRoutes.sellerProducts(response.data.user._id));
-        } catch {
-            setError(brand.copy.validation.invalidCredentials);
-        }
+      navigate(appRoutes.sellerProducts(response.data.user._id));
+    } catch {
+      setError(brand.copy.validation.invalidCredentials);
     }
+  }
 
-    return (
-        <div>
-            <Header hideLoginAction />
-            <div className="flex h-full items-center justify-center">
-                <form className="flex w-full max-w-[300px] flex-col" onSubmit={handleSubmit}>
-                    <input
-                        className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
-                        type="email"
-                        placeholder="Email"
-                        value={email}
-                        onChange={e => setEmail(e.target.value)}
-                    />
-                    <input
-                        className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
-                        type="password"
-                        placeholder="Password"
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                    />
-                    {error && <p>{error}</p>}
-                    <button
-                        className="mt-2.5 h-12 cursor-pointer rounded border-0 bg-[var(--brand-secondary)] text-base font-bold text-white"
-                        type="submit"
-                    >
-                        {brand.copy.forms.loginAction}
-                    </button>
-                </form>
-            </div>
-        </div>
-
-    );
+  return (
+    <div>
+      <Header hideLoginAction />
+      <div className="flex h-full items-center justify-center">
+        <form
+          className="flex w-full max-w-[300px] flex-col"
+          onSubmit={handleSubmit}
+        >
+          <input
+            className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <input
+            className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          {error && <p>{error}</p>}
+          <button
+            className="mt-2.5 h-12 cursor-pointer rounded border-0 bg-[var(--brand-secondary)] text-base font-bold text-white"
+            type="submit"
+          >
+            {brand.copy.forms.loginAction}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
 }

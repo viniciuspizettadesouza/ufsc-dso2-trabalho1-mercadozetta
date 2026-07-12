@@ -9,7 +9,10 @@ vi.mock('../src/model/user', () => ({
 }));
 
 import User from '../src/model/user';
-import { createUser, getPublicSellerProfile } from '../src/services/userService';
+import {
+  createUser,
+  getPublicSellerProfile,
+} from '../src/services/userService';
 
 const mockedUser = User as typeof User & {
   findOne: ReturnType<typeof vi.fn>;
@@ -29,15 +32,24 @@ describe('user service', () => {
 
     mockedUser.findOne.mockResolvedValue(null);
     mockedUser.create.mockResolvedValue({
-      toObject: () => ({ _id: userId, email: 'buyer@example.com', username: 'Buyer', telephone: '123', tenantId: 'mercadozetta' }),
+      toObject: () => ({
+        _id: userId,
+        email: 'buyer@example.com',
+        username: 'Buyer',
+        telephone: '123',
+        tenantId: 'mercadozetta',
+      }),
     });
 
-    const createdUser = await createUser({
-      email: 'Buyer@Example.com',
-      password: 'secret123',
-      username: 'Buyer',
-      telephone: '123456789',
-    }, 'mercadozetta');
+    const createdUser = await createUser(
+      {
+        email: 'Buyer@Example.com',
+        password: 'secret123',
+        username: 'Buyer',
+        telephone: '123456789',
+      },
+      'mercadozetta',
+    );
 
     expect(createdUser).toEqual({
       _id: userId,
@@ -54,7 +66,10 @@ describe('user service', () => {
       email: 'seller@example.com',
     });
 
-    const sellerProfile = await getPublicSellerProfile(String(sellerId), 'mercadozetta');
+    const sellerProfile = await getPublicSellerProfile(
+      String(sellerId),
+      'mercadozetta',
+    );
 
     expect(sellerProfile).toEqual({
       _id: sellerId,
@@ -80,7 +95,9 @@ describe('user service', () => {
     await expect(createUser(validUser)).resolves.not.toHaveProperty('password');
 
     mockedUser.findOne.mockResolvedValueOnce({ _id: 'existing' });
-    await expect(createUser(validUser)).rejects.toMatchObject({ code: 'USER_EXISTS' });
+    await expect(createUser(validUser)).rejects.toMatchObject({
+      code: 'USER_EXISTS',
+    });
 
     mockedUser.findOne.mockResolvedValueOnce(null);
     mockedUser.create.mockRejectedValueOnce('database unavailable');
@@ -96,9 +113,13 @@ describe('user service', () => {
       telephone: '123',
       email: 'seller@example.com',
     });
-    await expect(getPublicSellerProfile('seller-1')).resolves.toMatchObject({ storeName: 'Seller store' });
+    await expect(getPublicSellerProfile('seller-1')).resolves.toMatchObject({
+      storeName: 'Seller store',
+    });
 
     mockedUser.findOne.mockResolvedValueOnce(null);
-    await expect(getPublicSellerProfile('missing')).rejects.toMatchObject({ code: 'SELLER_NOT_FOUND' });
+    await expect(getPublicSellerProfile('missing')).rejects.toMatchObject({
+      code: 'SELLER_NOT_FOUND',
+    });
   });
 });

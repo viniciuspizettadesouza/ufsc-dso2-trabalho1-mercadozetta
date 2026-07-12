@@ -24,8 +24,7 @@ export function resolveTenant(tenantId?: string | string[]) {
   const effectiveId = id || defaultTenantId;
   const tenant = tenants[effectiveId];
 
-  if (!tenant || !tenant.active)
-    return null;
+  if (!tenant || !tenant.active) return null;
 
   return tenant;
 }

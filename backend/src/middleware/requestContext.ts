@@ -16,7 +16,7 @@ function requestContext(req: Request, res: Response, next: NextFunction) {
           path: req.originalUrl,
           statusCode: res.statusCode,
           durationMs: Date.now() - startedAt,
-        })
+        }),
       );
     });
   }

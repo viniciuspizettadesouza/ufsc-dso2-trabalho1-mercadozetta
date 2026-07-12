@@ -4,11 +4,12 @@ services:
     container_name: mercadozetta-mongo
     restart: unless-stopped
     ports:
-      - "27017:27017"
+      - '27017:27017'
     volumes:
       - mercadozetta-mongo-data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      test:
+        ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping').ok"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,7 +28,7 @@ services:
       RATE_LIMIT_REGISTER_WINDOW_MS: 900000
       RATE_LIMIT_REGISTER_MAX: 10
     ports:
-      - "3333:3333"
+      - '3333:3333'
     depends_on:
       mongo:
         condition: service_healthy
@@ -40,7 +41,7 @@ services:
       VITE_API_URL: http://localhost:3333
       VITE_TENANT_ID: mercadozetta
     ports:
-      - "5173:5173"
+      - '5173:5173'
     depends_on:
       - backend
 

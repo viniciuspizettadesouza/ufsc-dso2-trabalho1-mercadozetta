@@ -12,22 +12,40 @@ import {
   validateSellerId,
 } from '../validators/productValidator';
 
-type ProductListItem = Pick<ProductRecord, 'name' | 'description' | 'category' | 'subcategory' | 'status' | 'seller' | 'inventory'> & {
+type ProductListItem = Pick<
+  ProductRecord,
+  | 'name'
+  | 'description'
+  | 'category'
+  | 'subcategory'
+  | 'status'
+  | 'seller'
+  | 'inventory'
+> & {
   createdAt?: string | number | Date;
 };
 
 function normalizeText(value: string | number | boolean | null | undefined) {
-  return String(value || '').trim().toLowerCase();
+  return String(value || '')
+    .trim()
+    .toLowerCase();
 }
 
 function toTimestamp(value?: string | number | Date) {
-  if (typeof value === 'string' || typeof value === 'number' || value instanceof Date)
+  if (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    value instanceof Date
+  )
     return new Date(value).getTime();
 
   return 0;
 }
 
-function filterProducts<T extends ProductListItem>(products: T[], filters: ProductListFilters) {
+function filterProducts<T extends ProductListItem>(
+  products: T[],
+  filters: ProductListFilters,
+) {
   const q = normalizeText(filters.q);
   const category = normalizeText(filters.category);
   const subcategory = normalizeText(filters.subcategory);
@@ -62,24 +80,42 @@ function sortProducts<T extends ProductListItem>(products: T[], sort?: string) {
 
   switch (sort) {
     case 'created_asc':
-      return sortedProducts.sort((a, b) => toTimestamp(a.createdAt) - toTimestamp(b.createdAt));
+      return sortedProducts.sort(
+        (a, b) => toTimestamp(a.createdAt) - toTimestamp(b.createdAt),
+      );
     case 'name_asc':
-      return sortedProducts.sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+      return sortedProducts.sort((a, b) =>
+        String(a.name || '').localeCompare(String(b.name || '')),
+      );
     case 'inventory_desc':
-      return sortedProducts.sort((a, b) => Number(b.inventory || 0) - Number(a.inventory || 0));
+      return sortedProducts.sort(
+        (a, b) => Number(b.inventory || 0) - Number(a.inventory || 0),
+      );
     case 'created_desc':
     default:
-      return sortedProducts.sort((a, b) => toTimestamp(b.createdAt) - toTimestamp(a.createdAt));
+      return sortedProducts.sort(
+        (a, b) => toTimestamp(b.createdAt) - toTimestamp(a.createdAt),
+      );
   }
 }
 
-export async function listProducts(tenantId = defaultTenantId, filters: ProductFilterQuery | ProductListFilters = {}) {
+export async function listProducts(
+  tenantId = defaultTenantId,
+  filters: ProductFilterQuery | ProductListFilters = {},
+) {
   const validatedFilters = validateProductFilters(filters);
   const products = await Product.find({ tenantId });
-  return sortProducts(filterProducts(products, validatedFilters), String(validatedFilters.sort || 'created_desc'));
+  return sortProducts(
+    filterProducts(products, validatedFilters),
+    String(validatedFilters.sort || 'created_desc'),
+  );
 }
 
-export async function createProduct(body: CreateProductRequestBody | CreateProductData, seller: string, tenantId = defaultTenantId) {
+export async function createProduct(
+  body: CreateProductRequestBody | CreateProductData,
+  seller: string,
+  tenantId = defaultTenantId,
+) {
   const productData = validateCreateProductPayload(body);
 
   return Product.create({
@@ -89,26 +125,38 @@ export async function createProduct(body: CreateProductRequestBody | CreateProdu
   });
 }
 
-export async function getProductById(productId: string, tenantId = defaultTenantId) {
+export async function getProductById(
+  productId: string,
+  tenantId = defaultTenantId,
+) {
   const _id = validateProductId(productId);
   const product = await Product.findOne({ _id, tenantId });
 
-  if (!product)
-    return null;
+  if (!product) return null;
 
   try {
-    const seller = await UserService.getPublicSellerProfile(String(product.seller), tenantId);
+    const seller = await UserService.getPublicSellerProfile(
+      String(product.seller),
+      tenantId,
+    );
     return { ...product.toObject(), sellerProfile: seller };
   } catch {
     return product;
   }
 }
 
-export async function listProductsBySeller(userId: string, tenantId = defaultTenantId, filters: ProductFilterQuery | ProductListFilters = {}) {
+export async function listProductsBySeller(
+  userId: string,
+  tenantId = defaultTenantId,
+  filters: ProductFilterQuery | ProductListFilters = {},
+) {
   const seller = validateSellerId(userId);
   const validatedFilters = validateProductFilters(filters);
   const products = await Product.find({ tenantId, seller });
-  return sortProducts(filterProducts(products, validatedFilters), String(validatedFilters.sort || 'created_desc'));
+  return sortProducts(
+    filterProducts(products, validatedFilters),
+    String(validatedFilters.sort || 'created_desc'),
+  );
 }
 
 const ProductService = {

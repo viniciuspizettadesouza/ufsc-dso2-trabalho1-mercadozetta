@@ -5,7 +5,12 @@ class AppError extends Error {
   code: string;
   details?: AppErrorDetails;
 
-  constructor(statusCode: number, code: string, message: string, details?: AppErrorDetails) {
+  constructor(
+    statusCode: number,
+    code: string,
+    message: string,
+    details?: AppErrorDetails,
+  ) {
     super(message);
     this.name = 'AppError';
     this.statusCode = statusCode;

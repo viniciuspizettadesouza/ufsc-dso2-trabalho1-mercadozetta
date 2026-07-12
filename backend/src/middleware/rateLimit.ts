@@ -11,7 +11,8 @@ function createRateLimiter(scope: 'auth' | 'register') {
     legacyHeaders: false,
     message: {
       error: config.message,
-      code: scope === 'register' ? 'REGISTER_RATE_LIMITED' : 'AUTH_RATE_LIMITED',
+      code:
+        scope === 'register' ? 'REGISTER_RATE_LIMITED' : 'AUTH_RATE_LIMITED',
     },
   });
 }

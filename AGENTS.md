@@ -32,6 +32,10 @@ Common commands:
 - `npm test` runs backend and frontend test suites from the repository root.
 - `npm run typecheck` runs the backend TypeScript compiler without emitting.
 - `npm run lint` runs both backend and frontend lint checks.
+- `npm run format` formats supported files with Prettier.
+- `npm run format:check` checks Prettier formatting without rewriting files.
+- Commits format supported staged files through `lint-staged`; pushes check
+  repository formatting and run the test suite.
 - `npm run generate:openapi` regenerates the checked-in OpenAPI contract from
   backend schemas and route metadata.
 - `npm run test:coverage` runs both coverage suites and enforces their configured

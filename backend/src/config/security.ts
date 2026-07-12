@@ -25,13 +25,13 @@ function parseList(value: string | undefined) {
 }
 
 export function getJwtSecret() {
-  if (process.env.JWT_SECRET)
-    return process.env.JWT_SECRET;
+  if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
 
-  if (isLocalEnv())
-    return DEFAULT_DEV_JWT_SECRET;
+  if (isLocalEnv()) return DEFAULT_DEV_JWT_SECRET;
 
-  throw new Error('JWT_SECRET environment variable is required outside development and test');
+  throw new Error(
+    'JWT_SECRET environment variable is required outside development and test',
+  );
 }
 
 export function getJwtAccessTokenTtl() {
@@ -41,11 +41,9 @@ export function getJwtAccessTokenTtl() {
 export function isTenantHeaderRequired() {
   const configured = process.env.TENANT_HEADER_REQUIRED?.trim().toLowerCase();
 
-  if (configured === 'true')
-    return true;
+  if (configured === 'true') return true;
 
-  if (configured === 'false')
-    return false;
+  if (configured === 'false') return false;
 
   return !isLocalEnv();
 }
@@ -53,8 +51,7 @@ export function isTenantHeaderRequired() {
 export function getAllowedCorsOrigins() {
   const configuredOrigins = parseList(process.env.CORS_ORIGIN);
 
-  if (configuredOrigins.length)
-    return configuredOrigins;
+  if (configuredOrigins.length) return configuredOrigins;
 
   return isLocalEnv() ? DEFAULT_DEV_CORS_ORIGINS : [];
 }
@@ -64,8 +61,7 @@ export function getCorsOptions(): CorsOptions {
 
   return {
     origin(origin, callback) {
-      if (!origin)
-        return callback(null, true);
+      if (!origin) return callback(null, true);
 
       return callback(null, allowedOrigins.includes(origin));
     },
@@ -78,15 +74,19 @@ function readPositiveInteger(name: string, fallback: number) {
   return Number.isInteger(value) && value > 0 ? value : fallback;
 }
 
-export function getRateLimitConfig(scope: 'register' | 'auth'): RateLimitConfig {
-  const prefix = scope === 'register' ? 'RATE_LIMIT_REGISTER' : 'RATE_LIMIT_AUTH';
+export function getRateLimitConfig(
+  scope: 'register' | 'auth',
+): RateLimitConfig {
+  const prefix =
+    scope === 'register' ? 'RATE_LIMIT_REGISTER' : 'RATE_LIMIT_AUTH';
   const fallbackLimit = scope === 'register' ? 10 : 5;
 
   return {
     windowMs: readPositiveInteger(`${prefix}_WINDOW_MS`, 15 * 60 * 1000),
     limit: readPositiveInteger(`${prefix}_MAX`, fallbackLimit),
-    message: scope === 'register'
-      ? 'Too many account creation attempts, please try again later'
-      : 'Too many login attempts, please try again later',
+    message:
+      scope === 'register'
+        ? 'Too many account creation attempts, please try again later'
+        : 'Too many login attempts, please try again later',
   };
 }

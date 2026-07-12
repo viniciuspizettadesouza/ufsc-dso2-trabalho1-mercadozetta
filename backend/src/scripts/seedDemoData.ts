@@ -70,11 +70,13 @@ const seedProducts: SeedProduct[] = [
     tenantId: 'mercadozetta',
     sellerEmail: 'vinicius@mercadozetta.test',
     name: 'Notebook Dell Latitude',
-    description: 'Notebook revisado para estudos, trabalho remoto e demonstrações do marketplace.',
+    description:
+      'Notebook revisado para estudos, trabalho remoto e demonstrações do marketplace.',
     category: 'electronics',
     subcategory: 'computers',
     inventory: 3,
-    image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=900&q=80',
+    image:
+      'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=900&q=80',
     status: 'active',
   },
   {
@@ -82,11 +84,13 @@ const seedProducts: SeedProduct[] = [
     tenantId: 'mercadozetta',
     sellerEmail: 'vinicius@mercadozetta.test',
     name: 'Cadeira Ergonomica',
-    description: 'Cadeira com regulagem de altura e apoio lombar para setup de estudos.',
+    description:
+      'Cadeira com regulagem de altura e apoio lombar para setup de estudos.',
     category: 'home-office',
     subcategory: 'chairs',
     inventory: 5,
-    image: 'https://images.unsplash.com/photo-1501045661006-fcebe0257c3f?auto=format&fit=crop&w=900&q=80',
+    image:
+      'https://images.unsplash.com/photo-1501045661006-fcebe0257c3f?auto=format&fit=crop&w=900&q=80',
     status: 'active',
   },
   {
@@ -94,11 +98,13 @@ const seedProducts: SeedProduct[] = [
     tenantId: 'campus-market',
     sellerEmail: 'vinicius@campus-market.test',
     name: 'Calculadora Cientifica',
-    description: 'Calculadora para aulas de calculo, fisica e estatistica no campus.',
+    description:
+      'Calculadora para aulas de calculo, fisica e estatistica no campus.',
     category: 'study',
     subcategory: 'supplies',
     inventory: 8,
-    image: 'https://images.unsplash.com/photo-1611175694989-4870fafa4494?auto=format&fit=crop&w=900&q=80',
+    image:
+      'https://images.unsplash.com/photo-1611175694989-4870fafa4494?auto=format&fit=crop&w=900&q=80',
     status: 'active',
   },
   {
@@ -106,11 +112,13 @@ const seedProducts: SeedProduct[] = [
     tenantId: 'campus-market',
     sellerEmail: 'vinicius@campus-market.test',
     name: 'Moletom CampusMarket',
-    description: 'Moletom demonstrativo para validar catalogo, filtros e paginas de vendedor.',
+    description:
+      'Moletom demonstrativo para validar catalogo, filtros e paginas de vendedor.',
     category: 'apparel',
     subcategory: 'hoodies',
     inventory: 4,
-    image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=900&q=80',
+    image:
+      'https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=900&q=80',
     status: 'active',
   },
 ];
@@ -132,12 +140,17 @@ function assertTenantExists(tenantId: string) {
 async function upsertUser(seed: SeedUser) {
   assertTenantExists(seed.tenantId);
 
-  const existingUser = await User.findOne({ tenantId: seed.tenantId, email: seed.email }).select('+password');
-  const user = existingUser || new User({
-    _id: new Types.ObjectId(seed.id),
+  const existingUser = await User.findOne({
     tenantId: seed.tenantId,
     email: seed.email,
-  });
+  }).select('+password');
+  const user =
+    existingUser ||
+    new User({
+      _id: new Types.ObjectId(seed.id),
+      tenantId: seed.tenantId,
+      email: seed.email,
+    });
 
   user.password = seed.password;
   user.username = seed.username;
@@ -165,7 +178,7 @@ async function upsertProduct(seed: SeedProduct, sellerId: Types.ObjectId) {
         status: seed.status,
       },
     },
-    { upsert: true }
+    { upsert: true },
   );
 }
 
@@ -182,15 +195,21 @@ async function seedDemoData() {
   }
 
   for (const seedProduct of seedProducts) {
-    const sellerId = usersByTenantEmail.get(`${seedProduct.tenantId}:${seedProduct.sellerEmail}`);
+    const sellerId = usersByTenantEmail.get(
+      `${seedProduct.tenantId}:${seedProduct.sellerEmail}`,
+    );
 
     if (!sellerId)
-      throw new Error(`Missing seeded seller for ${seedProduct.tenantId}:${seedProduct.sellerEmail}`);
+      throw new Error(
+        `Missing seeded seller for ${seedProduct.tenantId}:${seedProduct.sellerEmail}`,
+      );
 
     await upsertProduct(seedProduct, sellerId);
   }
 
-  console.log(`Seeded ${seedUsers.length} users and ${seedProducts.length} products.`);
+  console.log(
+    `Seeded ${seedUsers.length} users and ${seedProducts.length} products.`,
+  );
   console.log('Demo seller logins:');
   console.log('mercadozetta -> vinicius@mercadozetta.test / mercadozetta123');
   console.log('campus-market -> vinicius@campus-market.test / campusmarket123');

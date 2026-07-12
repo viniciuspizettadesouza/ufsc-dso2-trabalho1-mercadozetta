@@ -1,0 +1,8 @@
+**/coverage/
+**/dist/
+**/node_modules/
+**/package-lock.json
+docs/openapi.json
+frontend/public/
+frontend/src/assets/
+images/

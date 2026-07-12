@@ -6,5 +6,5 @@ import type { BrandConfig } from './schema';
 export const BrandContext = createContext<BrandConfig>(defaultBrand);
 
 export function useBrand() {
-    return useContext(BrandContext);
+  return useContext(BrandContext);
 }
