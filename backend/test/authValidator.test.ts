@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import AppError from '../src/errors/AppError';
-import { validateLoginPayload } from '../src/validators/authValidator';
+import AppError from '@/errors/AppError';
+import { validateLoginPayload } from '@/validators/authValidator';
 
 describe('auth validator', () => {
   it('normalizes login payloads and rejects missing credentials', () => {

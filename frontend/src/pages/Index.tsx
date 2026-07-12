@@ -1,9 +1,9 @@
 import { Link } from 'react-router';
 
-import Header from './header/index';
-import Product from './Products';
-import { useBrand } from '../brands/brandContext';
-import { appRoutes } from '../routes';
+import Header from '@/pages/header/index';
+import Product from '@/pages/Products';
+import { useBrand } from '@/brands/brandContext';
+import { appRoutes } from '@/routes';
 
 export default function Index() {
   const brand = useBrand();

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const apiGet = vi.fn();
 
-vi.mock('./services/api', () => ({
+vi.mock('@/services/api', () => ({
   default: {
     get: apiGet,
     post: vi.fn(),
@@ -12,7 +12,7 @@ vi.mock('./services/api', () => ({
 
 async function renderAppAt(path: string) {
   window.history.pushState({}, '', path);
-  const { default: App } = await import('./App');
+  const { default: App } = await import('@/App');
 
   return render(<App />);
 }

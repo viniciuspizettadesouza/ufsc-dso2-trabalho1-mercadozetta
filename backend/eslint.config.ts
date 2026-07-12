@@ -37,5 +37,27 @@ export default [
       },
     },
   },
+  {
+    files: ['src/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: ['../**'],
+        },
+      ],
+    },
+  },
+  {
+    files: ['test/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: ['../src/**', '../../src/**', '../../../src/**'],
+        },
+      ],
+    },
+  },
   prettier,
 ];

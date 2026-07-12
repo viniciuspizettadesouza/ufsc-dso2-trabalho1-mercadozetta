@@ -1,5 +1,5 @@
 import rateLimit from 'express-rate-limit';
-import { getRateLimitConfig } from '../config/security';
+import { getRateLimitConfig } from '@/config/security';
 
 function createRateLimiter(scope: 'auth' | 'register') {
   const config = getRateLimitConfig(scope);

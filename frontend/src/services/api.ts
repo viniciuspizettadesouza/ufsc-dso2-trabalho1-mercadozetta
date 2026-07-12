@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { defaultBrand, getBrandByTenantId } from '../brands';
+import { defaultBrand, getBrandByTenantId } from '@/brands';
 
 const activeBrand = getBrandByTenantId(import.meta.env.VITE_TENANT_ID);
 

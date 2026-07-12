@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Types } from 'mongoose';
 
-vi.mock('../src/model/product', () => ({
+vi.mock('@/model/product', () => ({
   default: {
     find: vi.fn(),
     findOne: vi.fn(),
@@ -9,20 +9,20 @@ vi.mock('../src/model/product', () => ({
   },
 }));
 
-vi.mock('../src/services/userService', () => ({
+vi.mock('@/services/userService', () => ({
   default: {
     getPublicSellerProfile: vi.fn(),
   },
 }));
 
-import Product from '../src/model/product';
+import Product from '@/model/product';
 import {
   createProduct,
   getProductById,
   listProducts,
   listProductsBySeller,
-} from '../src/services/productService';
-import UserService from '../src/services/userService';
+} from '@/services/productService';
+import UserService from '@/services/userService';
 
 const mockedProduct = Product as typeof Product & {
   find: ReturnType<typeof vi.fn>;

@@ -1,10 +1,10 @@
 /* v8 ignore file -- API-backed marketplace workflow is covered by MarketplacePages integration tests. */
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
-import Header from './header';
-import api from '../services/api';
-import { useBrand } from '../brands/brandContext';
-import { apiRoutes, appRoutes } from '../routes';
+import Header from '@/pages/header';
+import api from '@/services/api';
+import { useBrand } from '@/brands/brandContext';
+import { apiRoutes, appRoutes } from '@/routes';
 
 type Product = {
   _id: string;

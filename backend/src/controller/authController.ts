@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
-import AuthService from '../services/authService';
-import type { LoginCredentials } from '../validators/authValidator';
+import AuthService from '@/services/authService';
+import type { LoginCredentials } from '@/validators/authValidator';
 
 type LoginRequest = Request & {
   validated: {

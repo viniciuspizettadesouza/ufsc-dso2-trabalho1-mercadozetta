@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { clearModules, mockModule } from '../helpers/moduleMock';
 
-const servicePath = require.resolve('../../../src/services/userService');
-const userModelPath = require.resolve('../../../src/model/user');
+const servicePath = require.resolve('@/services/userService');
+const userModelPath = require.resolve('@/model/user');
 
 function loadUserService(userModel: NodeModule['exports']) {
   clearModules(servicePath, userModelPath);
   mockModule(userModelPath, userModel);
-  return require('../../../src/services/userService');
+  return require('@/services/userService');
 }
 
 afterEach(() => {

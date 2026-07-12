@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { orderStatuses } from '../orderStatus';
-import { parseAppSchema, requestString } from './parseSchema';
+import { orderStatuses } from '@/orderStatus';
+import { parseAppSchema, requestString } from '@/validators/parseSchema';
 
 const objectId = z
   .unknown()

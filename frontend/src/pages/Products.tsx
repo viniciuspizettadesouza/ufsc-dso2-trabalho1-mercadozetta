@@ -1,9 +1,9 @@
 import { ChangeEvent, useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router';
 
-import api from '../services/api';
-import { useBrand } from '../brands/brandContext';
-import { apiRoutes, appRoutes } from '../routes';
+import api from '@/services/api';
+import { useBrand } from '@/brands/brandContext';
+import { apiRoutes, appRoutes } from '@/routes';
 
 type Product = {
   _id: string;

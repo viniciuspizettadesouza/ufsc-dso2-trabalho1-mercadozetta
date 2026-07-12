@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
-import * as Commerce from '../services/commerceService';
-import type { OrderStatus } from '../orderStatus';
+import * as Commerce from '@/services/commerceService';
+import type { OrderStatus } from '@/orderStatus';
 
 const context = (req: Request) => ({
   userId: req.userId ?? '',

@@ -2,9 +2,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 
-import Header from './header';
-import api from '../services/api';
-import { apiRoutes, appRoutes } from '../routes';
+import Header from '@/pages/header';
+import api from '@/services/api';
+import { apiRoutes, appRoutes } from '@/routes';
 
 type Seller = {
   _id: string;

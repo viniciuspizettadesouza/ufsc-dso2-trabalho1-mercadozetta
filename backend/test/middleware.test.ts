@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import AppError from '../src/errors/AppError';
-import errorHandler from '../src/middleware/errorHandler';
-import validateRequest from '../src/middleware/validateRequest';
+import AppError from '@/errors/AppError';
+import errorHandler from '@/middleware/errorHandler';
+import validateRequest from '@/middleware/validateRequest';
 
 describe('request middleware', () => {
   it('stores validated request data and forwards errors through the shared middleware', () => {

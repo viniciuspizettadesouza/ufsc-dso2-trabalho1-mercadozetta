@@ -1,9 +1,9 @@
 /* v8 ignore file -- demo-local admin dashboard is covered by integration smoke tests. */
 import { useEffect, useState } from 'react';
 
-import Header from './header';
-import api from '../services/api';
-import { apiRoutes } from '../routes';
+import Header from '@/pages/header';
+import api from '@/services/api';
+import { apiRoutes } from '@/routes';
 
 type Product = {
   _id: string;

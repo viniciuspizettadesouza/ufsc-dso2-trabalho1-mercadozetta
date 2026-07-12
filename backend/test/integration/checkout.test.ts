@@ -1,11 +1,11 @@
 import request from 'supertest';
-import app from '../../src/app';
-import Cart from '../../src/model/cart';
-import Notification from '../../src/model/notification';
-import Order from '../../src/model/order';
-import OrderItem from '../../src/model/orderItem';
-import Product from '../../src/model/product';
-import User from '../../src/model/user';
+import app from '@/app';
+import Cart from '@/model/cart';
+import Notification from '@/model/notification';
+import Order from '@/model/order';
+import OrderItem from '@/model/orderItem';
+import Product from '@/model/product';
+import User from '@/model/user';
 import {
   authorization,
   clearDatabase,

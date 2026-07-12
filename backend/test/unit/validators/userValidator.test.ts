@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateCreateUserPayload } from '../../../src/validators/userValidator';
+import { validateCreateUserPayload } from '@/validators/userValidator';
 
 describe('userValidator', () => {
   it('normalizes a valid create-user payload', () => {

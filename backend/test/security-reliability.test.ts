@@ -4,16 +4,16 @@ const mongoose = require('mongoose');
 const request = require('supertest');
 
 const modulePaths = [
-  '../src/app',
-  '../src/routes',
-  '../src/config/security',
-  '../src/middleware/asyncHandler',
-  '../src/middleware/auth',
-  '../src/middleware/errorHandler',
-  '../src/middleware/rateLimit',
-  '../src/middleware/requestContext',
-  '../src/middleware/tenant',
-  '../src/middleware/validateRequest',
+  '@/app',
+  '@/routes',
+  '@/config/security',
+  '@/middleware/asyncHandler',
+  '@/middleware/auth',
+  '@/middleware/errorHandler',
+  '@/middleware/rateLimit',
+  '@/middleware/requestContext',
+  '@/middleware/tenant',
+  '@/middleware/validateRequest',
 ];
 
 const originalEnv = { ...process.env };
@@ -26,12 +26,12 @@ function clearModules() {
 
 function loadApp() {
   clearModules();
-  return require('../src/app');
+  return require('@/app');
 }
 
 function loadSecurityConfig() {
   clearModules();
-  return require('../src/config/security');
+  return require('@/config/security');
 }
 
 beforeEach(() => {

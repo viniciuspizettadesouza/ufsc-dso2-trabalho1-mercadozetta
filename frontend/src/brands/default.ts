@@ -1,5 +1,5 @@
-import logo from '../assets/mercadozetta-logo.png';
-import type { BrandConfig } from './schema';
+import logo from '@/assets/mercadozetta-logo.png';
+import type { BrandConfig } from '@/brands/schema';
 
 export const defaultBrand: BrandConfig = {
   tenantId: 'mercadozetta',

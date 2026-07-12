@@ -1,8 +1,8 @@
 import jwt from 'jsonwebtoken';
 import type { Request, Response, NextFunction } from 'express';
-import AppError from '../errors/AppError';
-import { getJwtSecret } from '../config/security';
-import User from '../model/user';
+import AppError from '@/errors/AppError';
+import { getJwtSecret } from '@/config/security';
+import User from '@/model/user';
 
 type AuthTokenPayload = {
   id?: string;

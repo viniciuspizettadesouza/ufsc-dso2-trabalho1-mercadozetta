@@ -1,19 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import mongoose from 'mongoose';
 
-vi.mock('../../../src/model/cart', () => ({
+vi.mock('@/model/cart', () => ({
   default: { findOne: vi.fn(), findOneAndUpdate: vi.fn(), updateOne: vi.fn() },
 }));
-vi.mock('../../../src/model/notification', () => ({
+vi.mock('@/model/notification', () => ({
   default: { create: vi.fn(), insertMany: vi.fn(), find: vi.fn() },
 }));
-vi.mock('../../../src/model/order', () => ({
+vi.mock('@/model/order', () => ({
   default: { create: vi.fn(), find: vi.fn(), findOne: vi.fn() },
 }));
-vi.mock('../../../src/model/orderItem', () => ({
+vi.mock('@/model/orderItem', () => ({
   default: { insertMany: vi.fn(), exists: vi.fn(), find: vi.fn() },
 }));
-vi.mock('../../../src/model/product', () => ({
+vi.mock('@/model/product', () => ({
   default: {
     find: vi.fn(),
     findOne: vi.fn(),
@@ -21,20 +21,20 @@ vi.mock('../../../src/model/product', () => ({
     updateOne: vi.fn(),
   },
 }));
-vi.mock('../../../src/model/review', () => ({
+vi.mock('@/model/review', () => ({
   default: { find: vi.fn(), findOneAndUpdate: vi.fn() },
 }));
-vi.mock('../../../src/model/watchlist', () => ({
+vi.mock('@/model/watchlist', () => ({
   default: { find: vi.fn(), findOneAndUpdate: vi.fn(), deleteOne: vi.fn() },
 }));
 
-import Cart from '../../../src/model/cart';
-import Notification from '../../../src/model/notification';
-import Order from '../../../src/model/order';
-import OrderItem from '../../../src/model/orderItem';
-import Product from '../../../src/model/product';
-import Review from '../../../src/model/review';
-import Watchlist from '../../../src/model/watchlist';
+import Cart from '@/model/cart';
+import Notification from '@/model/notification';
+import Order from '@/model/order';
+import OrderItem from '@/model/orderItem';
+import Product from '@/model/product';
+import Review from '@/model/review';
+import Watchlist from '@/model/watchlist';
 import {
   addWatchlist,
   createOrder,
@@ -48,7 +48,7 @@ import {
   removeWatchlist,
   setCartItem,
   updateOrderStatus,
-} from '../../../src/services/commerceService';
+} from '@/services/commerceService';
 
 describe('commerce service authorization', () => {
   const session = {

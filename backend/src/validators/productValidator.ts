@@ -1,13 +1,13 @@
 import mongoose from 'mongoose';
-import { productStatuses, type ProductStatus } from '../productStatus';
-import type { RequestFieldValue } from '../types/request';
+import { productStatuses, type ProductStatus } from '@/productStatus';
+import type { RequestFieldValue } from '@/types/request';
 import { z } from 'zod';
 import {
   firstDefined,
   hasRequestValue,
   parseAppSchema,
   requestString,
-} from './parseSchema';
+} from '@/validators/parseSchema';
 
 export type CreateProductRequestBody = {
   name?: RequestFieldValue;

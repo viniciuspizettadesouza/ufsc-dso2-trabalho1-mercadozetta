@@ -2,10 +2,10 @@ import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { isAxiosError } from 'axios';
 
-import Header from './header';
-import api from '../services/api';
-import { useBrand } from '../brands/brandContext';
-import { apiRoutes, appRoutes } from '../routes';
+import Header from '@/pages/header';
+import api from '@/services/api';
+import { useBrand } from '@/brands/brandContext';
+import { apiRoutes, appRoutes } from '@/routes';
 
 export default function AddUser() {
   const brand = useBrand();

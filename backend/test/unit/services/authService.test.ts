@@ -3,9 +3,9 @@ import jwt from 'jsonwebtoken';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { clearModules, mockModule } from '../helpers/moduleMock';
 
-const servicePath = require.resolve('../../../src/services/authService');
-const securityPath = require.resolve('../../../src/config/security');
-const userModelPath = require.resolve('../../../src/model/user');
+const servicePath = require.resolve('@/services/authService');
+const securityPath = require.resolve('@/config/security');
+const userModelPath = require.resolve('@/model/user');
 
 function loadAuthService(
   userModel: NodeModule['exports'],
@@ -17,7 +17,7 @@ function loadAuthService(
     getJwtSecret: () => secret,
     getJwtAccessTokenTtl: () => '15m',
   });
-  return require('../../../src/services/authService');
+  return require('@/services/authService');
 }
 
 afterEach(() => {

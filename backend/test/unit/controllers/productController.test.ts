@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import controller from '../../../src/controller/productController';
-import ProductService from '../../../src/services/productService';
+import controller from '@/controller/productController';
+import ProductService from '@/services/productService';
 
 function createResponse() {
   return {

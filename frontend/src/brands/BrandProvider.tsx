@@ -1,8 +1,8 @@
 import { ReactNode, useEffect, useMemo } from 'react';
 
 import { getBrandByTenantId } from '.';
-import { BrandContext } from './brandContext';
-import type { BrandConfig } from './schema';
+import { BrandContext } from '@/brands/brandContext';
+import type { BrandConfig } from '@/brands/schema';
 
 type BrandProviderProps = {
   brand?: BrandConfig;

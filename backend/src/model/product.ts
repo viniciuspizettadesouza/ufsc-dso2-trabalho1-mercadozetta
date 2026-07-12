@@ -1,6 +1,6 @@
 import { Schema, model, Types, type InferSchemaType } from 'mongoose';
-import { defaultTenantId } from '../tenants';
-import { productStatuses } from '../productStatus';
+import { defaultTenantId } from '@/tenants';
+import { productStatuses } from '@/productStatus';
 
 const ProductSchema = new Schema(
   {

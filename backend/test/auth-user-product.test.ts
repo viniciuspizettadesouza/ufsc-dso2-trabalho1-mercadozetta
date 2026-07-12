@@ -4,26 +4,24 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const request = require('supertest');
 
-const appPath = require.resolve('../src/app');
-const routesPath = require.resolve('../src/routes');
-const authControllerPath = require.resolve('../src/controller/authController');
-const userControllerPath = require.resolve('../src/controller/userController');
-const productControllerPath =
-  require.resolve('../src/controller/productController');
-const asyncHandlerPath = require.resolve('../src/middleware/asyncHandler');
-const authMiddlewarePath = require.resolve('../src/middleware/auth');
-const errorHandlerPath = require.resolve('../src/middleware/errorHandler');
-const rateLimitPath = require.resolve('../src/middleware/rateLimit');
-const requestContextPath = require.resolve('../src/middleware/requestContext');
-const tenantMiddlewarePath = require.resolve('../src/middleware/tenant');
-const validateRequestPath =
-  require.resolve('../src/middleware/validateRequest');
-const securityConfigPath = require.resolve('../src/config/security');
-const authServicePath = require.resolve('../src/services/authService');
-const userServicePath = require.resolve('../src/services/userService');
-const productServicePath = require.resolve('../src/services/productService');
-const userModelPath = require.resolve('../src/model/user');
-const productModelPath = require.resolve('../src/model/product');
+const appPath = require.resolve('@/app');
+const routesPath = require.resolve('@/routes');
+const authControllerPath = require.resolve('@/controller/authController');
+const userControllerPath = require.resolve('@/controller/userController');
+const productControllerPath = require.resolve('@/controller/productController');
+const asyncHandlerPath = require.resolve('@/middleware/asyncHandler');
+const authMiddlewarePath = require.resolve('@/middleware/auth');
+const errorHandlerPath = require.resolve('@/middleware/errorHandler');
+const rateLimitPath = require.resolve('@/middleware/rateLimit');
+const requestContextPath = require.resolve('@/middleware/requestContext');
+const tenantMiddlewarePath = require.resolve('@/middleware/tenant');
+const validateRequestPath = require.resolve('@/middleware/validateRequest');
+const securityConfigPath = require.resolve('@/config/security');
+const authServicePath = require.resolve('@/services/authService');
+const userServicePath = require.resolve('@/services/userService');
+const productServicePath = require.resolve('@/services/productService');
+const userModelPath = require.resolve('@/model/user');
+const productModelPath = require.resolve('@/model/product');
 
 type MockDocument = {
   _id?: string;
@@ -197,7 +195,7 @@ function resetModules() {
 
 function loadApp() {
   resetModules();
-  return require('../src/app');
+  return require('@/app');
 }
 
 beforeEach(async () => {

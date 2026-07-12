@@ -1,13 +1,13 @@
 import { z } from 'zod';
 import { createDocument } from 'zod-openapi';
-import { loginSchema } from '../validators/authValidator';
+import { loginSchema } from '@/validators/authValidator';
 import {
   createProductSchema,
   productFiltersSchema,
   productIdSchema,
   sellerIdSchema,
-} from '../validators/productValidator';
-import { createUserSchema } from '../validators/userValidator';
+} from '@/validators/productValidator';
+import { createUserSchema } from '@/validators/userValidator';
 
 const tenantHeader = z
   .string()

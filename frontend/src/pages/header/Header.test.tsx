@@ -3,14 +3,14 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import Header from './index';
-import { BrandProvider } from '../../brands/BrandProvider';
-import { campusMarketBrand, type BrandConfig } from '../../brands';
-import api from '../../services/api';
+import Header from '@/pages/header/index';
+import { BrandProvider } from '@/brands/BrandProvider';
+import { campusMarketBrand, type BrandConfig } from '@/brands';
+import api from '@/services/api';
 
 const navigate = vi.fn();
 
-vi.mock('../../services/api', () => ({
+vi.mock('@/services/api', () => ({
   default: { post: vi.fn() },
 }));
 

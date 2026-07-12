@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
-import UserService from '../services/userService';
-import type { CreateUserData } from '../validators/userValidator';
+import UserService from '@/services/userService';
+import type { CreateUserData } from '@/validators/userValidator';
 
 type CreateUserRequest = Request & {
   validated: {

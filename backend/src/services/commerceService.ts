@@ -1,13 +1,13 @@
-import AppError from '../errors/AppError';
+import AppError from '@/errors/AppError';
 import mongoose from 'mongoose';
-import Cart from '../model/cart';
-import Notification from '../model/notification';
-import Order from '../model/order';
-import type { OrderStatus } from '../orderStatus';
-import OrderItem from '../model/orderItem';
-import Product from '../model/product';
-import Review from '../model/review';
-import Watchlist from '../model/watchlist';
+import Cart from '@/model/cart';
+import Notification from '@/model/notification';
+import Order from '@/model/order';
+import type { OrderStatus } from '@/orderStatus';
+import OrderItem from '@/model/orderItem';
+import Product from '@/model/product';
+import Review from '@/model/review';
+import Watchlist from '@/model/watchlist';
 
 export async function getCart(userId: string, tenantId: string) {
   const cart = await Cart.findOne({ tenantId, buyer: userId }).populate(
