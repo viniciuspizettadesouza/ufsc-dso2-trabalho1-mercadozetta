@@ -1,18 +1,40 @@
 # MercadoZetta
 
-MercadoZetta is a marketplace project for INE5612 - Desenvolvimento de Sistemas
-Orientados a Objetos II.
+MercadoZetta is an educational white-label marketplace built for INE5612 —
+Desenvolvimento de Sistemas Orientados a Objetos II. One React application and
+one Express API serve the built-in MercadoZetta and CampusMarket tenants while
+tenant-owned MongoDB records are isolated by `tenantId`.
 
-The application lets users search products, create an account, log in with email
-and password, and create products for sale. Product creation is protected by JWT,
-and each created product is linked to the authenticated seller.
+The implemented application includes a public catalog and seller profiles,
+account registration and JWT login, product creation, persistent carts and
+watchlists, transactional checkout and inventory updates, buyer and seller
+order workflows, verified-purchase reviews, notifications, and repeatable demo
+data. It is a development and teaching system, not a production deployment
+baseline.
 
-## Quick Start
+For the design and business-rule explanation, read the
+[project overview](docs/project-overview.md). Detailed authentication behavior
+is in the [authentication flow](docs/authentication-flow.md), the generated HTTP
+reference is [OpenAPI 3.1](docs/openapi.json), and current priorities and status
+belong only in the [improvement plan](PROJECT_IMPROVEMENT_PLAN.md).
 
-For the common local development setup, install dependencies, copy the example
-environment files, and start MongoDB, the backend, and the frontend:
+## Prerequisites
+
+- Node.js 24.18.0 or newer (the repository includes `.nvmrc`)
+- npm
+- Git
+- Docker with Compose for the recommended MongoDB replica set, the complete
+  demo stack, or database-backed integration tests
+
+Checkout uses MongoDB transactions. A standalone MongoDB process is not enough;
+use a replica set such as the one configured by this repository.
+
+## Quick start
+
+From the repository root:
 
 ```bash
+nvm use
 npm install
 npm --prefix backend install
 npm --prefix frontend install
@@ -21,498 +43,257 @@ cp frontend/.env.example frontend/.env
 npm run dev:local
 ```
 
-Open the frontend URL printed by Vite. It is usually:
+`dev:local` starts the Dockerized MongoDB replica set and then runs both
+development servers. The API listens on `http://localhost:3333`; Vite normally
+prints `http://localhost:5173` for the frontend.
 
-```text
-http://localhost:5173
+Seed deterministic data in another terminal:
+
+```bash
+npm run seed:demo
 ```
 
-To run the full demo stack in Docker instead:
+The seed refreshes its own records for both built-in tenants and leaves
+unrelated local records intact.
+
+## Installation
+
+The root, backend, and frontend have separate lockfiles and dependency trees.
+Install all three from the repository root:
+
+```bash
+npm install
+npm --prefix backend install
+npm --prefix frontend install
+```
+
+Use `npm ci` in CI or whenever exact lockfile installation is required.
+
+## Configuration
+
+Copy the checked-in examples; never commit the resulting `.env` files:
+
+```bash
+cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
+```
+
+### Backend variables
+
+| Variable                                                    | Purpose                                        | Local example/default behavior                                                |
+| ----------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------- |
+| `MONGODB_URI`                                               | MongoDB connection string; required at startup | The example targets the local replica set                                     |
+| `JWT_SECRET`                                                | Signs and verifies access tokens               | A development fallback exists only in development and test; set it explicitly |
+| `JWT_ACCESS_TOKEN_TTL`                                      | JWT lifetime accepted by `jsonwebtoken`        | `15m`                                                                         |
+| `TENANT_HEADER_REQUIRED`                                    | Reject requests without `X-Tenant-Id`          | `false` locally; defaults to `true` outside development/test                  |
+| `PORT`                                                      | API listen port                                | `3333`                                                                        |
+| `CORS_ORIGIN`                                               | Comma-separated allowed browser origins        | `http://localhost:5173` locally                                               |
+| `RATE_LIMIT_AUTH_WINDOW_MS` / `RATE_LIMIT_AUTH_MAX`         | Login rate-limit window and maximum            | `900000` / `5`                                                                |
+| `RATE_LIMIT_REGISTER_WINDOW_MS` / `RATE_LIMIT_REGISTER_MAX` | Registration rate-limit window and maximum     | `900000` / `10`                                                               |
+
+When strict tenant-header mode is enabled, the global tenant middleware also
+requires `X-Tenant-Id` on `/`, `/health`, and `/ready`.
+
+### Frontend variables
+
+| Variable         | Purpose                                               | Example                           |
+| ---------------- | ----------------------------------------------------- | --------------------------------- |
+| `VITE_API_URL`   | Express API base URL                                  | `http://localhost:3333`           |
+| `VITE_TENANT_ID` | Selects the frontend brand and outgoing tenant header | `mercadozetta` or `campus-market` |
+
+The tenant header selects a known tenant but is not trusted as authorization.
+Backend services scope protected records and ownership checks to the resolved
+tenant.
+
+## Running the project
+
+### Host development servers with Dockerized MongoDB
+
+```bash
+npm run dev:local
+```
+
+Useful variants:
+
+```bash
+npm run db:up
+npm run db:logs
+npm run db:down
+npm run dev
+npm run dev:backend
+npm run dev:frontend
+```
+
+`npm run dev` starts both applications but does not start MongoDB.
+
+### Complete Docker Compose demo
 
 ```bash
 npm run compose:up
 ```
 
-In another terminal, seed repeatable demo data:
+In another terminal:
 
 ```bash
 npm run compose:seed
 ```
 
-Useful root commands:
+Stop and remove the application containers with:
 
 ```bash
-npm run db:up
-npm run dev
-npm run seed:demo
-npm run compose:up
-npm test
-npm run lint
+npm run compose:down
 ```
 
-## 1. Technologies
+The current Dockerfiles run `ts-node-dev` and the Vite development server. This
+Compose stack is for development and demonstrations; it does not build or serve
+production artifacts.
 
-- Backend: Node.js, Express, MongoDB, Mongoose, JWT, and bcryptjs
-- Frontend: React, TypeScript, Vite, React Router, and Axios
-- Tests: Vitest, Supertest, and Testing Library
+## Demo data and smoke test
 
-## 2. Project Structure
+Run either `npm run seed:demo` for the host-side backend or
+`npm run compose:seed` for the Compose stack. The built-in seller credentials
+are:
+
+| Tenant       | Email                         | Password          |
+| ------------ | ----------------------------- | ----------------- |
+| MercadoZetta | `vinicius@mercadozetta.test`  | `mercadozetta123` |
+| CampusMarket | `vinicius@campus-market.test` | `campusmarket123` |
+
+For a basic smoke test:
+
+1. Open the Vite URL and confirm that seeded products appear.
+2. Log in with the account for the configured `VITE_TENANT_ID`.
+3. Add an in-stock product to the watchlist and cart.
+4. Open `/checkout`, change a quantity, and place an order.
+5. Open `/seller/orders` as a seller and verify only that seller's line items
+   are shown with the permitted next fulfillment action.
+6. Return as the buyer to inspect order history and notifications.
+
+The frontend also exposes `/products/new` for authenticated product creation.
+
+## Common commands
+
+Run these from the repository root unless noted otherwise.
+
+| Command                           | Purpose                                                                         |
+| --------------------------------- | ------------------------------------------------------------------------------- |
+| `npm test`                        | Backend type-check, backend focused/contract tests, and frontend tests          |
+| `npm run test:integration`        | Database-backed tests against an ephemeral MongoDB replica set; requires Docker |
+| `npm run test:coverage`           | Backend and frontend coverage suites with configured thresholds                 |
+| `npm run typecheck`               | Backend TypeScript check without emitting                                       |
+| `npm run lint`                    | Backend and frontend ESLint checks                                              |
+| `npm run format:check`            | Check Prettier formatting without rewriting files                               |
+| `npm run format`                  | Format supported repository files                                               |
+| `npm --prefix frontend run build` | Type-check and create the frontend production bundle                            |
+| `npm run generate:openapi`        | Regenerate `docs/openapi.json` from validators and route metadata               |
+| `npm run seed:demo`               | Refresh repeatable demo data                                                    |
+
+Dependency audits are run separately because there is no root aggregate script:
+
+```bash
+npm audit --audit-level=high
+npm --prefix backend audit --audit-level=high
+npm --prefix frontend audit --audit-level=high
+```
+
+CI installs all three dependency trees and runs audits, backend type-checking,
+formatting, lint, backend and frontend tests, database integration tests, and
+the frontend build. Coverage is enforced by the coverage command, not by the
+current CI workflow. Git hooks format supported staged files before commits and
+run formatting plus the main test suite before pushes.
+
+## Repository map
 
 ```text
-backend/    Express API, MongoDB models, and authentication rules
-frontend/   React + Vite web application
-images/     Images used by the documentation
+backend/src/       Express API, middleware, validators, services, and models
+backend/test/      Focused, contract, workflow, and database integration tests
+frontend/src/      React pages, routing, API service, brand configuration, tests
+docs/              Architecture, authentication, and generated API reference
+images/            Documentation images
+scripts/           Repository-level test orchestration
 ```
 
-The current HTTP API contract is available as an OpenAPI 3.1 document at
-[`docs/openapi.json`](docs/openapi.json). It includes tenant and authentication
-requirements, validation constraints, and request/response examples. Import it
-into an OpenAPI-compatible viewer or client generator using the local file.
+See the [project overview](docs/project-overview.md#repository-structure) for
+the boundaries between these areas rather than relying on the directory list
+alone.
 
-The document is generated from the backend's Zod validation schemas and typed
-route contract. After changing a route, request validator, response schema, or
-example, regenerate the checked-in contract from the repository root:
+## API contract
+
+[`docs/openapi.json`](docs/openapi.json) is generated from backend Zod schemas
+and typed operation/response metadata. Do not edit it manually. After changing
+a route, validator, security requirement, request or response schema, or
+example, run:
 
 ```bash
 npm run generate:openapi
 ```
 
-The backend contract test fails if the generated output differs from the
-checked-in file.
+`backend/test/openapi-contract.test.ts` checks deterministic generated-file
+parity, implemented/documented route parity, and required examples.
 
-Authenticated commerce endpoints persist carts, watchlists, orders, order
-items, reviews, and notifications in MongoDB. Checkout updates inventory,
-reviews require a previous purchase, and order status updates enforce buyer and
-seller authorization and allowed lifecycle transitions. Order responses include
-status history entries with the acting user and timestamp for buyer and seller
-visibility. See the generated OpenAPI contract for the complete request and
-response shapes.
+## Troubleshooting
 
-## 3. Prerequisites
+### Checkout reports that transactions are unsupported
 
-Before installing the project, make sure you have:
+The API is connected to a standalone MongoDB process or the URI omitted the
+replica-set options. Start the repository database with `npm run db:up` and use
+the exact `MONGODB_URI` from `backend/.env.example`.
 
-- Node.js 24.18 or newer
-- npm
-- Docker, if you want to use a local MongoDB for development
-- Git
+### The API exits during startup
 
-Check that Node.js and npm are available:
+Confirm that `backend/.env` exists and contains a reachable `MONGODB_URI`.
+Outside development and test, `JWT_SECRET` is also mandatory. Check MongoDB with
+`npm run db:logs` and call `/ready` with the tenant header if strict tenant mode
+is enabled.
 
-```bash
-nvm use
-node -v
-npm -v
-```
+### Requests return `TENANT_HEADER_REQUIRED` or `INVALID_TENANT`
 
-## 4. Clone The Repository
+Set `VITE_TENANT_ID` to `mercadozetta` or `campus-market`, restart Vite after
+changing its environment, and ensure direct API requests include the matching
+`X-Tenant-Id`. In strict mode the header is required even for health checks.
 
-```bash
-git clone <repository-url>
-cd ufsc-dso2-trabalho1-mercadozetta
-```
+### Authenticated requests return 401
 
-If you already have the repository cloned, enter the project folder:
+The bearer token may be missing, expired, tenant-mismatched, or revoked by a
+logout that incremented the user's token version. Clear the frontend's stored
+session and log in again. See the [authentication flow](docs/authentication-flow.md)
+for the exact lifecycle.
 
-```bash
-cd ufsc-dso2-trabalho1-mercadozetta
-```
+### Browser requests fail while direct API calls work
 
-## 5. Install Dependencies
+Make sure the frontend origin, including its port, is present in
+`CORS_ORIGIN`. Multiple origins are comma-separated. Restart the backend after
+changing the value.
 
-Install the root, backend, and frontend dependencies:
+### Ports 3333, 5173, or 27017 are already in use
 
-```bash
-npm install
-```
+Stop the conflicting process or existing Compose stack. Use
+`docker compose ps` to identify repository containers and
+`npm run compose:down` or `npm run db:down` as appropriate.
 
-```bash
-cd backend
-npm install
-```
+### Generated OpenAPI parity fails
 
-```bash
-cd ../frontend
-npm install
-```
+Regenerate with `npm run generate:openapi`, review the generated diff, and
+commit it only when the underlying route, validator, or metadata change is
+intentional.
 
-Return to the project root:
+## Safe change checklist
 
-```bash
-cd ..
-```
+- Keep backend dependencies flowing from routes to controllers to services and
+  models. Put ownership, tenant, inventory, and lifecycle rules in services.
+- Centralize frontend application and API paths in `frontend/src/routes.ts`.
+- Treat frontend guards and hidden controls as usability only; enforce access
+  in the backend.
+- Keep brand-sensitive reusable copy in both brand configurations.
+- Add focused tests beside the source area they verify; reserve broad workflow
+  files for genuine integration behavior.
+- Regenerate OpenAPI after contract changes; never hand-edit the generated file.
+- Consult the [improvement plan](PROJECT_IMPROVEMENT_PLAN.md) before starting a
+  planned phase and update its handoff only with verified repository state.
+- Do not commit secrets, `.env` files, tokens, or credentials other than the
+  intentionally documented local demo accounts.
 
-## 6. Configure Local MongoDB For Development
+More detailed contribution boundaries and domain reasoning are in the
+[project overview](docs/project-overview.md#contribution-guidance).
 
-For local development, you can use a local MongoDB instead of creating a MongoDB
-Atlas database.
-
-With Docker installed, start the local MongoDB container from the project root:
-
-```bash
-npm run db:up
-```
-
-The command starts the `mercadozetta-mongo` container as a single-node replica
-set. Transactions used by checkout require this replica-set configuration.
-
-To stop the local MongoDB container:
-
-```bash
-npm run db:down
-```
-
-To follow MongoDB logs:
-
-```bash
-npm run db:logs
-```
-
-The API will access the database at:
-
-```text
-mongodb://localhost:27017/mercadozetta?replicaSet=rs0&directConnection=true
-```
-
-Update an existing `backend/.env` to use this URI before running the backend or
-the host-side demo seed against the Dockerized database.
-
-## 7. Configure Environment Variables
-
-### Backend
-
-Create the backend `.env` file from the example:
-
-```bash
-cd backend
-cp .env.example .env
-```
-
-To use the local MongoDB Docker container, set `backend/.env` to:
-
-```env
-MONGODB_URI=mongodb://localhost:27017/mercadozetta
-JWT_SECRET=local_dev_secret_please_change_later
-JWT_ACCESS_TOKEN_TTL=15m
-TENANT_HEADER_REQUIRED=false
-PORT=3333
-CORS_ORIGIN=http://localhost:5173
-RATE_LIMIT_AUTH_WINDOW_MS=900000
-RATE_LIMIT_AUTH_MAX=5
-RATE_LIMIT_REGISTER_WINDOW_MS=900000
-RATE_LIMIT_REGISTER_MAX=10
-```
-
-`JWT_SECRET` is used to sign JWT tokens. For local development, it can be any
-long string. In production, use a strong secret and never commit it to Git.
-`JWT_ACCESS_TOKEN_TTL` controls the access-token lifetime and defaults to `15m`.
-`TENANT_HEADER_REQUIRED` defaults to `false` in development and tests and to
-`true` in production. When enabled, every API request must include a valid
-`X-Tenant-Id` header.
-`CORS_ORIGIN` accepts one or more comma-separated frontend origins. The rate
-limit variables control the login and account creation windows in milliseconds.
-
-If you use MongoDB Atlas instead of local MongoDB, replace `MONGODB_URI` with
-your Atlas connection string:
-
-```env
-MONGODB_URI=mongodb+srv://user:password@cluster.example.mongodb.net/mercadozetta?retryWrites=true&w=majority
-JWT_SECRET=replace_with_a_long_random_secret
-JWT_ACCESS_TOKEN_TTL=15m
-TENANT_HEADER_REQUIRED=true
-PORT=3333
-CORS_ORIGIN=https://your-frontend.example.com
-RATE_LIMIT_AUTH_WINDOW_MS=900000
-RATE_LIMIT_AUTH_MAX=5
-RATE_LIMIT_REGISTER_WINDOW_MS=900000
-RATE_LIMIT_REGISTER_MAX=10
-```
-
-### Authentication lifecycle
-
-Login returns a tenant-bound, short-lived JWT access token. The frontend stores
-the token in `localStorage`. Logout calls `POST /auth/logout`, which increments
-the user's server-side token version and invalidates all access tokens issued for
-the previous version, before clearing the local session. This keeps the current
-white-label demo simple, but `localStorage` remains more exposed to XSS than an
-`HttpOnly`, `Secure`, `SameSite` cookie. A production deployment can migrate the
-same lifecycle to secure cookies or add refresh-token rotation without extending
-the access-token lifetime.
-
-### Frontend
-
-Create the frontend `.env` file from the example:
-
-```bash
-cd ../frontend
-cp .env.example .env
-```
-
-Set `frontend/.env` to point to the local API:
-
-```env
-VITE_API_URL=http://localhost:3333
-VITE_TENANT_ID=mercadozetta
-```
-
-`VITE_TENANT_ID` selects the active white-label tenant. The default tenant is
-`mercadozetta`; the sample second tenant is `campus-market`.
-
-Return to the project root:
-
-```bash
-cd ..
-```
-
-## 8. Run The Project
-
-From the project root, start MongoDB, the backend, and the frontend with:
-
-```bash
-npm run dev:local
-```
-
-This runs `npm run db:up` first, then starts both applications. The API should
-be available at:
-
-```text
-http://localhost:3333
-```
-
-Vite will print the frontend URL in the terminal. It is usually:
-
-```text
-http://localhost:5173
-```
-
-Open that URL in your browser.
-
-If MongoDB is already running and you only want to start the apps, run:
-
-```bash
-npm run dev
-```
-
-You can also run each app separately from the project root.
-
-Start only the backend:
-
-```bash
-npm run dev:backend
-```
-
-Start only the frontend:
-
-```bash
-npm run dev:frontend
-```
-
-The older folder-specific commands still work too:
-
-```bash
-cd backend
-npm run dev
-```
-
-```bash
-cd frontend
-npm run dev
-```
-
-## 9. Seed Demo Data
-
-The demo seed creates users, sellers, and products for the built-in
-`mercadozetta` and `campus-market` tenants. It is safe to run more than once:
-seeded records are refreshed, and unrelated local data is left alone.
-
-With MongoDB running through `npm run db:up`, seed the local database:
-
-```bash
-npm run seed:demo
-```
-
-With the Docker Compose stack, seed through the backend container:
-
-```bash
-npm run compose:seed
-```
-
-Demo MercadoZetta seller account:
-
-```text
-vinicius@mercadozetta.test
-mercadozetta123
-```
-
-Demo CampusMarket seller account:
-
-```text
-vinicius@campus-market.test
-campusmarket123
-```
-
-## 10. Docker Compose Demo
-
-Docker Compose can run MongoDB, the backend API, and the frontend app together:
-
-```bash
-npm run compose:up
-```
-
-The services are exposed at:
-
-```text
-Frontend: http://localhost:5173
-Backend:  http://localhost:3333
-MongoDB:  mongodb://localhost:27017/mercadozetta
-```
-
-After the stack is healthy, seed demo records from another terminal:
-
-```bash
-npm run compose:seed
-```
-
-Stop the stack with:
-
-```bash
-npm run compose:down
-```
-
-## 11. Manual Smoke Test
-
-With the backend, frontend, and MongoDB running:
-
-1. Open `http://localhost:5173`.
-2. Run `npm run seed:demo` or `npm run compose:seed`.
-3. Confirm that seeded products are visible on the home page or `/products`.
-4. Go to `/login`.
-5. Log in with `vinicius@mercadozetta.test` and `mercadozetta123`.
-6. Confirm that you are redirected to `/sellers/660000000000000000000001`.
-7. Confirm that the seller page lists the seeded MercadoZetta products.
-8. Go to `/products/new`.
-9. Create a product with any name, image URL, and positive quantity.
-10. Confirm that the new product appears in that seller's product list.
-
-Optionally, create a second user and another product. Then confirm that each
-seller page only shows products from that seller.
-
-## 12. Useful Commands
-
-Start local MongoDB, backend, and frontend:
-
-```bash
-npm run dev:local
-```
-
-Start only local MongoDB:
-
-```bash
-npm run db:up
-```
-
-Start backend and frontend without changing MongoDB state:
-
-```bash
-npm run dev
-```
-
-Seed repeatable demo users, sellers, and products:
-
-```bash
-npm run seed:demo
-```
-
-Start the complete Docker Compose demo stack:
-
-```bash
-npm run compose:up
-```
-
-Seed the Docker Compose database:
-
-```bash
-npm run compose:seed
-```
-
-Stop the Docker Compose stack:
-
-```bash
-npm run compose:down
-```
-
-Run all automated tests from the project root:
-
-```bash
-npm test
-```
-
-Run all automated tests with coverage thresholds from the project root:
-
-```bash
-npm run test:coverage
-```
-
-Check ESLint and Prettier from the project root:
-
-```bash
-npm run lint
-npm run format:check
-```
-
-Apply Prettier formatting to supported repository files:
-
-```bash
-npm run format
-```
-
-The pre-commit hook formats supported staged files with `lint-staged`. The
-pre-push hook runs the repository-wide formatting check and test suite without
-rewriting files.
-
-CI validates pull requests and supported branch pushes with dependency audits,
-formatting and lint checks, backend and frontend tests, and the frontend build.
-
-Backend:
-
-```bash
-cd backend
-npm test
-npm run test:coverage
-npm audit
-```
-
-Frontend:
-
-```bash
-cd frontend
-npm test
-npm run test:coverage
-npm run build
-npm run lint
-npm audit
-```
-
-## 13. Main Application Routes
-
-- `/` - home page and product search
-- `/register` - user registration
-- `/login` - login
-- `/products/new` - authenticated product creation
-- `/sellers/:sellerId` - seller page with that seller's products
-
-## 14. Important Notes
-
-- `.env` files are local and should not be committed.
-- The backend needs `MONGODB_URI` to start correctly.
-- The backend requires `JWT_SECRET` outside development and test environments.
-- The backend exposes `GET /health` and `GET /ready` for uptime and dependency
-  readiness checks.
-- Product creation requires login.
-- The frontend sends the JWT token stored in `localStorage` on authenticated
-  requests.
-- The frontend also sends `X-Tenant-Id` on API requests so the backend can keep
-  tenant-owned users and products isolated.
-- Supported tenants in this project are `mercadozetta` and `campus-market`.
-
-<img src="images/mercadozetta.jpg" width="400">
+<img src="images/mercadozetta.jpg" width="400" alt="MercadoZetta interface">
