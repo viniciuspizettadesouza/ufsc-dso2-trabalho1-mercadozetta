@@ -146,10 +146,49 @@ marketplace demo while evolving the new persistent commerce workflows safely.
       expand to Firefox, WebKit, or mobile projects only when compatibility
       requirements justify the additional CI cost.
 
-### 4. Make catalog queries scalable and complete seller product management
+### 4. Migrate persistence to PostgreSQL
+
+- [ ] Write and accept a database ADR before implementation. Compare the current
+      MongoDB design with PostgreSQL using the marketplace's relational integrity,
+      transaction, tenant-isolation, query, operational, hosting-cost, migration,
+      and rollback requirements. Record PostgreSQL and UUID identifiers as the
+      intended direction unless the investigation identifies a concrete blocker.
+- [ ] Design the relational schema with explicit foreign keys, tenant-scoped
+      unique constraints and indexes, immutable order-item snapshots, inventory
+      invariants, and transaction boundaries for checkout and fulfillment.
+- [ ] Choose the PostgreSQL data-access and migration tooling through a focused
+      spike. Evaluate Prisma, Drizzle, and a SQL-oriented client against the
+      existing service boundaries, transaction behavior, generated SQL,
+      migration reviewability, testability, and production deployment model.
+- [ ] Remove MongoDB-specific identifiers from public and security contracts.
+      Replace ObjectId validation and the ObjectId-shaped refresh-token session
+      selector with database-neutral UUID or opaque identifiers without changing
+      the accepted cookie, CSRF, rotation, replay, revocation, or key-ring rules.
+- [ ] Implement PostgreSQL persistence behind the existing service boundaries,
+      preserving API contracts and keeping transactions short and explicit.
+- [ ] Build versioned schema and data migrations plus deterministic validation
+      reports. Preserve password hashes, ownership, tenant isolation, inventory,
+      immutable order history, timestamps, and other required data without
+      logging secrets or personal data.
+- [ ] Port database-backed integration tests and deterministic seed data to an
+      ephemeral PostgreSQL service. Require checkout rollback, concurrent
+      inventory updates, session rotation/replay, tenant isolation, and critical
+      browser workflows to pass before cutover.
+- [ ] Rehearse backup, migration, validation, application startup, smoke testing,
+      and rollback against production-like data before changing the deployed
+      database.
+- [ ] Perform one controlled maintenance-window cutover: stop writes, take a
+      final MongoDB backup, migrate and validate the data, revoke existing
+      sessions so users sign in again, point the application at PostgreSQL, and
+      pass readiness and critical workflow smoke tests before reopening writes.
+- [ ] Keep the final MongoDB backup and deployment configuration available for a
+      documented rollback window. Remove Mongoose, MongoDB containers, and old
+      configuration only after PostgreSQL has been monitored and accepted.
+
+### 5. Make catalog queries scalable and complete seller product management
 
 - [ ] Move existing product search, category, availability, status, and sorting
-      from in-memory application processing into tenant-scoped MongoDB queries.
+      from in-memory application processing into tenant-scoped PostgreSQL queries.
 - [ ] Add bounded pagination to catalog, seller product, order, review, and
       notification lists. Prefer cursor pagination where stable ordering matters;
       otherwise document maximum page sizes and return consistent metadata.
@@ -160,12 +199,12 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - [ ] Prevent mass assignment by defining explicit editable fields and preserve
       immutable seller, tenant, and historical commerce data.
 - [ ] Add image upload only after choosing an object-storage provider. Validate
-      image URL protocols and hosts in the meantime, and do not store image binaries
-      in MongoDB.
+      image URL protocols and hosts in the meantime, and do not store image
+      binaries in the primary application database.
 - Consider `react-hook-form` and `@hookform/resolvers` with the existing Zod
   dependency only when several forms can be migrated consistently.
 
-### 5. Define roles and privileged authorization
+### 6. Define roles and privileged authorization
 
 - [ ] Decide whether the current `/admin` page is a seller dashboard or a
       privileged administration surface. Rename it if it is not administrative.
@@ -175,7 +214,7 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - [ ] Add denial, cross-tenant, privilege-change, and stale-session tests and
       record privileged changes in an audit trail.
 
-### 6. Centralize tenant-specific themes and accessibility
+### 7. Centralize tenant-specific themes and accessibility
 
 - [ ] Add `prettier-plugin-tailwindcss` as a root development dependency and
       load it last in `prettier.config.mjs`, using
@@ -197,7 +236,7 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - [ ] Document how to add or modify a tenant theme. Continue using Tailwind and
       CSS variables unless a redesign establishes a need for a component library.
 
-### 7. Centralize frontend server state
+### 8. Centralize frontend server state
 
 - [ ] Introduce `@tanstack/react-query` incrementally after paginated response
       contracts are stable rather than rewriting all pages at once.
@@ -209,7 +248,7 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - [ ] Preserve existing pending, success, API-error, and previous-state behavior
       while removing duplicated request state from pages.
 
-### 8. Improve API consistency and frontend contract safety
+### 9. Improve API consistency and frontend contract safety
 
 - [ ] Define consistent error, list, pagination, and mutation response shapes in
       Zod and OpenAPI before migrating list consumers.
@@ -220,7 +259,7 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - Continue deferring a fully generated API client until maintaining handwritten
   endpoints becomes a measured burden.
 
-### 9. Add production observability and auditability
+### 10. Add production observability and auditability
 
 - [ ] Add structured request and application logging with `pino` and
       `pino-http`, reusing the existing request context and correlation ID.
@@ -232,7 +271,7 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - [ ] Add append-only audit events for session, inventory, order, and privileged
       mutations without treating ordinary application logs as the audit record.
 
-### 10. Add account verification, recovery, and management
+### 11. Add account verification, recovery, and management
 
 - [ ] Add email verification and password-reset flows using hashed, expiring,
       single-use tokens and non-enumerating responses.
@@ -246,19 +285,20 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   use `nodemailer` only when generic SMTP or local email testing is explicitly
   required.
 
-### 11. Manage database evolution and data lifecycle
+### 12. Manage database evolution and data lifecycle
 
 - [ ] Establish versioned, repeatable migrations for schema changes, data
       backfills, and index creation instead of relying on implicit startup changes.
 - [ ] Document compatibility and rollback rules for deployments that span old
       and new application versions.
 - [ ] Define retention and cleanup for sessions, recovery tokens,
-      notifications, abandoned carts, and other temporary records, using TTL
-      indexes where their semantics are appropriate.
+      notifications, abandoned carts, and other temporary records, using
+      scheduled, observable cleanup jobs where PostgreSQL does not provide the
+      current MongoDB TTL-index behavior.
 - [ ] Document backup and restore procedures and rehearse a migration and
       restore using production-like data without exposing secrets or personal data.
 
-### 12. Add later marketplace capabilities only after the baseline is stable
+### 13. Add later marketplace capabilities only after the baseline is stable
 
 - [ ] Make checkout and other retry-sensitive mutations idempotent so retries
       cannot create duplicate orders or side effects.
@@ -276,8 +316,10 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 
 - Do not add Redux Toolkit or Zustand unless substantial client-only shared
   state appears; remote marketplace state belongs in TanStack Query.
-- Do not migrate to Next.js, NestJS, Fastify, PostgreSQL, Prisma, or Drizzle
-  without a measured product or operational requirement.
+- Do not migrate to Next.js, NestJS, or Fastify without a measured product or
+  operational requirement. Treat the planned PostgreSQL migration as a gated
+  phase: accept its database ADR and tooling spike before adding Prisma, Drizzle,
+  or another data-access dependency or changing production persistence.
 - Do not add Redis or BullMQ until the project has retryable asynchronous work
   such as production email delivery, image processing, or webhooks.
 - Keep Tailwind as the UI foundation unless a planned redesign justifies a
