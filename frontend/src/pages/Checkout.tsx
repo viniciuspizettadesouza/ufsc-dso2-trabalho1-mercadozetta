@@ -4,6 +4,8 @@ import { Link } from 'react-router';
 import Header from '@/pages/header';
 import api from '@/services/api';
 import { apiRoutes, appRoutes } from '@/routes';
+import PaginationControls from '@/components/PaginationControls';
+import { firstPage, pageInfo, pageItems, withPage } from '@/pagination';
 
 type Product = {
   _id: string;
@@ -33,15 +35,24 @@ export default function Checkout() {
     type: 'success' | 'error';
     message: string;
   } | null>(null);
+  const [orderPage, setOrderPage] = useState(firstPage);
+  async function loadOrders(offset: number) {
+    const history = await api.get(
+      withPage(`${apiRoutes.orders}?scope=buyer`, offset),
+    );
+    setOrders(pageItems<Order>(history.data));
+    setOrderPage(pageInfo<Order>(history.data));
+  }
   useEffect(() => {
     async function loadCheckout() {
       try {
         const [cart, history] = await Promise.all([
           api.get(apiRoutes.cart),
-          api.get(apiRoutes.orders),
+          api.get(`${apiRoutes.orders}?scope=buyer`),
         ]);
         setItems(cart.data.items);
-        setOrders(history.data);
+        setOrders(pageItems<Order>(history.data));
+        setOrderPage(pageInfo<Order>(history.data));
       } catch {
         setFeedback({
           type: 'error',
@@ -220,6 +231,11 @@ export default function Checkout() {
               </li>
             ))}
           </ul>
+          <PaginationControls
+            label="Order history pages"
+            page={orderPage}
+            onPage={loadOrders}
+          />
         </section>
         <Link to={appRoutes.home}>Back to catalog</Link>
       </main>

@@ -1,5 +1,15 @@
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq, inArray, max } from 'drizzle-orm';
+import {
+  and,
+  count,
+  desc,
+  eq,
+  exists,
+  inArray,
+  max,
+  or,
+  sql,
+} from 'drizzle-orm';
 import type { Database } from '@/database/postgres';
 import {
   cartItems,
@@ -27,6 +37,9 @@ import type {
 import type { OrderRepository } from '@/repositories/orderRepository';
 import { PostgresProductRepository } from '@/repositories/postgres/productRepository';
 import { mapProductRow } from '@/repositories/mappers';
+import { paginated } from '@/pagination';
+import type { Pagination } from '@/pagination';
+import type { OrderListData } from '@/validators/commerceValidator';
 
 type TransactionDatabase = Parameters<
   Parameters<Database['transaction']>[0]
@@ -261,6 +274,41 @@ export class PostgresOrderRepository implements OrderRepository {
     return rows.map(({ id }) => id);
   }
 
+  async listVisible(
+    tenantId: string,
+    userId: string,
+    pagination: OrderListData,
+  ) {
+    const sellerOrder = this.db
+      .select({ value: sql`1` })
+      .from(orderItems)
+      .where(
+        and(
+          eq(orderItems.tenantId, orders.tenantId),
+          eq(orderItems.orderId, orders.id),
+          eq(orderItems.sellerId, userId),
+        ),
+      );
+    const visibility =
+      pagination.scope === 'buyer'
+        ? eq(orders.buyerId, userId)
+        : pagination.scope === 'seller'
+          ? exists(sellerOrder)
+          : or(eq(orders.buyerId, userId), exists(sellerOrder));
+    const where = and(eq(orders.tenantId, tenantId), visibility);
+    const [rows, [{ total }]] = await Promise.all([
+      this.db
+        .select()
+        .from(orders)
+        .where(where)
+        .orderBy(desc(orders.createdAt), desc(orders.id))
+        .limit(pagination.limit)
+        .offset(pagination.offset),
+      this.db.select({ total: count() }).from(orders).where(where),
+    ]);
+    return paginated(await this.mapOrders(rows), total, pagination);
+  }
+
   async updateStatus(
     tenantId: string,
     orderId: string,
@@ -385,26 +433,34 @@ export class PostgresNotificationRepository implements NotificationRepository {
     );
   }
 
-  async list(tenantId: string, userId: string) {
-    const rows = await this.db
-      .select()
-      .from(notifications)
-      .where(
-        and(
-          eq(notifications.tenantId, tenantId),
-          eq(notifications.userId, userId),
-        ),
-      )
-      .orderBy(desc(notifications.createdAt), desc(notifications.id));
-    return rows.map((notification) => ({
-      _id: notification.id,
-      tenantId: notification.tenantId,
-      user: notification.userId,
-      message: notification.message,
-      read: notification.isRead,
-      createdAt: notification.createdAt,
-      updatedAt: notification.updatedAt,
-    }));
+  async list(tenantId: string, userId: string, pagination: Pagination) {
+    const where = and(
+      eq(notifications.tenantId, tenantId),
+      eq(notifications.userId, userId),
+    );
+    const [rows, [{ total }]] = await Promise.all([
+      this.db
+        .select()
+        .from(notifications)
+        .where(where)
+        .orderBy(desc(notifications.createdAt), desc(notifications.id))
+        .limit(pagination.limit)
+        .offset(pagination.offset),
+      this.db.select({ total: count() }).from(notifications).where(where),
+    ]);
+    return paginated(
+      rows.map((notification) => ({
+        _id: notification.id,
+        tenantId: notification.tenantId,
+        user: notification.userId,
+        message: notification.message,
+        read: notification.isRead,
+        createdAt: notification.createdAt,
+        updatedAt: notification.updatedAt,
+      })),
+      total,
+      pagination,
+    );
   }
 
   async countUnread(tenantId: string, userId: string) {

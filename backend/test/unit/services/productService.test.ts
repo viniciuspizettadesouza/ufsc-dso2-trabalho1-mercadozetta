@@ -6,8 +6,12 @@ function repository(
   overrides: Partial<ProductRepository> = {},
 ): ProductRepository {
   return {
-    list: vi.fn().mockResolvedValue([]),
+    list: vi.fn().mockResolvedValue({
+      items: [],
+      page: { limit: 20, offset: 0, total: 0, hasMore: false },
+    }),
     create: vi.fn(),
+    updateOwned: vi.fn().mockResolvedValue(null),
     findById: vi.fn().mockResolvedValue(null),
     findActiveById: vi.fn().mockResolvedValue(null),
     findByIds: vi.fn().mockResolvedValue([]),
@@ -70,8 +74,12 @@ function service(productRepository: ProductRepository, profile = vi.fn()) {
 
 describe('productService', () => {
   it('lists products with text, category, availability, and sort filters', async () => {
+    const list = vi.fn().mockResolvedValue({
+      items: [products[1]],
+      page: { limit: 20, offset: 0, total: 1, hasMore: false },
+    });
     const productRepository = repository({
-      list: vi.fn().mockResolvedValue(products),
+      list,
     });
     const { listProducts } = service(productRepository);
 
@@ -82,13 +90,27 @@ describe('productService', () => {
       sort: 'name_asc',
     });
 
-    expect(productRepository.list).toHaveBeenCalledWith('campus-market');
-    expect(result.map((product) => product._id)).toEqual(['product-2']);
+    expect(list).toHaveBeenCalledWith('campus-market', {
+      q: 'keyboard',
+      category: 'peripherals',
+      subcategory: '',
+      seller: '',
+      status: '',
+      availability: 'sold_out',
+      sort: 'name_asc',
+      limit: 20,
+      offset: 0,
+    });
+    expect(result.items.map((product) => product._id)).toEqual(['product-2']);
   });
 
   it('uses the default tenant and applies seller and stock filters', async () => {
+    const list = vi.fn().mockResolvedValue({
+      items: [products[0]],
+      page: { limit: 20, offset: 0, total: 1, hasMore: false },
+    });
     const productRepository = repository({
-      list: vi.fn().mockResolvedValue(products),
+      list,
     });
     const { listProducts } = service(productRepository);
 
@@ -99,35 +121,34 @@ describe('productService', () => {
       availability: 'in_stock',
     });
 
-    expect(productRepository.list).toHaveBeenCalledWith('mercadozetta');
-    expect(result.map((product) => product._id)).toEqual(['product-1']);
+    expect(list).toHaveBeenCalledWith('mercadozetta', {
+      q: '',
+      category: '',
+      subcategory: 'mice',
+      seller: sellerId,
+      status: 'active',
+      availability: 'in_stock',
+      sort: 'created_desc',
+      limit: 20,
+      offset: 0,
+    });
+    expect(result.items.map((product) => product._id)).toEqual(['product-1']);
   });
 
-  it('sorts products by creation, name, and inventory', async () => {
-    const { listProducts } = service(
-      repository({ list: vi.fn().mockResolvedValue(products) }),
-    );
+  it('passes each supported sort to the repository', async () => {
+    const list = vi.fn().mockResolvedValue({
+      items: products,
+      page: { limit: 20, offset: 0, total: 3, hasMore: false },
+    });
+    const { listProducts } = service(repository({ list }));
 
-    await expect(
-      listProducts('mercadozetta', { sort: 'created_asc' }),
-    ).resolves.toMatchObject([
-      { _id: 'product-3' },
-      { _id: 'product-1' },
-      { _id: 'product-2' },
-    ]);
-    await expect(
-      listProducts('mercadozetta', { sort: 'name_asc' }),
-    ).resolves.toMatchObject([
-      { _id: 'product-3' },
-      { _id: 'product-2' },
-      { _id: 'product-1' },
-    ]);
-    await expect(
-      listProducts('mercadozetta', { sort: 'inventory_desc' }),
-    ).resolves.toMatchObject([
-      { _id: 'product-1' },
-      { _id: 'product-3' },
-      { _id: 'product-2' },
+    for (const sort of ['created_asc', 'name_asc', 'inventory_desc'])
+      await listProducts('mercadozetta', { sort });
+
+    expect(list.mock.calls.map(([, query]) => query.sort)).toEqual([
+      'created_asc',
+      'name_asc',
+      'inventory_desc',
     ]);
   });
 
@@ -196,14 +217,140 @@ describe('productService', () => {
   });
 
   it('lists products by a validated seller', async () => {
-    const list = vi.fn().mockResolvedValue(products);
+    const list = vi.fn().mockResolvedValue({
+      items: [products[0]],
+      page: { limit: 20, offset: 0, total: 1, hasMore: false },
+    });
     const { listProductsBySeller } = service(repository({ list }));
 
     const result = await listProductsBySeller(sellerId, 'campus-market', {
       status: 'active',
     });
 
-    expect(list).toHaveBeenCalledWith('campus-market', sellerId);
-    expect(result.map((product) => product._id)).toEqual(['product-1']);
+    expect(list).toHaveBeenCalledWith('campus-market', {
+      q: '',
+      category: '',
+      subcategory: '',
+      seller: sellerId,
+      status: 'active',
+      availability: '',
+      sort: 'created_desc',
+      limit: 20,
+      offset: 0,
+    });
+    expect(result.items.map((product) => product._id)).toEqual(['product-1']);
+  });
+
+  it('updates only explicit editable fields for the owning seller', async () => {
+    const updateOwned = vi.fn().mockResolvedValue({
+      ...products[0],
+      name: 'Updated',
+    });
+    const { updateProduct } = service(
+      repository({
+        findById: vi.fn().mockResolvedValue({
+          ...products[0],
+          _id: productId,
+        }),
+        updateOwned,
+      }),
+    );
+
+    await updateProduct(
+      productId,
+      {
+        name: ' Updated ',
+        seller: 'attacker',
+        tenantId: 'campus-market',
+        inventory: 999,
+        status: 'archived',
+      },
+      sellerId,
+      'mercadozetta',
+    );
+
+    expect(updateOwned).toHaveBeenCalledWith(
+      'mercadozetta',
+      productId,
+      sellerId,
+      { name: 'Updated' },
+    );
+  });
+
+  it('denies product management to other sellers and tenants', async () => {
+    const { updateProduct } = service(
+      repository({
+        findById: vi.fn().mockResolvedValue({
+          ...products[0],
+          _id: productId,
+        }),
+      }),
+    );
+    await expect(
+      updateProduct(
+        productId,
+        { name: 'Nope' },
+        'other-seller',
+        'mercadozetta',
+      ),
+    ).rejects.toMatchObject({ code: 'PRODUCT_FORBIDDEN' });
+
+    const missing = service(repository()).updateProduct;
+    await expect(
+      missing(productId, { name: 'Nope' }, sellerId, 'campus-market'),
+    ).rejects.toMatchObject({ code: 'PRODUCT_NOT_FOUND' });
+  });
+
+  it('enforces lifecycle transitions and inventory-managed sold-out state', async () => {
+    const updateOwned = vi
+      .fn()
+      .mockImplementation(async (_tenant, _product, _seller, update) => ({
+        ...products[0],
+        ...update,
+      }));
+    const productRepository = repository({
+      findById: vi.fn().mockResolvedValue({
+        ...products[0],
+        _id: productId,
+        inventory: 5,
+        status: 'active',
+      }),
+      updateOwned,
+    });
+    const productService = service(productRepository);
+
+    await productService.updateProductStatus(
+      productId,
+      { status: 'paused' },
+      sellerId,
+      'mercadozetta',
+    );
+    expect(updateOwned).toHaveBeenLastCalledWith(
+      'mercadozetta',
+      productId,
+      sellerId,
+      { status: 'paused' },
+    );
+    await expect(
+      productService.updateProductStatus(
+        productId,
+        { status: 'sold_out' },
+        sellerId,
+        'mercadozetta',
+      ),
+    ).rejects.toMatchObject({ code: 'PRODUCT_STATUS_TRANSITION_INVALID' });
+
+    await productService.updateProductInventory(
+      productId,
+      { inventory: 0 },
+      sellerId,
+      'mercadozetta',
+    );
+    expect(updateOwned).toHaveBeenLastCalledWith(
+      'mercadozetta',
+      productId,
+      sellerId,
+      { inventory: 0, status: 'sold_out' },
+    );
   });
 });

@@ -21,6 +21,10 @@ const migration = readFileSync(
   resolve(process.cwd(), 'drizzle/0000_initial_postgresql.sql'),
   'utf8',
 );
+const catalogIndexMigration = readFileSync(
+  resolve(process.cwd(), 'drizzle/0001_next_expediter.sql'),
+  'utf8',
+);
 
 describe('PostgreSQL schema contract', () => {
   const tables = [
@@ -87,5 +91,11 @@ describe('PostgreSQL schema contract', () => {
   it('seeds only the configured tenant integrity anchors', () => {
     expect(migration).toContain("VALUES ('mercadozetta'), ('campus-market')");
     expect(migration).toContain('ON CONFLICT ("id") DO NOTHING');
+  });
+
+  it('adds reviewed indexes for bounded catalog sort orders', () => {
+    expect(catalogIndexMigration).toContain('products_name_idx');
+    expect(catalogIndexMigration).toContain('products_inventory_idx');
+    expect(catalogIndexMigration).toContain('"tenant_id"');
   });
 });

@@ -1,11 +1,26 @@
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq, gte, inArray, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  gt,
+  gte,
+  ilike,
+  inArray,
+  or,
+  sql,
+  count,
+} from 'drizzle-orm';
 import type { Database } from '@/database/postgres';
 import { products } from '@/database/schema';
 import { mapProductRow } from '@/repositories/mappers';
+import { paginated } from '@/pagination';
 import type {
   CreateProductRecord,
+  ProductListQuery,
   ProductRepository,
+  UpdateProductRecord,
 } from '@/repositories/productRepository';
 
 type TransactionDatabase = Parameters<
@@ -16,20 +31,62 @@ type ProductDatabase = Database | TransactionDatabase;
 export class PostgresProductRepository implements ProductRepository {
   constructor(private readonly db: ProductDatabase) {}
 
-  async list(tenantId: string, sellerId?: string) {
-    const rows = await this.db
-      .select()
-      .from(products)
-      .where(
-        sellerId
-          ? and(
-              eq(products.tenantId, tenantId),
-              eq(products.sellerId, sellerId),
-            )
-          : eq(products.tenantId, tenantId),
-      )
-      .orderBy(desc(products.createdAt), desc(products.id));
-    return rows.map(mapProductRow);
+  async list(tenantId: string, query: ProductListQuery) {
+    const conditions = [eq(products.tenantId, tenantId)];
+
+    if (query.q) {
+      const escapedSearch = query.q.replace(/[\\%_]/g, '\\$&');
+      const pattern = `%${escapedSearch}%`;
+      conditions.push(
+        or(
+          ilike(products.name, pattern),
+          ilike(products.description, pattern),
+        )!,
+      );
+    }
+    if (query.category) conditions.push(eq(products.category, query.category));
+    if (query.subcategory)
+      conditions.push(eq(products.subcategory, query.subcategory));
+    if (query.seller) conditions.push(eq(products.sellerId, query.seller));
+    if (query.status) conditions.push(eq(products.status, query.status));
+    if (query.availability === 'in_stock')
+      conditions.push(gt(products.inventory, 0));
+    if (query.availability === 'sold_out')
+      conditions.push(eq(products.inventory, 0));
+
+    const orderBy = (() => {
+      switch (query.sort) {
+        case 'created_asc':
+          return [asc(products.createdAt), desc(products.id)];
+        case 'name_asc':
+          return [
+            asc(products.name),
+            desc(products.createdAt),
+            desc(products.id),
+          ];
+        case 'inventory_desc':
+          return [
+            desc(products.inventory),
+            desc(products.createdAt),
+            desc(products.id),
+          ];
+        default:
+          return [desc(products.createdAt), desc(products.id)];
+      }
+    })();
+
+    const where = and(...conditions);
+    const [rows, [{ total }]] = await Promise.all([
+      this.db
+        .select()
+        .from(products)
+        .where(where)
+        .orderBy(...orderBy)
+        .limit(query.limit)
+        .offset(query.offset),
+      this.db.select({ total: count() }).from(products).where(where),
+    ]);
+    return paginated(rows.map(mapProductRow), total, query);
   }
 
   async create(product: CreateProductRecord) {
@@ -52,6 +109,42 @@ export class PostgresProductRepository implements ProductRepository {
       })
       .returning();
     return mapProductRow(created);
+  }
+
+  async updateOwned(
+    tenantId: string,
+    productId: string,
+    sellerId: string,
+    update: UpdateProductRecord,
+  ) {
+    const values = {
+      ...(update.name === undefined ? {} : { name: update.name.toLowerCase() }),
+      ...(update.description === undefined
+        ? {}
+        : { description: update.description }),
+      ...(update.category === undefined ? {} : { category: update.category }),
+      ...(update.subcategory === undefined
+        ? {}
+        : { subcategory: update.subcategory }),
+      ...(update.image === undefined ? {} : { imageUrl: update.image }),
+      ...(update.status === undefined ? {} : { status: update.status }),
+      ...(update.inventory === undefined
+        ? {}
+        : { inventory: update.inventory }),
+      updatedAt: new Date(),
+    };
+    const [updated] = await this.db
+      .update(products)
+      .set(values)
+      .where(
+        and(
+          eq(products.tenantId, tenantId),
+          eq(products.id, productId),
+          eq(products.sellerId, sellerId),
+        ),
+      )
+      .returning();
+    return updated ? mapProductRow(updated) : null;
   }
 
   async findById(tenantId: string, productId: string) {

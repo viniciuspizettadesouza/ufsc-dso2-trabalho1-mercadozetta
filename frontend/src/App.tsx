@@ -15,6 +15,7 @@ import AdminDashboard from '@/pages/AdminDashboard';
 import ProductDetail from '@/pages/ProductDetail';
 import SellerProfile from '@/pages/SellerProfile';
 import SellerOrders from '@/pages/SellerOrders';
+import EditProduct from '@/pages/EditProduct';
 import { BrandProvider } from '@/brands/BrandProvider';
 import { AuthProvider } from '@/auth/AuthProvider';
 import { useAuth } from '@/auth/AuthContext';
@@ -78,6 +79,14 @@ const router = createBrowserRouter([
   {
     path: routePatterns.productDetail,
     element: <ProductDetail />,
+  },
+  {
+    path: routePatterns.editProduct,
+    element: (
+      <AuthenticatedRoute prompt="Entre para gerenciar o anúncio.">
+        <EditProduct />
+      </AuthenticatedRoute>
+    ),
   },
   {
     path: routePatterns.checkout,

@@ -7,7 +7,12 @@ import {
   productFiltersSchema,
   productIdSchema,
   sellerIdSchema,
+  updateProductSchema,
+  productInventoryUpdateSchema,
+  productStatusUpdateSchema,
 } from '@/validators/productValidator';
+import { paginationSchema } from '@/validators/paginationValidator';
+import { orderListSchema } from '@/validators/commerceValidator';
 import { createUserSchema } from '@/validators/userValidator';
 
 const tenantHeader = z
@@ -166,6 +171,15 @@ const notificationSchema = z.object({
 });
 const unreadCountSchema = z.object({ count: z.int().min(0) });
 const notificationReadRequest = z.object({ read: z.boolean() });
+const pageSchema = z.object({
+  limit: z.int().min(1).max(100),
+  offset: z.int().min(0),
+  total: z.int().min(0),
+  hasMore: z.boolean(),
+});
+const paginatedSchema = <T extends z.ZodType>(item: T) =>
+  z.object({ items: z.array(item), page: pageSchema });
+const pageExample = { limit: 20, offset: 0, total: 1, hasMore: false };
 
 const productExample = {
   _id: '507f191e-810c-4197-9de8-60ea00000001',
@@ -490,7 +504,10 @@ export function createOpenApiDocument() {
           responses: {
             200: {
               description: 'Products from the seller',
-              content: json(z.array(productSchema), [productExample]),
+              content: json(paginatedSchema(productSchema), {
+                items: [productExample],
+                page: pageExample,
+              }),
             },
             400: badRequest,
           },
@@ -505,7 +522,10 @@ export function createOpenApiDocument() {
           responses: {
             200: {
               description: 'Products in the current tenant',
-              content: json(z.array(productSchema), [productExample]),
+              content: json(paginatedSchema(productSchema), {
+                items: [productExample],
+                page: pageExample,
+              }),
             },
             400: badRequest,
           },
@@ -556,6 +576,89 @@ export function createOpenApiDocument() {
             },
             400: badRequest,
             404: notFound('Product'),
+          },
+        },
+        patch: {
+          tags: ['Products'],
+          summary: 'Edit seller-owned product details',
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
+          requestParams: { path: z.object({ productId: productIdSchema }) },
+          requestBody: {
+            required: true,
+            content: json(updateProductSchema, {
+              name: 'Mechanical keyboard',
+              description: 'Compact keyboard',
+            }),
+          },
+          responses: {
+            200: {
+              description: 'Updated product',
+              content: json(productSchema, productExample),
+            },
+            400: badRequest,
+            401: unauthorized,
+            403: {
+              description: 'Ownership, Origin, or CSRF validation failed',
+              content: json(errorSchema),
+            },
+            404: notFound('Product'),
+          },
+        },
+      },
+      '/products/{productId}/inventory': {
+        patch: {
+          tags: ['Products'],
+          summary: 'Set seller-owned product inventory',
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
+          requestParams: { path: z.object({ productId: productIdSchema }) },
+          requestBody: {
+            required: true,
+            content: json(productInventoryUpdateSchema, { inventory: 10 }),
+          },
+          responses: {
+            200: {
+              description: 'Updated product',
+              content: json(productSchema, productExample),
+            },
+            400: badRequest,
+            401: unauthorized,
+            403: {
+              description: 'Ownership, Origin, or CSRF validation failed',
+              content: json(errorSchema),
+            },
+            404: notFound('Product'),
+          },
+        },
+      },
+      '/products/{productId}/status': {
+        patch: {
+          tags: ['Products'],
+          summary: 'Change seller-owned product lifecycle status',
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
+          requestParams: { path: z.object({ productId: productIdSchema }) },
+          requestBody: {
+            required: true,
+            content: json(productStatusUpdateSchema, { status: 'paused' }),
+          },
+          responses: {
+            200: {
+              description: 'Updated product',
+              content: json(productSchema, productExample),
+            },
+            400: badRequest,
+            401: unauthorized,
+            403: {
+              description: 'Ownership, Origin, or CSRF validation failed',
+              content: json(errorSchema),
+            },
+            404: notFound('Product'),
+            409: {
+              description: 'Invalid lifecycle transition',
+              content: json(errorSchema),
+            },
           },
         },
       },
@@ -694,10 +797,14 @@ export function createOpenApiDocument() {
           summary: 'List buyer and seller orders',
           security: [{ cookieAuth: [] }],
           parameters: [tenantHeader],
+          requestParams: { query: orderListSchema },
           responses: {
             200: {
               description: 'Orders',
-              content: json(z.array(orderSchema), []),
+              content: json(paginatedSchema(orderSchema), {
+                items: [],
+                page: { ...pageExample, total: 0 },
+              }),
             },
             401: unauthorized,
           },
@@ -790,11 +897,17 @@ export function createOpenApiDocument() {
           tags: ['Commerce'],
           summary: 'List product reviews',
           parameters: [tenantHeader],
-          requestParams: { path: z.object({ productId: resourceId }) },
+          requestParams: {
+            path: z.object({ productId: resourceId }),
+            query: paginationSchema,
+          },
           responses: {
             200: {
               description: 'Reviews',
-              content: json(z.array(reviewSchema), []),
+              content: json(paginatedSchema(reviewSchema), {
+                items: [],
+                page: { ...pageExample, total: 0 },
+              }),
             },
           },
         },
@@ -836,10 +949,14 @@ export function createOpenApiDocument() {
           summary: 'List current user notifications',
           security: [{ cookieAuth: [] }],
           parameters: [tenantHeader],
+          requestParams: { query: paginationSchema },
           responses: {
             200: {
               description: 'Notifications',
-              content: json(z.array(notificationSchema), []),
+              content: json(paginatedSchema(notificationSchema), {
+                items: [],
+                page: { ...pageExample, total: 0 },
+              }),
             },
             401: unauthorized,
           },

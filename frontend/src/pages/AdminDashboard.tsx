@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Header from '@/pages/header';
 import api from '@/services/api';
 import { apiRoutes } from '@/routes';
+import { pageItems } from '@/pagination';
 
 type Product = {
   _id: string;
@@ -35,8 +36,12 @@ export default function AdminDashboard() {
         api.get(apiRoutes.products),
         api.get(apiRoutes.notifications),
       ]);
-      setProducts(response.data);
-      setNotifications(notificationResponse.data);
+      setProducts(pageItems<Product>(response.data));
+      setNotifications(
+        pageItems<{ _id: string; message: string; read: boolean }>(
+          notificationResponse.data,
+        ),
+      );
     }
 
     loadProducts();

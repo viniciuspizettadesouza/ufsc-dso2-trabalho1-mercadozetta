@@ -26,6 +26,8 @@ priorities, and session handoff belong only in the
 - Browse a tenant-branded product catalog and product details.
 - Search names and descriptions; filter by category, subcategory, seller,
   availability, and product status; sort by creation time, name, or inventory.
+  Catalog and seller-list filtering and sorting execute in tenant-scoped
+  PostgreSQL queries.
 - View public seller profiles and seller-specific product lists.
 - Read product reviews, register an account, and log in.
 
@@ -42,6 +44,9 @@ priorities, and session handoff belong only in the
 ### Authenticated seller workflows
 
 - Create a listing owned by the authenticated user.
+- Edit owned listing details, archive or reactivate listings through explicit
+  lifecycle transitions, and set inventory with automatic sold-out/reactivation
+  behavior.
 - View only the line items they sold, even when an order contains products from
   several sellers.
 - Move orders through `placed → confirmed → shipped → delivered` one step at a
@@ -303,8 +308,9 @@ brands inherit the same feature flags; several commerce flags are currently
 flags must not be treated as an authoritative capability registry.
 
 The current frontend route surface includes the catalog, seller product and
-profile pages, product detail, login, registration, product creation, checkout,
-seller orders, and the ambiguously named authenticated `/admin` dashboard.
+profile pages, product detail, login, registration, product creation and
+management, checkout, seller orders, and the ambiguously named authenticated
+`/admin` dashboard.
 
 ## 10. API contract and validation
 
@@ -319,9 +325,14 @@ run the generation command documented in the [README](../README.md#api-contract)
 The OpenAPI contract test checks deterministic file parity, parity between
 implemented and documented methods/paths, and required examples.
 
-List responses currently use bare arrays rather than a common envelope, and
-list endpoints are unpaginated. Frontend pages also declare local approximate
-response types rather than consuming generated or shared contract types.
+Catalog, seller-product, order, review, and notification lists accept `limit`
+(default 20, maximum 100) and `offset` (default 0), and return
+`{ items, page: { limit, offset, total, hasMore } }`. Offset pagination is used
+because catalog queries support several user-selected sort orders; every order
+has deterministic UUID tie-breakers. Order lists additionally accept `scope`
+(`all`, `buyer`, or `seller`), and seller scope returns only the authenticated
+seller's line items. Frontend pages still declare local approximate response
+types rather than consuming generated or shared contract types.
 
 ## 11. Local development
 
@@ -396,10 +407,10 @@ or data-retention process.
 
 - Authentication is cookie-session-only; deployment key rings must retain old
   versions for their documented overlap windows.
-- Catalog and seller filtering/sorting load tenant products before processing
-  them in application memory; lists are unbounded and unpaginated.
-- Product creation exists, but editing, archival/reactivation workflows, and
-  dedicated inventory adjustment/history are absent.
+- Catalog and seller filtering/sorting and all bounded list windows execute in
+  PostgreSQL. Offset pages can shift when concurrent writes change earlier rows.
+- Product creation, editing, archival/reactivation, and current inventory
+  adjustment exist, but inventory history is not yet recorded.
 - Orders have no price, payment, address, shipment, return, refund, or dispute
   models. Cancellation does not replenish stock.
 - Checkout lacks an idempotency key or equivalent duplicate-request protection.
@@ -409,10 +420,10 @@ or data-retention process.
   is derived UI, not immutable audit data.
 - Notifications have no preferences, external delivery, retention, or cleanup.
 - Brand capability flags are stale relative to implemented commerce UI.
-- Product images are arbitrary stored strings; there is no upload/object
-  storage integration or documented host allowlist.
-- Browser end-to-end coverage currently exercises authentication only; there
-  are no automated accessibility tests.
+- Product images support safe relative paths or HTTPS URLs whose exact host is
+  listed in `PRODUCT_IMAGE_HOSTS` (local HTTP is accepted only for loopback
+  hosts). There is intentionally no upload or binary database storage until an
+  object-storage provider is selected.
 - The production container baseline does not supply managed TLS, secrets,
   monitoring, database authentication, backup/restore automation, retention, or
   disaster recovery.

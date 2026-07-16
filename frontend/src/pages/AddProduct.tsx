@@ -14,7 +14,6 @@ const productStatusOptions: ProductStatus[] = [
   'draft',
   'active',
   'paused',
-  'sold_out',
   'archived',
 ];
 

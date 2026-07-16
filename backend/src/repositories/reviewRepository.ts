@@ -10,7 +10,11 @@ export type ReviewRecord = {
 };
 
 export interface ReviewRepository {
-  list(tenantId: string, productId: string): Promise<ReviewRecord[]>;
+  list(
+    tenantId: string,
+    productId: string,
+    pagination: Pagination,
+  ): Promise<Paginated<ReviewRecord>>;
   hasPurchasedProduct(
     tenantId: string,
     buyerId: string,
@@ -25,3 +29,4 @@ export interface ReviewRepository {
     now: Date,
   ): Promise<ReviewRecord>;
 }
+import type { Paginated, Pagination } from '@/pagination';

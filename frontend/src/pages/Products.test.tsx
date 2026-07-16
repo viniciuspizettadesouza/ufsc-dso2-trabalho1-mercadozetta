@@ -142,7 +142,7 @@ describe('Products', () => {
     );
 
     expect(api.get).toHaveBeenLastCalledWith(
-      '/products?q=tea&category=drinks&availability=sold_out&sort=name_asc',
+      '/products?q=tea&category=drinks&availability=sold_out&sort=name_asc&limit=20&offset=0',
     );
   });
 
@@ -235,6 +235,34 @@ describe('Products', () => {
     expect(await screen.findByRole('img', { name: 'Coffee' })).toHaveAttribute(
       'src',
       'coffee.jpg',
+    );
+  });
+
+  it('navigates bounded catalog pages and exposes owner management', async () => {
+    vi.mocked(api.get).mockImplementation(async (path) => {
+      if (path === '/watchlist') return { data: [] } as never;
+      if (path === '/cart') return { data: { items: [] } } as never;
+      if (path === '/notifications/unread-count')
+        return { data: { count: 0 } } as never;
+      return {
+        data: {
+          items: [products[0]],
+          page:
+            path === '/products'
+              ? { limit: 20, offset: 0, total: 21, hasMore: true }
+              : { limit: 20, offset: 20, total: 21, hasMore: false },
+        },
+      } as never;
+    });
+
+    renderProducts('/', '/', { _id: 'seller-1' });
+
+    expect(
+      await screen.findByRole('link', { name: 'Manage listing' }),
+    ).toHaveAttribute('href', '/products/product-1/edit');
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(api.get).toHaveBeenCalledWith(
+      '/products?sort=created_desc&limit=20&offset=20',
     );
   });
 });

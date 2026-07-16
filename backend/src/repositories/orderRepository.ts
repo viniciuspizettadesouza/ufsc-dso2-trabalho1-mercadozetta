@@ -1,4 +1,6 @@
 import type { OrderStatus } from '@/orderStatus';
+import type { Paginated } from '@/pagination';
+import type { OrderListData } from '@/validators/commerceValidator';
 
 export type CheckoutOrder = {
   _id: string;
@@ -23,6 +25,11 @@ export interface OrderRepository {
   findById(tenantId: string, orderId: string): Promise<CheckoutOrder | null>;
   listByIds(tenantId: string, orderIds: string[]): Promise<CheckoutOrder[]>;
   listIdsByBuyer(tenantId: string, buyerId: string): Promise<string[]>;
+  listVisible(
+    tenantId: string,
+    userId: string,
+    pagination: OrderListData,
+  ): Promise<Paginated<CheckoutOrder>>;
   updateStatus(
     tenantId: string,
     orderId: string,

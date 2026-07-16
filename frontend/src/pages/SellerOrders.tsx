@@ -4,6 +4,8 @@ import Header from '@/pages/header';
 import { apiRoutes } from '@/routes';
 import api from '@/services/api';
 import { useAuth } from '@/auth/AuthContext';
+import PaginationControls from '@/components/PaginationControls';
+import { firstPage, pageInfo, pageItems, withPage } from '@/pagination';
 
 type OrderStatus =
   'placed' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
@@ -40,19 +42,36 @@ export default function SellerOrders() {
     type: 'success' | 'error';
     message: string;
   } | null>(null);
+  const [page, setPage] = useState(firstPage);
+
+  async function loadOrders(offset: number) {
+    const response = await api.get(
+      withPage(`${apiRoutes.orders}?scope=seller`, offset),
+    );
+    setOrders(
+      pageItems<Order>(response.data)
+        .map((order) => ({
+          ...order,
+          items: order.items.filter((item) => item.seller === sellerId),
+        }))
+        .filter((order) => order.items.length > 0),
+    );
+    setPage(pageInfo<Order>(response.data));
+  }
 
   useEffect(() => {
     async function loadOrders() {
       try {
-        const response = await api.get(apiRoutes.orders);
+        const response = await api.get(`${apiRoutes.orders}?scope=seller`);
         setOrders(
-          response.data
+          pageItems<Order>(response.data)
             .map((order: Order) => ({
               ...order,
               items: order.items.filter((item) => item.seller === sellerId),
             }))
             .filter((order: Order) => order.items.length > 0),
         );
+        setPage(pageInfo<Order>(response.data));
       } catch {
         setFeedback({
           type: 'error',
@@ -155,6 +174,11 @@ export default function SellerOrders() {
         ) : (
           <p>No seller orders found.</p>
         )}
+        <PaginationControls
+          label="Seller order pages"
+          page={page}
+          onPage={loadOrders}
+        />
       </main>
     </div>
   );

@@ -17,7 +17,11 @@ export type NotificationRecord = {
 export interface NotificationRepository {
   create(notification: CreateNotification, now: Date): Promise<void>;
   createMany(notifications: CreateNotification[], now: Date): Promise<void>;
-  list(tenantId: string, userId: string): Promise<NotificationRecord[]>;
+  list(
+    tenantId: string,
+    userId: string,
+    pagination: Pagination,
+  ): Promise<Paginated<NotificationRecord>>;
   countUnread(tenantId: string, userId: string): Promise<number>;
   updateRead(
     tenantId: string,
@@ -26,3 +30,4 @@ export interface NotificationRepository {
     read: boolean,
   ): Promise<NotificationRecord | null>;
 }
+import type { Paginated, Pagination } from '@/pagination';

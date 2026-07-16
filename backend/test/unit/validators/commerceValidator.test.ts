@@ -5,6 +5,7 @@ import {
   validateOrderStatus,
   validateResourceId,
   validateReview,
+  validateOrderList,
 } from '@/validators/commerceValidator';
 
 const resourceId = '507f191e-810c-4197-9de8-60ea00000001';
@@ -53,5 +54,16 @@ describe('commerce validator', () => {
     expect(() => validateReview({ rating: 6, comment: 'Invalid' })).toThrow();
     expect(() => validateOrderStatus({ status: 'refunded' })).toThrow();
     expect(() => validateNotificationRead({ read: 'yes' })).toThrow();
+  });
+
+  it('validates bounded buyer and seller order list scopes', () => {
+    expect(
+      validateOrderList({ scope: 'seller', limit: '10', offset: '20' }),
+    ).toEqual({
+      scope: 'seller',
+      limit: 10,
+      offset: 20,
+    });
+    expect(() => validateOrderList({ scope: 'admin' })).toThrow();
   });
 });

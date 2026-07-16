@@ -17,15 +17,20 @@ import {
   validateProductFilters,
   validateProductId,
   validateSellerId,
+  validateUpdateProductPayload,
+  validateProductStatusUpdate,
+  validateProductInventoryUpdate,
 } from '@/validators/productValidator';
 import { validateCreateUserPayload } from '@/validators/userValidator';
 import { validateLoginPayload } from '@/validators/authValidator';
+import { validatePagination } from '@/validators/paginationValidator';
 import {
   validateCartItem,
   validateNotificationRead,
   validateOrderStatus,
   validateResourceId,
   validateReview,
+  validateOrderList,
 } from '@/validators/commerceValidator';
 
 export type RouteDependencies = {
@@ -166,6 +171,40 @@ export function createRoutes(dependencies: RouteDependencies) {
     asyncHandler(ProductController.add),
   );
 
+  const productMutationParams = (params: Record<string, unknown>) => ({
+    productId: validateProductId(params.productId as string),
+  });
+  routes.patch(
+    '/products/:productId',
+    authMiddleware,
+    requireCsrf,
+    validateRequest({
+      params: productMutationParams,
+      body: validateUpdateProductPayload,
+    }),
+    asyncHandler(ProductController.update),
+  );
+  routes.patch(
+    '/products/:productId/status',
+    authMiddleware,
+    requireCsrf,
+    validateRequest({
+      params: productMutationParams,
+      body: validateProductStatusUpdate,
+    }),
+    asyncHandler(ProductController.updateStatus),
+  );
+  routes.patch(
+    '/products/:productId/inventory',
+    authMiddleware,
+    requireCsrf,
+    validateRequest({
+      params: productMutationParams,
+      body: validateProductInventoryUpdate,
+    }),
+    asyncHandler(ProductController.updateInventory),
+  );
+
   const resourceParams =
     (key: 'productId' | 'orderId' | 'notificationId') =>
     (params: Record<string, unknown>) => ({
@@ -209,6 +248,7 @@ export function createRoutes(dependencies: RouteDependencies) {
   routes.get(
     '/orders',
     authMiddleware,
+    validateRequest({ query: validateOrderList }),
     asyncHandler(CommerceController.listOrders),
   );
   routes.post(
@@ -229,7 +269,10 @@ export function createRoutes(dependencies: RouteDependencies) {
   );
   routes.get(
     '/products/:productId/reviews',
-    validateRequest({ params: resourceParams('productId') }),
+    validateRequest({
+      params: resourceParams('productId'),
+      query: validatePagination,
+    }),
     asyncHandler(CommerceController.listReviews),
   );
   routes.post(
@@ -250,6 +293,7 @@ export function createRoutes(dependencies: RouteDependencies) {
   routes.get(
     '/notifications',
     authMiddleware,
+    validateRequest({ query: validatePagination }),
     asyncHandler(CommerceController.listNotifications),
   );
   routes.patch(

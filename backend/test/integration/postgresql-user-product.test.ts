@@ -119,6 +119,7 @@ const userPayload = {
   username: 'Seller',
   telephone: '123',
 };
+const firstPage = { limit: 20, offset: 0, scope: 'all' as const };
 
 function authCookies(response: request.Response) {
   const values = response.headers['set-cookie'] || [];
@@ -232,7 +233,9 @@ describe('PostgreSQL user and product repositories', () => {
     ).resolves.toBeNull();
     await expect(
       productService.listProductsBySeller(seller._id, 'mercadozetta'),
-    ).resolves.toMatchObject([{ _id: product._id, seller: seller._id }]);
+    ).resolves.toMatchObject({
+      items: [{ _id: product._id, seller: seller._id }],
+    });
 
     try {
       await productService.createProduct(
@@ -244,6 +247,280 @@ describe('PostgreSQL user and product repositories', () => {
     } catch (error) {
       expect(error).toMatchObject({ cause: { code: '23503' } });
     }
+  });
+
+  it('filters and sorts tenant catalog rows in PostgreSQL', async () => {
+    const seller = await userService.createUser(userPayload, 'mercadozetta');
+    const otherSeller = await userService.createUser(
+      { ...userPayload, email: 'other-seller@example.com' },
+      'mercadozetta',
+    );
+    const campusSeller = await userService.createUser(
+      { ...userPayload, email: 'campus-catalog@example.com' },
+      'campus-market',
+    );
+
+    const keyboard = await productService.createProduct(
+      {
+        name: 'Keyboard',
+        description: 'Mechanical switches',
+        category: 'Peripherals',
+        subcategory: 'Keyboards',
+        inventory: 3,
+        image: 'keyboard.png',
+      },
+      seller._id,
+      'mercadozetta',
+    );
+    const cable = await productService.createProduct(
+      {
+        name: 'Cable',
+        description: 'Braided with 100% recycled fibers',
+        category: 'Peripherals',
+        subcategory: 'Cables',
+        inventory: 0,
+        image: 'cable.png',
+        status: 'sold_out',
+      },
+      seller._id,
+      'mercadozetta',
+    );
+    const desk = await productService.createProduct(
+      {
+        name: 'Desk',
+        description: 'Standing desk',
+        category: 'Furniture',
+        subcategory: 'Desks',
+        inventory: 5,
+        image: 'desk.png',
+        status: 'paused',
+      },
+      seller._id,
+      'mercadozetta',
+    );
+    const mouse = await productService.createProduct(
+      {
+        name: 'Mouse',
+        category: 'Peripherals',
+        inventory: 9,
+        image: 'mouse.png',
+      },
+      otherSeller._id,
+      'mercadozetta',
+    );
+    await productService.createProduct(
+      {
+        name: 'Campus keyboard',
+        category: 'Peripherals',
+        inventory: 99,
+        image: 'campus-keyboard.png',
+      },
+      campusSeller._id,
+      'campus-market',
+    );
+
+    const creationTimes = [
+      [keyboard._id, '2025-01-01T00:00:00.000Z'],
+      [cable._id, '2025-01-02T00:00:00.000Z'],
+      [desk._id, '2025-01-03T00:00:00.000Z'],
+      [mouse._id, '2025-01-04T00:00:00.000Z'],
+    ] as const;
+    for (const [id, createdAt] of creationTimes)
+      await db
+        .update(products)
+        .set({ createdAt: new Date(createdAt) })
+        .where(eq(products.id, id));
+
+    await expect(
+      productService.listProducts('mercadozetta', {
+        q: 'MECHANICAL',
+        category: 'PERIPHERALS',
+        subcategory: 'KEYBOARDS',
+        seller: seller._id,
+        status: 'active',
+        availability: 'in_stock',
+        sort: 'name_asc',
+      }),
+    ).resolves.toMatchObject({ items: [{ _id: keyboard._id }] });
+    await expect(
+      productService.listProducts('mercadozetta', {
+        q: '100%',
+        availability: 'sold_out',
+      }),
+    ).resolves.toMatchObject({ items: [{ _id: cable._id }] });
+    await expect(
+      productService.listProducts('mercadozetta', {
+        status: 'paused',
+      }),
+    ).resolves.toMatchObject({ items: [{ _id: desk._id }] });
+
+    const inventoryOrder = await productService.listProducts('mercadozetta', {
+      sort: 'inventory_desc',
+    });
+    expect(inventoryOrder.items.map(({ _id }) => _id)).toEqual([
+      mouse._id,
+      desk._id,
+      keyboard._id,
+      cable._id,
+    ]);
+    const oldestFirst = await productService.listProducts('mercadozetta', {
+      sort: 'created_asc',
+    });
+    expect(oldestFirst.items.map(({ _id }) => _id)).toEqual([
+      keyboard._id,
+      cable._id,
+      desk._id,
+      mouse._id,
+    ]);
+    const newestFirst = await productService.listProducts('mercadozetta');
+    expect(newestFirst.items.map(({ _id }) => _id)).toEqual([
+      mouse._id,
+      desk._id,
+      cable._id,
+      keyboard._id,
+    ]);
+    await expect(
+      productService.listProductsBySeller(seller._id, 'mercadozetta', {
+        status: 'active',
+      }),
+    ).resolves.toMatchObject({ items: [{ _id: keyboard._id }] });
+
+    const firstInventoryPage = await productService.listProducts(
+      'mercadozetta',
+      { sort: 'inventory_desc', limit: 2, offset: 0 },
+    );
+    expect(firstInventoryPage).toMatchObject({
+      items: [{ _id: mouse._id }, { _id: desk._id }],
+      page: { limit: 2, offset: 0, total: 4, hasMore: true },
+    });
+    const secondInventoryPage = await productService.listProducts(
+      'mercadozetta',
+      { sort: 'inventory_desc', limit: 2, offset: 2 },
+    );
+    expect(secondInventoryPage).toMatchObject({
+      items: [{ _id: keyboard._id }, { _id: cable._id }],
+      page: { limit: 2, offset: 2, total: 4, hasMore: false },
+    });
+
+    const catalogIndexes = await pool.query<{ indexname: string }>(
+      "select indexname from pg_indexes where tablename = 'products'",
+    );
+    expect(catalogIndexes.rows.map(({ indexname }) => indexname)).toEqual(
+      expect.arrayContaining([
+        'products_catalog_idx',
+        'products_seller_idx',
+        'products_category_idx',
+        'products_name_idx',
+        'products_inventory_idx',
+      ]),
+    );
+  });
+
+  it('enforces seller-owned product management and inventory lifecycle rules', async () => {
+    const sellerRegistration = await request(postgresApp)
+      .post('/users')
+      .send(userPayload)
+      .expect(201);
+    const attackerEmail = 'product-attacker@example.com';
+    await request(postgresApp)
+      .post('/users')
+      .send({ ...userPayload, email: attackerEmail, username: 'Attacker' })
+      .expect(201);
+    const sellerLogin = await request(postgresApp)
+      .post('/auth/login')
+      .set('Origin', 'http://localhost:5173')
+      .send({ email: userPayload.email, password: userPayload.password })
+      .expect(200);
+    const attackerLogin = await request(postgresApp)
+      .post('/auth/login')
+      .set('Origin', 'http://localhost:5173')
+      .send({ email: attackerEmail, password: userPayload.password })
+      .expect(200);
+    const sellerAuth = authCookies(sellerLogin);
+    const attackerAuth = authCookies(attackerLogin);
+    const created = await request(postgresApp)
+      .post('/products')
+      .set('Cookie', sellerAuth.cookie)
+      .set('Origin', 'http://localhost:5173')
+      .set('X-CSRF-Token', sellerAuth.csrf!)
+      .send({ name: 'Managed', inventory: 2, image: 'managed.png' })
+      .expect(201);
+    const productId = created.body.newProduct._id;
+
+    await request(postgresApp)
+      .patch(`/products/${productId}`)
+      .set('Cookie', sellerAuth.cookie)
+      .set('Origin', 'http://localhost:5173')
+      .set('X-CSRF-Token', sellerAuth.csrf!)
+      .send({
+        name: 'Updated managed',
+        category: 'Office',
+        seller: attackerLogin.body.user._id,
+        tenantId: 'campus-market',
+        inventory: 999,
+        status: 'archived',
+      })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          name: 'updated managed',
+          category: 'office',
+          seller: sellerRegistration.body.newUser._id,
+          tenantId: 'mercadozetta',
+          inventory: 2,
+          status: 'active',
+        });
+      });
+
+    await request(postgresApp)
+      .patch(`/products/${productId}`)
+      .set('Cookie', attackerAuth.cookie)
+      .set('Origin', 'http://localhost:5173')
+      .set('X-CSRF-Token', attackerAuth.csrf!)
+      .send({ name: 'Stolen' })
+      .expect(403);
+
+    await request(postgresApp)
+      .patch(`/products/${productId}/inventory`)
+      .set('Cookie', sellerAuth.cookie)
+      .set('Origin', 'http://localhost:5173')
+      .set('X-CSRF-Token', sellerAuth.csrf!)
+      .send({ inventory: 0 })
+      .expect(200)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({ inventory: 0, status: 'sold_out' }),
+      );
+    await request(postgresApp)
+      .patch(`/products/${productId}/status`)
+      .set('Cookie', sellerAuth.cookie)
+      .set('Origin', 'http://localhost:5173')
+      .set('X-CSRF-Token', sellerAuth.csrf!)
+      .send({ status: 'active' })
+      .expect(409);
+    await request(postgresApp)
+      .patch(`/products/${productId}/inventory`)
+      .set('Cookie', sellerAuth.cookie)
+      .set('Origin', 'http://localhost:5173')
+      .set('X-CSRF-Token', sellerAuth.csrf!)
+      .send({ inventory: 4 })
+      .expect(200)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({ inventory: 4, status: 'active' }),
+      );
+    await request(postgresApp)
+      .patch(`/products/${productId}/status`)
+      .set('Cookie', sellerAuth.cookie)
+      .set('Origin', 'http://localhost:5173')
+      .set('X-CSRF-Token', sellerAuth.csrf!)
+      .send({ status: 'archived' })
+      .expect(200);
+    await request(postgresApp)
+      .patch(`/products/${productId}/status`)
+      .set('Cookie', sellerAuth.cookie)
+      .set('Origin', 'http://localhost:5173')
+      .set('X-CSRF-Token', sellerAuth.csrf!)
+      .send({ status: 'active' })
+      .expect(200);
   });
 
   it('serves the existing HTTP contract through one PostgreSQL composition', async () => {
@@ -680,16 +957,19 @@ describe('PostgreSQL user and product repositories', () => {
     ).toBe(true);
 
     await expect(
-      orderService.listOrders(seller._id, 'mercadozetta'),
-    ).resolves.toMatchObject([
-      {
-        _id: storedOrders[0].id,
-        items: [{ product: product._id, seller: seller._id }],
-      },
-    ]);
+      orderService.listOrders(seller._id, 'mercadozetta', firstPage),
+    ).resolves.toMatchObject({
+      items: [
+        {
+          _id: storedOrders[0].id,
+          items: [{ product: product._id, seller: seller._id }],
+        },
+      ],
+      page: { limit: 20, offset: 0, total: 1, hasMore: false },
+    });
     await expect(
-      orderService.listOrders(losingCart!.buyerId, 'mercadozetta'),
-    ).resolves.toEqual([]);
+      orderService.listOrders(losingCart!.buyerId, 'mercadozetta', firstPage),
+    ).resolves.toMatchObject({ items: [] });
     await expect(
       orderService.updateOrderStatus(
         seller._id,
@@ -702,31 +982,34 @@ describe('PostgreSQL user and product repositories', () => {
     const buyerNotices = await notificationService.listNotifications(
       storedOrders[0].buyerId,
       'mercadozetta',
+      firstPage,
     );
-    expect(buyerNotices.map(({ message }) => message)).toEqual(
+    expect(buyerNotices.items.map(({ message }) => message)).toEqual(
       expect.arrayContaining([
         `Order ${storedOrders[0].id} created`,
         `Order ${storedOrders[0].id} is now confirmed`,
       ]),
     );
+    expect(buyerNotices.page).toMatchObject({ total: 2, hasMore: false });
     const sellerNotices = await notificationService.listNotifications(
       seller._id,
       'mercadozetta',
+      firstPage,
     );
     await expect(
       notificationService.countUnreadNotifications(seller._id, 'mercadozetta'),
-    ).resolves.toBe(sellerNotices.length);
+    ).resolves.toBe(sellerNotices.items.length);
     await notificationService.updateNotificationRead(
       seller._id,
       'mercadozetta',
-      sellerNotices[0]._id,
+      sellerNotices.items[0]._id,
       true,
     );
     await expect(
       notificationService.updateNotificationRead(
         losingCart!.buyerId,
         'mercadozetta',
-        sellerNotices[0]._id,
+        sellerNotices.items[0]._id,
         true,
       ),
     ).rejects.toMatchObject({ code: 'NOTIFICATION_NOT_FOUND' });
@@ -846,18 +1129,21 @@ describe('PostgreSQL user and product repositories', () => {
     );
     expect(updated._id).toBe(created._id);
     await expect(
-      reviewService.listReviews('mercadozetta', product._id),
-    ).resolves.toMatchObject([
-      {
-        _id: created._id,
-        author: buyer._id,
-        rating: 5,
-        comment: 'Excellent',
-      },
-    ]);
+      reviewService.listReviews('mercadozetta', product._id, firstPage),
+    ).resolves.toMatchObject({
+      items: [
+        {
+          _id: created._id,
+          author: buyer._id,
+          rating: 5,
+          comment: 'Excellent',
+        },
+      ],
+      page: { limit: 20, offset: 0, total: 1, hasMore: false },
+    });
     await expect(
-      reviewService.listReviews('campus-market', product._id),
-    ).resolves.toEqual([]);
+      reviewService.listReviews('campus-market', product._id, firstPage),
+    ).resolves.toMatchObject({ items: [] });
     expect(await db.select().from(reviews)).toHaveLength(1);
     expect(
       (await db.select().from(notifications)).filter(

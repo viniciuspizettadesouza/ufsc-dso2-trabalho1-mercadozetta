@@ -5,6 +5,7 @@ import { Link, useParams } from 'react-router';
 import Header from '@/pages/header';
 import api from '@/services/api';
 import { apiRoutes, appRoutes } from '@/routes';
+import { pageItems } from '@/pagination';
 
 type Seller = {
   _id: string;
@@ -38,7 +39,7 @@ export default function SellerProfile() {
         ]);
 
         setSeller(sellerResponse.data);
-        setProducts(productsResponse.data);
+        setProducts(pageItems<Product>(productsResponse.data));
       } catch {
         setError('Unable to load seller profile.');
       }

@@ -3,7 +3,10 @@ import AppError from '@/errors/AppError';
 import type { ProductService } from '@/services/productService';
 import type {
   CreateProductData,
+  ProductInventoryUpdateData,
   ProductListFilters,
+  ProductStatusUpdateData,
+  UpdateProductData,
 } from '@/validators/productValidator';
 
 type ProductIdParams = { productId: string };
@@ -25,6 +28,10 @@ type CreateProductRequest = Request & {
   validated: {
     body: CreateProductData;
   };
+};
+
+type ProductMutationRequest<T> = Request & {
+  validated: { params: ProductIdParams; body: T };
 };
 
 type SellerProductsRequest = Request & {
@@ -72,6 +79,54 @@ export function createProductController(productService: ProductService) {
         req.validated.query,
       );
       return res.status(200).send(products);
+    },
+
+    async update(
+      req: ProductMutationRequest<UpdateProductData>,
+      res: Response,
+    ) {
+      return res
+        .status(200)
+        .send(
+          await productService.updateProduct(
+            req.validated.params.productId,
+            req.validated.body,
+            req.userId ?? '',
+            req.tenant?.id ?? '',
+          ),
+        );
+    },
+
+    async updateStatus(
+      req: ProductMutationRequest<ProductStatusUpdateData>,
+      res: Response,
+    ) {
+      return res
+        .status(200)
+        .send(
+          await productService.updateProductStatus(
+            req.validated.params.productId,
+            req.validated.body,
+            req.userId ?? '',
+            req.tenant?.id ?? '',
+          ),
+        );
+    },
+
+    async updateInventory(
+      req: ProductMutationRequest<ProductInventoryUpdateData>,
+      res: Response,
+    ) {
+      return res
+        .status(200)
+        .send(
+          await productService.updateProductInventory(
+            req.validated.params.productId,
+            req.validated.body,
+            req.userId ?? '',
+            req.tenant?.id ?? '',
+          ),
+        );
     },
   };
 }

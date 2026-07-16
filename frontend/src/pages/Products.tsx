@@ -5,6 +5,8 @@ import api from '@/services/api';
 import { useBrand } from '@/brands/brandContext';
 import { apiRoutes, appRoutes } from '@/routes';
 import { useAuth } from '@/auth/AuthContext';
+import PaginationControls from '@/components/PaginationControls';
+import { firstPage, pageInfo, pageItems } from '@/pagination';
 
 type Product = {
   _id: string;
@@ -30,7 +32,7 @@ const productSkeletons = [
 
 export default function Products() {
   const brand = useBrand();
-  const { status } = useAuth();
+  const { status, user } = useAuth();
   const { sellerId } = useParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [newProducts, setNewProducts] = useState<Product[]>([]);
@@ -44,8 +46,9 @@ export default function Products() {
   const [error, setError] = useState('');
   const [pendingAction, setPendingAction] = useState('');
   const [actionFeedback, setActionFeedback] = useState<ActionFeedback>(null);
+  const [page, setPage] = useState(firstPage);
 
-  async function loadProducts() {
+  async function loadProducts(offset = 0) {
     try {
       setIsLoading(true);
       setError('');
@@ -67,6 +70,8 @@ export default function Products() {
       if (sort) {
         params.set('sort', sort);
       }
+      params.set('limit', String(page.limit));
+      params.set('offset', String(offset));
 
       const basePath = sellerId
         ? apiRoutes.sellerProducts(sellerId)
@@ -76,8 +81,10 @@ export default function Products() {
         : basePath;
       const response = await api.get(path);
 
-      setProducts(response.data);
-      setNewProducts(response.data);
+      const items = pageItems<Product>(response.data);
+      setProducts(items);
+      setNewProducts(items);
+      setPage(pageInfo<Product>(response.data));
     } catch {
       setProducts([]);
       setNewProducts([]);
@@ -96,8 +103,10 @@ export default function Products() {
           ? apiRoutes.sellerProducts(sellerId)
           : apiRoutes.products;
         const response = await api.get(path);
-        setProducts(response.data);
-        setNewProducts(response.data);
+        const items = pageItems<Product>(response.data);
+        setProducts(items);
+        setNewProducts(items);
+        setPage(pageInfo<Product>(response.data));
       } catch {
         setProducts([]);
         setNewProducts([]);
@@ -422,6 +431,14 @@ export default function Products() {
                     >
                       {brand.copy.catalog.detailsAction}
                     </Link>
+                    {product.seller === user?._id && (
+                      <Link
+                        className="col-span-3 text-center font-bold underline"
+                        to={appRoutes.editProduct(product._id)}
+                      >
+                        Manage listing
+                      </Link>
+                    )}
                     <button
                       className="min-h-10 rounded border border-solid border-[#d1d5db] px-2 text-sm font-bold text-[#374151]"
                       type="button"
@@ -459,6 +476,11 @@ export default function Products() {
           </div>
         )}
       </div>
+      <PaginationControls
+        label="Product pages"
+        page={page}
+        onPage={loadProducts}
+      />
     </section>
   );
 }

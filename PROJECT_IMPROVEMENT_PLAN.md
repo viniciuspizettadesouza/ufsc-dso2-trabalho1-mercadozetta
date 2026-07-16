@@ -13,14 +13,15 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - TypeScript 7 is deferred until `typescript-eslint` publishes a compatible
   release; version 8.63.0 and its current canary support TypeScript only through
   versions earlier than 6.1.0.
-- Backend has 104 focused tests across 26 files and passes its coverage thresholds
-  with 88.91% branches and 85.27% functions. Frontend has 85 tests across 12 files and passes its 90% branch
-  threshold with 90.60%. Type checks, tests, lint, formatting, OpenAPI
+- Backend has 113 focused tests across 27 files and passes its coverage
+  thresholds with 87.23% branches and 85.46% functions. Frontend has 92 tests
+  across 14 files and passes its thresholds with 90.23% branches and 92% functions.
+  Type checks, tests, lint, formatting, OpenAPI
   generation, coverage, and the production build pass.
 - Checkout commits order creation, items, conditional inventory decrements, cart
   clearing, and notifications in one PostgreSQL transaction.
 - A separate `npm run test:integration` lane builds ephemeral PostgreSQL 18,
-  applies committed migrations, runs 9 database-backed scenarios across two
+  applies committed migrations, runs 11 database-backed scenarios across two
   files against the real Express composition and Drizzle adapters, and cleans up
   its isolated Compose project and database deterministically.
 - Database-backed tests verify atomic checkout and rollback, cart and
@@ -28,7 +29,8 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   reviews, notifications, tenant and compound-index isolation, token-version
   logout revocation, repeatable non-destructive demo seeding, session login and
   restoration, atomic refresh rotation, bounded concurrency, replay-family
-  revocation, tenant isolation, and idle and absolute expiry.
+  revocation, tenant isolation, idle and absolute expiry, and tenant-scoped
+  catalog filtering and sorting.
 - Shared authenticated route protection now redirects anonymous visitors from
   `/checkout`, `/products/new`, and `/admin` to login with a route-specific
   prompt, then returns them to the requested route after successful sign-in.
@@ -63,7 +65,7 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - Focused unit and contract tests pass for cookie flags, login response safety,
   access validation, Origin/CSRF rejection, expiry, rotation, replay,
   concurrency, tenant scoping, revocation, and failed frontend renewal. The
-  database-backed integration lane passes all 9 scenarios and cleans up its
+  database-backed integration lane passes all 10 scenarios and cleans up its
   containers and isolated network successfully.
 - The root `npm run test:e2e` lane builds isolated, deterministically seeded
   PostgreSQL backend/frontend stacks and runs Chromium through protected-route
@@ -149,13 +151,33 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   repository switch. MongoDB/Mongoose adapters, models, containers,
   migration-only configuration, duplicated tests, and dependencies are removed;
   no data migration, backup, or restore procedure is applicable to this project.
-- Typecheck, 104 focused backend tests, 85 frontend tests, backend coverage
-  thresholds, lint, formatting, 9 PostgreSQL integration scenarios, both
+- Catalog and seller product search, category/subcategory, seller, status, and
+  availability filters and creation/name/inventory sorting execute in
+  tenant-scoped PostgreSQL queries. Stable tie-breakers preserve deterministic
+  results, and literal search wildcard characters do not broaden matches.
+- Catalog, seller-product, order, review, and notification lists use a shared
+  offset-pagination envelope with a default limit of 20, a maximum of 100,
+  deterministic ordering, total/has-more metadata, and database-bounded reads.
+  Buyer and seller order scopes are explicit, and seller responses include only
+  that seller's line items.
+- Seller-owned product management supports explicit detail edits, lifecycle
+  archival/reactivation, and inventory setting. Backend tenant and ownership
+  checks prevent cross-seller and cross-tenant mutation; immutable ownership and
+  commerce history cannot be mass-assigned. Inventory drives sold-out and
+  replenishment transitions.
+- Reviewed migration `0001_next_expediter.sql` adds only the name and inventory
+  catalog sort indexes missing from the accepted baseline indexes. PostgreSQL
+  tests verify paginated query behavior and all five catalog indexes.
+- Product images remain URL/path references rather than database binaries.
+  Absolute URLs require HTTPS and an exact `PRODUCT_IMAGE_HOSTS` match, with
+  loopback-only HTTP for local development; upload remains deferred until an
+  object-storage provider is selected.
+- Typecheck, 113 focused backend tests, 92 frontend tests, coverage
+  thresholds, lint, formatting, 11 PostgreSQL integration scenarios, both
   Chromium workflows, the OpenAPI contract, production-only dependency audit,
   and the PostgreSQL production-image smoke lane pass.
-- Next action: begin Step 5 by moving catalog search, filters, availability,
-  status, seller scoping, and sorting into tenant-scoped PostgreSQL queries while
-  preserving the current API response and validation contracts.
+- Next action: begin Step 6 by deciding whether `/admin` is a seller dashboard
+  or a privileged administration surface and rename or authorize it accordingly.
 
 ## Recommended Order
 
@@ -254,20 +276,20 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - [x] Remove the transitional Mongoose models, MongoDB adapters, containers,
       migration-only configuration, and dependency after the direct switch.
 
-### 5. Make catalog queries scalable and complete seller product management
+### 5. Make catalog queries scalable and complete seller product management (completed)
 
-- [ ] Move existing product search, category, availability, status, and sorting
+- [x] Move existing product search, category, availability, status, and sorting
       from in-memory application processing into tenant-scoped PostgreSQL queries.
-- [ ] Add bounded pagination to catalog, seller product, order, review, and
+- [x] Add bounded pagination to catalog, seller product, order, review, and
       notification lists. Prefer cursor pagination where stable ordering matters;
       otherwise document maximum page sizes and return consistent metadata.
-- [ ] Review indexes against the final filters and sort orders and verify query
+- [x] Review indexes against the final filters and sort orders and verify query
       behavior with database-backed tests before adding indexes speculatively.
-- [ ] Add tenant-scoped product editing, archival/reactivation, and inventory
+- [x] Add tenant-scoped product editing, archival/reactivation, and inventory
       adjustment rules with backend ownership enforcement and focused tests.
-- [ ] Prevent mass assignment by defining explicit editable fields and preserve
+- [x] Prevent mass assignment by defining explicit editable fields and preserve
       immutable seller, tenant, and historical commerce data.
-- [ ] Add image upload only after choosing an object-storage provider. Validate
+- [x] Defer image upload until choosing an object-storage provider. Validate
       image URL protocols and hosts in the meantime, and do not store image
       binaries in the primary application database.
 - Consider `react-hook-form` and `@hookform/resolvers` with the existing Zod

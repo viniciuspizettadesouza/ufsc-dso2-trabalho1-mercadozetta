@@ -6,6 +6,8 @@ import api from '@/services/api';
 import { useBrand } from '@/brands/brandContext';
 import { apiRoutes, appRoutes } from '@/routes';
 import { useAuth } from '@/auth/AuthContext';
+import PaginationControls from '@/components/PaginationControls';
+import { firstPage, pageInfo, pageItems, withPage } from '@/pagination';
 
 type Product = {
   _id: string;
@@ -35,6 +37,16 @@ export default function ProductDetail() {
   const [error, setError] = useState('');
   const [pendingAction, setPendingAction] = useState('');
   const [actionFeedback, setActionFeedback] = useState<ActionFeedback>(null);
+  const [reviewPage, setReviewPage] = useState(firstPage);
+
+  async function loadReviews(offset: number) {
+    if (!productId) return;
+    const response = await api.get(
+      withPage(apiRoutes.reviews(productId), offset),
+    );
+    setReviews(pageItems<Review>(response.data));
+    setReviewPage(pageInfo<Review>(response.data));
+  }
 
   useEffect(() => {
     if (!productId) return;
@@ -45,7 +57,8 @@ export default function ProductDetail() {
           api.get(apiRoutes.reviews(productId!)),
         ]);
         setProduct(productResponse.data);
-        setReviews(reviewsResponse.data);
+        setReviews(pageItems<Review>(reviewsResponse.data));
+        setReviewPage(pageInfo<Review>(reviewsResponse.data));
         if (status === 'authenticated') {
           const [cartResponse, watchlistResponse] = await Promise.all([
             api.get(apiRoutes.cart),
@@ -258,6 +271,11 @@ export default function ProductDetail() {
                     </li>
                   ))}
                 </ul>
+                <PaginationControls
+                  label="Review pages"
+                  page={reviewPage}
+                  onPage={loadReviews}
+                />
               </section>
             </section>
           </div>

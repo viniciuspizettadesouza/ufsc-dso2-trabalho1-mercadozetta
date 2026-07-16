@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { isUuid, UUID_EXAMPLE } from '@/ids';
 import { orderStatuses } from '@/orderStatus';
 import { parseAppSchema, requestString } from '@/validators/parseSchema';
+import { paginationSchema } from '@/validators/paginationValidator';
 
 export const resourceIdSchema = z
   .unknown()
@@ -28,6 +29,10 @@ const reviewSchema = z.object({
 
 const statusSchema = z.object({ status: z.enum(orderStatuses) });
 const notificationReadSchema = z.object({ read: z.boolean() });
+export const orderListSchema = paginationSchema.extend({
+  scope: z.enum(['all', 'buyer', 'seller']).default('all'),
+});
+export type OrderListData = z.infer<typeof orderListSchema>;
 
 export const validateResourceId = (value: unknown) =>
   parseAppSchema(resourceIdSchema, value);
@@ -39,3 +44,5 @@ export const validateOrderStatus = (value: object) =>
   parseAppSchema(statusSchema, value);
 export const validateNotificationRead = (value: object) =>
   parseAppSchema(notificationReadSchema, value);
+export const validateOrderList = (value: object) =>
+  parseAppSchema(orderListSchema, value);

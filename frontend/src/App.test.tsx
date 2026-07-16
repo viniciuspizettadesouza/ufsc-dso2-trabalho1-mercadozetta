@@ -94,6 +94,7 @@ describe('App', () => {
 
   it.each([
     ['/products/new', 'Entre para criar um anúncio.'],
+    ['/products/product-1/edit', 'Entre para gerenciar o anúncio.'],
     ['/checkout', 'Entre para acessar o checkout.'],
     ['/admin', 'Entre para acessar o painel administrativo.'],
     ['/seller/orders', 'Entre para acessar os pedidos de vendedor.'],

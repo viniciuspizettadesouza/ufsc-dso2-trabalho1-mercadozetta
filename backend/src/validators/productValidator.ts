@@ -1,4 +1,5 @@
 import { productStatuses, type ProductStatus } from '@/productStatus';
+import { DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT } from '@/pagination';
 import { isUuid, UUID_EXAMPLE } from '@/ids';
 import type { RequestFieldValue } from '@/types/request';
 import { z } from 'zod';
@@ -20,6 +21,8 @@ export type CreateProductRequestBody = {
   status?: RequestFieldValue;
 };
 
+export type UpdateProductRequestBody = Partial<CreateProductRequestBody>;
+
 export type ProductFilterQuery = {
   q?: RequestFieldValue;
   search?: RequestFieldValue;
@@ -29,11 +32,46 @@ export type ProductFilterQuery = {
   status?: RequestFieldValue;
   availability?: RequestFieldValue;
   sort?: RequestFieldValue;
+  limit?: RequestFieldValue;
+  offset?: RequestFieldValue;
 };
 
 function isProductStatus(status: string): status is ProductStatus {
   return productStatuses.includes(status as ProductStatus);
 }
+
+function isAllowedImageUrl(value: string) {
+  if (!value || value.includes('\\')) return false;
+  if (!value.includes(':') && !value.startsWith('//')) return true;
+
+  try {
+    const url = new URL(value);
+    if (url.username || url.password) return false;
+    const allowedHosts = new Set(
+      (process.env.PRODUCT_IMAGE_HOSTS || 'example.com,images.unsplash.com')
+        .split(',')
+        .map((host) => host.trim().toLowerCase())
+        .filter(Boolean),
+    );
+    const localHttp =
+      url.protocol === 'http:' &&
+      ['localhost', '127.0.0.1', '::1'].includes(url.hostname);
+    return (
+      (url.protocol === 'https:' || localHttp) &&
+      (localHttp || allowedHosts.has(url.hostname.toLowerCase()))
+    );
+  } catch {
+    return false;
+  }
+}
+
+const imageUrlSchema = z
+  .string()
+  .trim()
+  .refine(isAllowedImageUrl, {
+    message: 'Product image must use an allowed HTTPS host or a relative path',
+    params: { appCode: 'INVALID_PRODUCT_IMAGE_URL', statusCode: 400 },
+  });
 
 export const createProductSchema = z
   .object({
@@ -83,9 +121,22 @@ export const createProductSchema = z
       'Product status must be draft, active, paused, sold_out, or archived',
     params: { appCode: 'INVALID_PRODUCT_STATUS', statusCode: 400 },
   })
+  .refine(
+    (product) => product.status !== 'sold_out' || product.inventory === 0,
+    {
+      message: 'Sold-out products must have zero inventory',
+      params: { appCode: 'INVALID_PRODUCT_STATUS_INVENTORY', statusCode: 400 },
+    },
+  )
+  .refine((product) => !product.image || isAllowedImageUrl(product.image), {
+    message: 'Product image must use an allowed HTTPS host or a relative path',
+    params: { appCode: 'INVALID_PRODUCT_IMAGE_URL', statusCode: 400 },
+  })
   .transform(({ hasInventory, ...product }) => ({
     ...product,
-    status: product.status as ProductStatus,
+    status: (product.status === 'active' && product.inventory === 0
+      ? 'sold_out'
+      : product.status) as ProductStatus,
   }))
   .meta({
     id: 'CreateProductRequest',
@@ -112,6 +163,43 @@ export const createProductSchema = z
   });
 
 export type CreateProductData = z.infer<typeof createProductSchema>;
+
+export const updateProductSchema = z
+  .object({
+    name: z.string().trim().min(1).optional(),
+    description: z.string().trim().optional(),
+    category: z
+      .string()
+      .trim()
+      .min(1)
+      .transform((value) => value.toLowerCase())
+      .optional(),
+    subcategory: z
+      .string()
+      .trim()
+      .transform((value) => value.toLowerCase())
+      .optional(),
+    image: imageUrlSchema.optional(),
+  })
+  .refine((value) => Object.keys(value).length > 0, {
+    message: 'At least one editable product field is required',
+    params: { appCode: 'MISSING_PRODUCT_UPDATE_FIELDS', statusCode: 400 },
+  })
+  .meta({ id: 'UpdateProductRequest' });
+
+export const productStatusUpdateSchema = z.object({
+  status: z.enum(productStatuses),
+});
+
+export const productInventoryUpdateSchema = z.object({
+  inventory: z.coerce.number().int().min(0),
+});
+
+export type UpdateProductData = z.infer<typeof updateProductSchema>;
+export type ProductStatusUpdateData = z.infer<typeof productStatusUpdateSchema>;
+export type ProductInventoryUpdateData = z.infer<
+  typeof productInventoryUpdateSchema
+>;
 
 export const productFiltersSchema = z
   .object({
@@ -160,6 +248,13 @@ export const productFiltersSchema = z
           default: 'created_desc',
         },
       }),
+    limit: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(MAX_PAGE_LIMIT)
+      .default(DEFAULT_PAGE_LIMIT),
+    offset: z.coerce.number().int().min(0).default(0),
   })
   .transform((query) => ({
     q: requestString(query.q || query.search).trim(),
@@ -169,6 +264,8 @@ export const productFiltersSchema = z
     status: requestString(query.status).trim(),
     availability: requestString(query.availability).trim(),
     sort: requestString(query.sort, 'created_desc').trim(),
+    limit: query.limit,
+    offset: query.offset,
   }))
   .refine((filters) => !filters.status || isProductStatus(filters.status), {
     message:
@@ -215,6 +312,13 @@ export const productFiltersSchema = z
           enum: ['created_asc', 'created_desc', 'name_asc', 'inventory_desc'],
           default: 'created_desc',
         },
+        limit: {
+          type: 'integer',
+          minimum: 1,
+          maximum: MAX_PAGE_LIMIT,
+          default: DEFAULT_PAGE_LIMIT,
+        },
+        offset: { type: 'integer', minimum: 0, default: 0 },
       },
     },
   });
@@ -252,6 +356,13 @@ export function validateCreateProductPayload(
 ): CreateProductData {
   return parseAppSchema(createProductSchema, body);
 }
+
+export const validateUpdateProductPayload = (body: object) =>
+  parseAppSchema(updateProductSchema, body);
+export const validateProductStatusUpdate = (body: object) =>
+  parseAppSchema(productStatusUpdateSchema, body);
+export const validateProductInventoryUpdate = (body: object) =>
+  parseAppSchema(productInventoryUpdateSchema, body);
 
 export function validateProductFilters(
   query: ProductFilterQuery = {},

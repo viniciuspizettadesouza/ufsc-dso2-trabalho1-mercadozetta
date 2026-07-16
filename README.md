@@ -77,25 +77,26 @@ cp frontend/.env.example frontend/.env
 
 ### Backend variables
 
-| Variable                                                                 | Purpose                                      | Local example/default behavior                                |
-| ------------------------------------------------------------------------ | -------------------------------------------- | ------------------------------------------------------------- |
-| `POSTGRESQL_URL`                                                         | PostgreSQL connection string                 | Required                                                      |
-| `POSTGRES_POOL_MAX`                                                      | Maximum PostgreSQL pool connections          | `10`; accepted range is 1 through 50                          |
-| `POSTGRES_CONNECTION_TIMEOUT_MS` / `POSTGRES_IDLE_TIMEOUT_MS`            | Pool acquisition and idle timeouts           | `5000` / `30000`                                              |
-| `POSTGRES_STATEMENT_TIMEOUT_MS` / `POSTGRES_IDLE_TRANSACTION_TIMEOUT_MS` | Query and idle-transaction limits            | `10000` / `10000`                                             |
-| `JWT_SIGNING_KEYS` / `JWT_ACTIVE_KID`                                    | JSON JWT verification ring and active signer | Retain old keys only through the bounded access-token overlap |
-| `REFRESH_TOKEN_HASH_SECRETS` / `REFRESH_TOKEN_HASH_ACTIVE_VERSION`       | JSON refresh-hash ring and active version    | Keep a version until sessions using it expire or are revoked  |
-| `CSRF_SECRETS` / `CSRF_ACTIVE_VERSION`                                   | JSON CSRF signing ring and active version    | Keep old versions through their cookie/session overlap        |
-| `SESSION_ACCESS_TOKEN_TTL_MS`                                            | Cookie access-token lifetime                 | `300000` (5 minutes)                                          |
-| `SESSION_REFRESH_IDLE_TTL_MS`                                            | Rotating refresh idle lifetime               | `604800000` (7 days)                                          |
-| `SESSION_ABSOLUTE_TTL_MS`                                                | Maximum session-family lifetime              | `2592000000` (30 days)                                        |
-| `SESSION_REFRESH_CONCURRENCY_WINDOW_MS`                                  | Grace window for a parallel refresh loser    | `5000`                                                        |
-| `TENANT_HEADER_REQUIRED`                                                 | Reject requests without `X-Tenant-Id`        | `false` locally; defaults to `true` outside development/test  |
-| `PORT`                                                                   | API listen port                              | `3333`                                                        |
-| `TRUST_PROXY_HOPS`                                                       | Exact number of trusted reverse-proxy hops   | `0` locally; production Compose uses `1`                      |
-| `CORS_ORIGIN`                                                            | Comma-separated allowed browser origins      | `http://localhost:5173` locally                               |
-| `RATE_LIMIT_AUTH_WINDOW_MS` / `RATE_LIMIT_AUTH_MAX`                      | Login rate-limit window and maximum          | `900000` / `5`                                                |
-| `RATE_LIMIT_REGISTER_WINDOW_MS` / `RATE_LIMIT_REGISTER_MAX`              | Registration rate-limit window and maximum   | `900000` / `10`                                               |
+| Variable                                                                 | Purpose                                                | Local example/default behavior                                |
+| ------------------------------------------------------------------------ | ------------------------------------------------------ | ------------------------------------------------------------- |
+| `POSTGRESQL_URL`                                                         | PostgreSQL connection string                           | Required                                                      |
+| `POSTGRES_POOL_MAX`                                                      | Maximum PostgreSQL pool connections                    | `10`; accepted range is 1 through 50                          |
+| `POSTGRES_CONNECTION_TIMEOUT_MS` / `POSTGRES_IDLE_TIMEOUT_MS`            | Pool acquisition and idle timeouts                     | `5000` / `30000`                                              |
+| `POSTGRES_STATEMENT_TIMEOUT_MS` / `POSTGRES_IDLE_TRANSACTION_TIMEOUT_MS` | Query and idle-transaction limits                      | `10000` / `10000`                                             |
+| `JWT_SIGNING_KEYS` / `JWT_ACTIVE_KID`                                    | JSON JWT verification ring and active signer           | Retain old keys only through the bounded access-token overlap |
+| `REFRESH_TOKEN_HASH_SECRETS` / `REFRESH_TOKEN_HASH_ACTIVE_VERSION`       | JSON refresh-hash ring and active version              | Keep a version until sessions using it expire or are revoked  |
+| `CSRF_SECRETS` / `CSRF_ACTIVE_VERSION`                                   | JSON CSRF signing ring and active version              | Keep old versions through their cookie/session overlap        |
+| `SESSION_ACCESS_TOKEN_TTL_MS`                                            | Cookie access-token lifetime                           | `300000` (5 minutes)                                          |
+| `SESSION_REFRESH_IDLE_TTL_MS`                                            | Rotating refresh idle lifetime                         | `604800000` (7 days)                                          |
+| `SESSION_ABSOLUTE_TTL_MS`                                                | Maximum session-family lifetime                        | `2592000000` (30 days)                                        |
+| `SESSION_REFRESH_CONCURRENCY_WINDOW_MS`                                  | Grace window for a parallel refresh loser              | `5000`                                                        |
+| `TENANT_HEADER_REQUIRED`                                                 | Reject requests without `X-Tenant-Id`                  | `false` locally; defaults to `true` outside development/test  |
+| `PORT`                                                                   | API listen port                                        | `3333`                                                        |
+| `TRUST_PROXY_HOPS`                                                       | Exact number of trusted reverse-proxy hops             | `0` locally; production Compose uses `1`                      |
+| `CORS_ORIGIN`                                                            | Comma-separated allowed browser origins                | `http://localhost:5173` locally                               |
+| `PRODUCT_IMAGE_HOSTS`                                                    | Comma-separated hosts allowed for HTTPS product images | `example.com,images.unsplash.com`                             |
+| `RATE_LIMIT_AUTH_WINDOW_MS` / `RATE_LIMIT_AUTH_MAX`                      | Login rate-limit window and maximum                    | `900000` / `5`                                                |
+| `RATE_LIMIT_REGISTER_WINDOW_MS` / `RATE_LIMIT_REGISTER_MAX`              | Registration rate-limit window and maximum             | `900000` / `10`                                               |
 
 When strict tenant-header mode is enabled, the global tenant middleware also
 requires `X-Tenant-Id` on `/`, `/health`, and `/ready`.
@@ -188,7 +189,15 @@ For a basic smoke test:
    are shown with the permitted next fulfillment action.
 6. Return as the buyer to inspect order history and notifications.
 
-The frontend also exposes `/products/new` for authenticated product creation.
+The frontend also exposes `/products/new` for authenticated product creation
+and `/products/:productId/edit` for owner-only detail, inventory, and lifecycle
+management. Absolute product image URLs must use HTTPS and an exact host from
+`PRODUCT_IMAGE_HOSTS`; relative application asset paths are also accepted.
+
+Catalog, seller-product, order, review, and notification API lists use bounded
+offset pagination. `limit` defaults to 20 and cannot exceed 100; `offset`
+defaults to 0. Responses use
+`{ items, page: { limit, offset, total, hasMore } }`.
 
 ## Common commands
 

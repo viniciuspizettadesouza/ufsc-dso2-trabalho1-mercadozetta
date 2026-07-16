@@ -109,6 +109,18 @@ export const products = pgTable(
       table.createdAt.desc(),
       table.id.desc(),
     ),
+    index('products_name_idx').on(
+      table.tenantId,
+      table.name,
+      table.createdAt.desc(),
+      table.id.desc(),
+    ),
+    index('products_inventory_idx').on(
+      table.tenantId,
+      table.inventory.desc(),
+      table.createdAt.desc(),
+      table.id.desc(),
+    ),
   ],
 );
 

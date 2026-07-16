@@ -4,6 +4,7 @@ import {
   validateProductFilters,
   validateProductId,
   validateSellerId,
+  validateUpdateProductPayload,
 } from '@/validators/productValidator';
 
 describe('productValidator', () => {
@@ -34,7 +35,7 @@ describe('productValidator', () => {
         image: 'draft.png',
         status: '',
       }).status,
-    ).toBe('active');
+    ).toBe('sold_out');
 
     expect(
       validateCreateProductPayload({
@@ -87,6 +88,46 @@ describe('productValidator', () => {
         status: 'deleted',
       }),
     ).toThrow(expect.objectContaining({ code: 'INVALID_PRODUCT_STATUS' }));
+    expect(() =>
+      validateCreateProductPayload({
+        name: 'Keyboard',
+        inventory: 1,
+        image: 'keyboard.png',
+        status: 'sold_out',
+      }),
+    ).toThrow(
+      expect.objectContaining({ code: 'INVALID_PRODUCT_STATUS_INVENTORY' }),
+    );
+
+    expect(() =>
+      validateCreateProductPayload({
+        name: 'Keyboard',
+        inventory: 1,
+        image: 'javascript:alert(1)',
+      }),
+    ).toThrow(expect.objectContaining({ code: 'INVALID_PRODUCT_IMAGE_URL' }));
+    expect(() =>
+      validateCreateProductPayload({
+        name: 'Keyboard',
+        inventory: 1,
+        image: 'https://untrusted.example/keyboard.png',
+      }),
+    ).toThrow(expect.objectContaining({ code: 'INVALID_PRODUCT_IMAGE_URL' }));
+  });
+
+  it('strips immutable and inventory fields from descriptive updates', () => {
+    expect(
+      validateUpdateProductPayload({
+        name: ' Updated ',
+        seller: 'attacker',
+        tenantId: 'other',
+        inventory: 100,
+        status: 'archived',
+      }),
+    ).toEqual({ name: 'Updated' });
+    expect(() => validateUpdateProductPayload({ inventory: 2 })).toThrow(
+      expect.objectContaining({ code: 'MISSING_PRODUCT_UPDATE_FIELDS' }),
+    );
   });
 
   it('normalizes and validates product filters', () => {
@@ -108,6 +149,8 @@ describe('productValidator', () => {
       status: 'active',
       availability: 'in_stock',
       sort: 'name_asc',
+      limit: 20,
+      offset: 0,
     });
 
     expect(validateProductFilters({ q: 'Direct', search: 'Ignored' })).toEqual({
@@ -118,6 +161,8 @@ describe('productValidator', () => {
       status: '',
       availability: '',
       sort: 'created_desc',
+      limit: 20,
+      offset: 0,
     });
   });
 
@@ -135,6 +180,8 @@ describe('productValidator', () => {
     expect(() => validateProductFilters({ sort: 'price_desc' })).toThrow(
       expect.objectContaining({ code: 'INVALID_PRODUCT_SORT' }),
     );
+    expect(() => validateProductFilters({ limit: 101 })).toThrow();
+    expect(() => validateProductFilters({ offset: -1 })).toThrow();
   });
 
   it('validates product and seller identifiers', () => {

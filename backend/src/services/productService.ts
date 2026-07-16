@@ -1,105 +1,22 @@
-import type {
-  ProductRecord,
-  ProductRepository,
-} from '@/repositories/productRepository';
+import type { ProductRepository } from '@/repositories/productRepository';
 import { defaultTenantId } from '@/tenants';
 import {
   type CreateProductData,
   type CreateProductRequestBody,
   type ProductFilterQuery,
   type ProductListFilters,
+  type UpdateProductData,
+  type ProductStatusUpdateData,
+  type ProductInventoryUpdateData,
   validateCreateProductPayload,
   validateProductFilters,
   validateProductId,
   validateSellerId,
+  validateUpdateProductPayload,
+  validateProductStatusUpdate,
+  validateProductInventoryUpdate,
 } from '@/validators/productValidator';
-
-type ProductListItem = Pick<
-  ProductRecord,
-  | 'name'
-  | 'description'
-  | 'category'
-  | 'subcategory'
-  | 'status'
-  | 'seller'
-  | 'inventory'
-> & {
-  createdAt?: string | number | Date;
-};
-
-function normalizeText(value: string | number | boolean | null | undefined) {
-  return String(value || '')
-    .trim()
-    .toLowerCase();
-}
-
-function toTimestamp(value?: string | number | Date) {
-  if (
-    typeof value === 'string' ||
-    typeof value === 'number' ||
-    value instanceof Date
-  )
-    return new Date(value).getTime();
-
-  return 0;
-}
-
-function filterProducts<T extends ProductListItem>(
-  products: T[],
-  filters: ProductListFilters,
-) {
-  const q = normalizeText(filters.q);
-  const category = normalizeText(filters.category);
-  const subcategory = normalizeText(filters.subcategory);
-  const seller = String(filters.seller || '').trim();
-  const status = normalizeText(filters.status);
-  const availability = normalizeText(filters.availability);
-
-  return products.filter((product) => {
-    const productName = normalizeText(product.name);
-    const description = normalizeText(product.description);
-    const productCategory = normalizeText(product.category);
-    const productSubcategory = normalizeText(product.subcategory);
-    const productStatus = normalizeText(product.status || 'active');
-    const productSeller = String(product.seller || '');
-    const inventory = Number(product.inventory || 0);
-
-    return (
-      (!q || productName.includes(q) || description.includes(q)) &&
-      (!category || productCategory === category) &&
-      (!subcategory || productSubcategory === subcategory) &&
-      (!seller || productSeller === seller) &&
-      (!status || productStatus === status) &&
-      (!availability ||
-        (availability === 'in_stock' && inventory > 0) ||
-        (availability === 'sold_out' && inventory === 0))
-    );
-  });
-}
-
-function sortProducts<T extends ProductListItem>(products: T[], sort?: string) {
-  const sortedProducts = [...products];
-
-  switch (sort) {
-    case 'created_asc':
-      return sortedProducts.sort(
-        (a, b) => toTimestamp(a.createdAt) - toTimestamp(b.createdAt),
-      );
-    case 'name_asc':
-      return sortedProducts.sort((a, b) =>
-        String(a.name || '').localeCompare(String(b.name || '')),
-      );
-    case 'inventory_desc':
-      return sortedProducts.sort(
-        (a, b) => Number(b.inventory || 0) - Number(a.inventory || 0),
-      );
-    case 'created_desc':
-    default:
-      return sortedProducts.sort(
-        (a, b) => toTimestamp(b.createdAt) - toTimestamp(a.createdAt),
-      );
-  }
-}
+import AppError from '@/errors/AppError';
 
 type SellerProfileService = {
   getPublicSellerProfile(
@@ -112,16 +29,29 @@ export function createProductService(
   repository: ProductRepository,
   userService: SellerProfileService,
 ) {
+  async function ownedProduct(
+    productId: string,
+    seller: string,
+    tenantId: string,
+  ) {
+    const id = validateProductId(productId);
+    const product = await repository.findById(tenantId, id);
+    if (!product)
+      throw new AppError(404, 'PRODUCT_NOT_FOUND', 'Product not found');
+    if (product.seller !== seller)
+      throw new AppError(
+        403,
+        'PRODUCT_FORBIDDEN',
+        'Not authorized to manage this product',
+      );
+    return product;
+  }
   async function listProducts(
     tenantId = defaultTenantId,
     filters: ProductFilterQuery | ProductListFilters = {},
   ) {
     const validatedFilters = validateProductFilters(filters);
-    const products = await repository.list(tenantId);
-    return sortProducts(
-      filterProducts(products, validatedFilters),
-      String(validatedFilters.sort || 'created_desc'),
-    );
+    return repository.list(tenantId, validatedFilters);
   }
 
   async function createProduct(
@@ -157,11 +87,80 @@ export function createProductService(
   ) {
     const seller = validateSellerId(userId);
     const validatedFilters = validateProductFilters(filters);
-    const products = await repository.list(tenantId, seller);
-    return sortProducts(
-      filterProducts(products, validatedFilters),
-      String(validatedFilters.sort || 'created_desc'),
-    );
+    return repository.list(tenantId, {
+      ...validatedFilters,
+      seller,
+    });
+  }
+
+  async function updateProduct(
+    productId: string,
+    body: UpdateProductData | Record<string, unknown>,
+    seller: string,
+    tenantId = defaultTenantId,
+  ) {
+    await ownedProduct(productId, seller, tenantId);
+    const update = validateUpdateProductPayload(body);
+    return repository.updateOwned(tenantId, productId, seller, update);
+  }
+
+  async function updateProductStatus(
+    productId: string,
+    body: ProductStatusUpdateData | Record<string, unknown>,
+    seller: string,
+    tenantId = defaultTenantId,
+  ) {
+    const product = await ownedProduct(productId, seller, tenantId);
+    const { status } = validateProductStatusUpdate(body);
+    if (status === 'sold_out')
+      throw new AppError(
+        409,
+        'PRODUCT_STATUS_TRANSITION_INVALID',
+        'Sold-out status is managed by inventory',
+      );
+    if (status === 'active' && product.inventory < 1)
+      throw new AppError(
+        409,
+        'PRODUCT_INVENTORY_REQUIRED',
+        'Active products require inventory',
+      );
+    const allowed: Record<string, string[]> = {
+      draft: ['active', 'archived'],
+      active: ['paused', 'archived'],
+      paused: ['active', 'archived'],
+      sold_out: ['active', 'archived'],
+      archived: ['active'],
+    };
+    if (
+      status !== product.status &&
+      !allowed[product.status || 'active']?.includes(status)
+    )
+      throw new AppError(
+        409,
+        'PRODUCT_STATUS_TRANSITION_INVALID',
+        `Product cannot transition from ${product.status || 'active'} to ${status}`,
+      );
+    return repository.updateOwned(tenantId, productId, seller, { status });
+  }
+
+  async function updateProductInventory(
+    productId: string,
+    body: ProductInventoryUpdateData | Record<string, unknown>,
+    seller: string,
+    tenantId = defaultTenantId,
+  ) {
+    const product = await ownedProduct(productId, seller, tenantId);
+    const { inventory } = validateProductInventoryUpdate(body);
+    const status =
+      inventory === 0 && product.status === 'active'
+        ? 'sold_out'
+        : inventory > 0 && product.status === 'sold_out'
+          ? 'active'
+          : product.status;
+    return repository.updateOwned(tenantId, productId, seller, {
+      inventory,
+      ...(status === product.status || !status ? {} : { status }),
+    });
   }
 
   return {
@@ -169,6 +168,9 @@ export function createProductService(
     createProduct,
     getProductById,
     listProductsBySeller,
+    updateProduct,
+    updateProductStatus,
+    updateProductInventory,
   };
 }
 

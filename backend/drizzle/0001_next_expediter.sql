@@ -1,0 +1,2 @@
+CREATE INDEX "products_name_idx" ON "products" USING btree ("tenant_id","name","created_at" DESC NULLS LAST,"id" DESC NULLS LAST);--> statement-breakpoint
+CREATE INDEX "products_inventory_idx" ON "products" USING btree ("tenant_id","inventory" DESC NULLS LAST,"created_at" DESC NULLS LAST,"id" DESC NULLS LAST);

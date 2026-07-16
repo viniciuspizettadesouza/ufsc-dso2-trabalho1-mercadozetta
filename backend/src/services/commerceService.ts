@@ -12,6 +12,8 @@ import type { OrderRepository } from '@/repositories/orderRepository';
 import type { ProductRepository } from '@/repositories/productRepository';
 import type { ReviewRepository } from '@/repositories/reviewRepository';
 import type { WatchlistRepository } from '@/repositories/watchlistRepository';
+import type { Pagination } from '@/pagination';
+import type { OrderListData } from '@/validators/commerceValidator';
 
 async function getCartWithRepository(
   carts: CartRepository,
@@ -159,19 +161,26 @@ async function listOrdersWithRepositories(
   orderItems: OrderItemRepository,
   userId: string,
   tenantId: string,
+  pagination: OrderListData,
 ) {
-  const orderIds = [
-    ...new Set([
-      ...(await orderRepository.listIdsByBuyer(tenantId, userId)),
-      ...(await orderItems.listOrderIdsBySeller(tenantId, userId)),
-    ]),
-  ];
-  const orders = await orderRepository.listByIds(tenantId, orderIds);
+  const result = await orderRepository.listVisible(
+    tenantId,
+    userId,
+    pagination,
+  );
+  const orderIds = result.items.map((order) => order._id);
   const items = await orderItems.listByOrderIds(tenantId, orderIds);
-  return orders.map((order) => ({
-    ...order,
-    items: items.filter((item) => item.order === order._id),
-  }));
+  return {
+    ...result,
+    items: result.items.map((order) => ({
+      ...order,
+      items: items.filter(
+        (item) =>
+          item.order === order._id &&
+          (pagination.scope !== 'seller' || item.seller === userId),
+      ),
+    })),
+  };
 }
 
 async function updateOrderStatusWithRepositories(
@@ -318,8 +327,11 @@ export function createReviewCommerceService(
   notifications: NotificationRepository,
 ) {
   return {
-    listReviews: (tenantId: string, productId: string) =>
-      reviews.list(tenantId, productId),
+    listReviews: (
+      tenantId: string,
+      productId: string,
+      pagination: Pagination,
+    ) => reviews.list(tenantId, productId, pagination),
     createReview: (
       userId: string,
       tenantId: string,
@@ -372,8 +384,14 @@ export function createOrderCommerceService(
   notifications: NotificationRepository,
 ) {
   return {
-    listOrders: (userId: string, tenantId: string) =>
-      listOrdersWithRepositories(orders, orderItems, userId, tenantId),
+    listOrders: (userId: string, tenantId: string, pagination: OrderListData) =>
+      listOrdersWithRepositories(
+        orders,
+        orderItems,
+        userId,
+        tenantId,
+        pagination,
+      ),
     updateOrderStatus: (
       userId: string,
       tenantId: string,
@@ -396,8 +414,11 @@ export function createNotificationCommerceService(
   notifications: NotificationRepository,
 ) {
   return {
-    listNotifications: (userId: string, tenantId: string) =>
-      notifications.list(tenantId, userId),
+    listNotifications: (
+      userId: string,
+      tenantId: string,
+      pagination: Pagination,
+    ) => notifications.list(tenantId, userId, pagination),
     countUnreadNotifications: (userId: string, tenantId: string) =>
       notifications.countUnread(tenantId, userId),
     updateNotificationRead: async (

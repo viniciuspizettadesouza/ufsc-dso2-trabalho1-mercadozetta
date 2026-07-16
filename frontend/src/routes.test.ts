@@ -8,6 +8,7 @@ describe('routes', () => {
     expect(appRoutes.login).toBe('/login');
     expect(appRoutes.register).toBe('/register');
     expect(appRoutes.newProduct).toBe('/products/new');
+    expect(appRoutes.editProduct('product-1')).toBe('/products/product-1/edit');
     expect(appRoutes.productDetail('product-1')).toBe('/products/product-1');
     expect(appRoutes.checkout).toBe('/checkout');
     expect(appRoutes.admin).toBe('/admin');
@@ -23,6 +24,7 @@ describe('routes', () => {
     expect(routePatterns.login).toBe('/login');
     expect(routePatterns.register).toBe('/register');
     expect(routePatterns.newProduct).toBe('/products/new');
+    expect(routePatterns.editProduct).toBe('/products/:productId/edit');
     expect(routePatterns.productDetail).toBe('/products/:productId');
     expect(routePatterns.checkout).toBe('/checkout');
     expect(routePatterns.admin).toBe('/admin');
@@ -44,6 +46,12 @@ describe('routes', () => {
     expect(apiRoutes.users).toBe('/users');
     expect(apiRoutes.products).toBe('/products');
     expect(apiRoutes.productDetail('product-1')).toBe('/products/product-1');
+    expect(apiRoutes.productInventory('product-1')).toBe(
+      '/products/product-1/inventory',
+    );
+    expect(apiRoutes.productStatus('product-1')).toBe(
+      '/products/product-1/status',
+    );
     expect(apiRoutes.sellerProfile('seller-1')).toBe('/users/seller-1');
     expect(apiRoutes.sellerProducts('seller-1')).toBe(
       '/users/seller-1/products',

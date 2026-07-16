@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 import type { Database } from '@/database/postgres';
 import {
   orderItems,
@@ -11,6 +11,8 @@ import {
 import { mapProductRow } from '@/repositories/mappers';
 import type { ReviewRepository } from '@/repositories/reviewRepository';
 import type { WatchlistRepository } from '@/repositories/watchlistRepository';
+import { paginated } from '@/pagination';
+import type { Pagination } from '@/pagination';
 
 export class PostgresWatchlistRepository implements WatchlistRepository {
   constructor(private readonly db: Database) {}
@@ -98,24 +100,35 @@ export class PostgresWatchlistRepository implements WatchlistRepository {
 export class PostgresReviewRepository implements ReviewRepository {
   constructor(private readonly db: Database) {}
 
-  async list(tenantId: string, productId: string) {
-    const rows = await this.db
-      .select()
-      .from(reviews)
-      .where(
-        and(eq(reviews.tenantId, tenantId), eq(reviews.productId, productId)),
-      )
-      .orderBy(desc(reviews.createdAt), desc(reviews.id));
-    return rows.map((review) => ({
-      _id: review.id,
-      tenantId: review.tenantId,
-      product: review.productId,
-      author: review.authorId,
-      rating: review.rating,
-      comment: review.comment,
-      createdAt: review.createdAt,
-      updatedAt: review.updatedAt,
-    }));
+  async list(tenantId: string, productId: string, pagination: Pagination) {
+    const where = and(
+      eq(reviews.tenantId, tenantId),
+      eq(reviews.productId, productId),
+    );
+    const [rows, [{ total }]] = await Promise.all([
+      this.db
+        .select()
+        .from(reviews)
+        .where(where)
+        .orderBy(desc(reviews.createdAt), desc(reviews.id))
+        .limit(pagination.limit)
+        .offset(pagination.offset),
+      this.db.select({ total: count() }).from(reviews).where(where),
+    ]);
+    return paginated(
+      rows.map((review) => ({
+        _id: review.id,
+        tenantId: review.tenantId,
+        product: review.productId,
+        author: review.authorId,
+        rating: review.rating,
+        comment: review.comment,
+        createdAt: review.createdAt,
+        updatedAt: review.updatedAt,
+      })),
+      total,
+      pagination,
+    );
   }
 
   async hasPurchasedProduct(

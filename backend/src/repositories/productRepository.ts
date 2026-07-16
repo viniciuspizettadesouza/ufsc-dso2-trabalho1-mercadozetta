@@ -1,4 +1,5 @@
 import type { ProductStatus } from '@/productStatus';
+import type { Paginated } from '@/pagination';
 
 export type ProductRecord = {
   _id: string;
@@ -26,9 +27,43 @@ export type CreateProductRecord = Omit<
   status: ProductStatus;
 };
 
+export type ProductListQuery = {
+  q?: string;
+  category?: string;
+  subcategory?: string;
+  seller?: string;
+  status?: string;
+  availability?: string;
+  sort?: string;
+  limit: number;
+  offset: number;
+};
+
+export type UpdateProductRecord = Partial<
+  Pick<
+    CreateProductRecord,
+    | 'name'
+    | 'description'
+    | 'category'
+    | 'subcategory'
+    | 'image'
+    | 'status'
+    | 'inventory'
+  >
+>;
+
 export interface ProductRepository {
-  list(tenantId: string, sellerId?: string): Promise<ProductRecord[]>;
+  list(
+    tenantId: string,
+    query: ProductListQuery,
+  ): Promise<Paginated<ProductRecord>>;
   create(product: CreateProductRecord): Promise<ProductRecord>;
+  updateOwned(
+    tenantId: string,
+    productId: string,
+    sellerId: string,
+    update: UpdateProductRecord,
+  ): Promise<ProductRecord | null>;
   findById(tenantId: string, productId: string): Promise<ProductRecord | null>;
   findActiveById(
     tenantId: string,

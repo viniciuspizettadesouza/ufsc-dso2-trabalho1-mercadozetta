@@ -993,6 +993,26 @@
             }
           },
           {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          {
             "in": "header",
             "name": "X-Tenant-Id",
             "schema": {
@@ -1008,25 +1028,73 @@
             "description": "Products from the seller",
             "content": {
               "application/json": {
-                "example": [
-                  {
-                    "_id": "507f191e-810c-4197-9de8-60ea00000001",
-                    "tenantId": "mercadozetta",
-                    "name": "mechanical keyboard",
-                    "description": "Compact keyboard",
-                    "category": "electronics",
-                    "subcategory": "keyboards",
-                    "inventory": 5,
-                    "image": "https://example.com/keyboard.jpg",
-                    "status": "active",
-                    "seller": "507f1f77-bcf8-4ecd-8994-390110000001"
+                "example": {
+                  "items": [
+                    {
+                      "_id": "507f191e-810c-4197-9de8-60ea00000001",
+                      "tenantId": "mercadozetta",
+                      "name": "mechanical keyboard",
+                      "description": "Compact keyboard",
+                      "category": "electronics",
+                      "subcategory": "keyboards",
+                      "inventory": 5,
+                      "image": "https://example.com/keyboard.jpg",
+                      "status": "active",
+                      "seller": "507f1f77-bcf8-4ecd-8994-390110000001"
+                    }
+                  ],
+                  "page": {
+                    "limit": 20,
+                    "offset": 0,
+                    "total": 1,
+                    "hasMore": false
                   }
-                ],
+                },
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Product"
-                  }
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Product"
+                      }
+                    },
+                    "page": {
+                      "type": "object",
+                      "properties": {
+                        "limit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 100
+                        },
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "hasMore": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "limit",
+                        "offset",
+                        "total",
+                        "hasMore"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "page"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -1132,6 +1200,26 @@
             }
           },
           {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          {
             "in": "header",
             "name": "X-Tenant-Id",
             "schema": {
@@ -1147,25 +1235,73 @@
             "description": "Products in the current tenant",
             "content": {
               "application/json": {
-                "example": [
-                  {
-                    "_id": "507f191e-810c-4197-9de8-60ea00000001",
-                    "tenantId": "mercadozetta",
-                    "name": "mechanical keyboard",
-                    "description": "Compact keyboard",
-                    "category": "electronics",
-                    "subcategory": "keyboards",
-                    "inventory": 5,
-                    "image": "https://example.com/keyboard.jpg",
-                    "status": "active",
-                    "seller": "507f1f77-bcf8-4ecd-8994-390110000001"
+                "example": {
+                  "items": [
+                    {
+                      "_id": "507f191e-810c-4197-9de8-60ea00000001",
+                      "tenantId": "mercadozetta",
+                      "name": "mechanical keyboard",
+                      "description": "Compact keyboard",
+                      "category": "electronics",
+                      "subcategory": "keyboards",
+                      "inventory": 5,
+                      "image": "https://example.com/keyboard.jpg",
+                      "status": "active",
+                      "seller": "507f1f77-bcf8-4ecd-8994-390110000001"
+                    }
+                  ],
+                  "page": {
+                    "limit": 20,
+                    "offset": 0,
+                    "total": 1,
+                    "hasMore": false
                   }
-                ],
+                },
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/Product"
-                  }
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Product"
+                      }
+                    },
+                    "page": {
+                      "type": "object",
+                      "properties": {
+                        "limit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 100
+                        },
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "hasMore": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "limit",
+                        "offset",
+                        "total",
+                        "hasMore"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "page"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -1384,6 +1520,439 @@
                   "error": "Product not found",
                   "code": "PRODUCT_NOT_FOUND"
                 },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Edit seller-owned product details",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "productId",
+            "schema": {
+              "$ref": "#/components/schemas/ProductId"
+            },
+            "required": true
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "Mechanical keyboard",
+                "description": "Compact keyboard"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated product",
+            "content": {
+              "application/json": {
+                "example": {
+                  "_id": "507f191e-810c-4197-9de8-60ea00000001",
+                  "tenantId": "mercadozetta",
+                  "name": "mechanical keyboard",
+                  "description": "Compact keyboard",
+                  "category": "electronics",
+                  "subcategory": "keyboards",
+                  "inventory": 5,
+                  "image": "https://example.com/keyboard.jpg",
+                  "status": "active",
+                  "seller": "507f1f77-bcf8-4ecd-8994-390110000001"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or tenant",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid tenant",
+                  "code": "INVALID_TENANT"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ownership, Origin, or CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Product not found",
+                  "code": "PRODUCT_NOT_FOUND"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/{productId}/inventory": {
+      "patch": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Set seller-owned product inventory",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "productId",
+            "schema": {
+              "$ref": "#/components/schemas/ProductId"
+            },
+            "required": true
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "inventory": 10
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "inventory": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "inventory"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated product",
+            "content": {
+              "application/json": {
+                "example": {
+                  "_id": "507f191e-810c-4197-9de8-60ea00000001",
+                  "tenantId": "mercadozetta",
+                  "name": "mechanical keyboard",
+                  "description": "Compact keyboard",
+                  "category": "electronics",
+                  "subcategory": "keyboards",
+                  "inventory": 5,
+                  "image": "https://example.com/keyboard.jpg",
+                  "status": "active",
+                  "seller": "507f1f77-bcf8-4ecd-8994-390110000001"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or tenant",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid tenant",
+                  "code": "INVALID_TENANT"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ownership, Origin, or CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Product not found",
+                  "code": "PRODUCT_NOT_FOUND"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/products/{productId}/status": {
+      "patch": {
+        "tags": [
+          "Products"
+        ],
+        "summary": "Change seller-owned product lifecycle status",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "productId",
+            "schema": {
+              "$ref": "#/components/schemas/ProductId"
+            },
+            "required": true
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "status": "paused"
+              },
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "draft",
+                      "active",
+                      "paused",
+                      "sold_out",
+                      "archived"
+                    ]
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated product",
+            "content": {
+              "application/json": {
+                "example": {
+                  "_id": "507f191e-810c-4197-9de8-60ea00000001",
+                  "tenantId": "mercadozetta",
+                  "name": "mechanical keyboard",
+                  "description": "Compact keyboard",
+                  "category": "electronics",
+                  "subcategory": "keyboards",
+                  "inventory": 5,
+                  "image": "https://example.com/keyboard.jpg",
+                  "status": "active",
+                  "seller": "507f1f77-bcf8-4ecd-8994-390110000001"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Product"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or tenant",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid tenant",
+                  "code": "INVALID_TENANT"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Ownership, Origin, or CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Product not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Product not found",
+                  "code": "PRODUCT_NOT_FOUND"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Invalid lifecycle transition",
+            "content": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
                 }
@@ -2126,6 +2695,39 @@
         ],
         "parameters": [
           {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "schema": {
+              "default": "all",
+              "type": "string",
+              "enum": [
+                "all",
+                "buyer",
+                "seller"
+              ]
+            }
+          },
+          {
             "in": "header",
             "name": "X-Tenant-Id",
             "schema": {
@@ -2141,118 +2743,166 @@
             "description": "Orders",
             "content": {
               "application/json": {
-                "example": [],
+                "example": {
+                  "items": [],
+                  "page": {
+                    "limit": 20,
+                    "offset": 0,
+                    "total": 0,
+                    "hasMore": false
+                  }
+                },
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                        "example": "507f191e-810c-4197-9de8-60ea00000001"
-                      },
-                      "tenantId": {
-                        "type": "string"
-                      },
-                      "buyer": {
-                        "type": "string",
-                        "format": "uuid",
-                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                        "example": "507f191e-810c-4197-9de8-60ea00000001"
-                      },
-                      "status": {
-                        "type": "string",
-                        "enum": [
-                          "placed",
-                          "confirmed",
-                          "shipped",
-                          "delivered",
-                          "cancelled"
-                        ]
-                      },
-                      "statusHistory": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "status": {
-                              "type": "string",
-                              "enum": [
-                                "placed",
-                                "confirmed",
-                                "shipped",
-                                "delivered",
-                                "cancelled"
-                              ]
-                            },
-                            "actor": {
-                              "type": "string",
-                              "format": "uuid",
-                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                              "example": "507f191e-810c-4197-9de8-60ea00000001"
-                            },
-                            "changedAt": {
-                              "type": "string",
-                              "format": "date-time",
-                              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
-                            }
-                          },
-                          "required": [
-                            "status",
-                            "actor",
-                            "changedAt"
-                          ],
-                          "additionalProperties": false
-                        }
-                      },
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
                       "items": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "product": {
-                              "type": "string",
-                              "format": "uuid",
-                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                              "example": "507f191e-810c-4197-9de8-60ea00000001"
-                            },
-                            "productName": {
-                              "type": "string"
-                            },
-                            "seller": {
-                              "type": "string",
-                              "format": "uuid",
-                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                              "example": "507f191e-810c-4197-9de8-60ea00000001"
-                            },
-                            "quantity": {
-                              "type": "integer",
-                              "minimum": -9007199254740991,
-                              "maximum": 9007199254740991
+                        "type": "object",
+                        "properties": {
+                          "_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "example": "507f191e-810c-4197-9de8-60ea00000001"
+                          },
+                          "tenantId": {
+                            "type": "string"
+                          },
+                          "buyer": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "example": "507f191e-810c-4197-9de8-60ea00000001"
+                          },
+                          "status": {
+                            "type": "string",
+                            "enum": [
+                              "placed",
+                              "confirmed",
+                              "shipped",
+                              "delivered",
+                              "cancelled"
+                            ]
+                          },
+                          "statusHistory": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "status": {
+                                  "type": "string",
+                                  "enum": [
+                                    "placed",
+                                    "confirmed",
+                                    "shipped",
+                                    "delivered",
+                                    "cancelled"
+                                  ]
+                                },
+                                "actor": {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                                  "example": "507f191e-810c-4197-9de8-60ea00000001"
+                                },
+                                "changedAt": {
+                                  "type": "string",
+                                  "format": "date-time",
+                                  "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+                                }
+                              },
+                              "required": [
+                                "status",
+                                "actor",
+                                "changedAt"
+                              ],
+                              "additionalProperties": false
                             }
                           },
-                          "required": [
-                            "product",
-                            "productName",
-                            "seller",
-                            "quantity"
-                          ],
-                          "additionalProperties": false
-                        }
+                          "items": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "product": {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                                  "example": "507f191e-810c-4197-9de8-60ea00000001"
+                                },
+                                "productName": {
+                                  "type": "string"
+                                },
+                                "seller": {
+                                  "type": "string",
+                                  "format": "uuid",
+                                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                                  "example": "507f191e-810c-4197-9de8-60ea00000001"
+                                },
+                                "quantity": {
+                                  "type": "integer",
+                                  "minimum": -9007199254740991,
+                                  "maximum": 9007199254740991
+                                }
+                              },
+                              "required": [
+                                "product",
+                                "productName",
+                                "seller",
+                                "quantity"
+                              ],
+                              "additionalProperties": false
+                            }
+                          }
+                        },
+                        "required": [
+                          "_id",
+                          "tenantId",
+                          "buyer",
+                          "status",
+                          "statusHistory",
+                          "items"
+                        ],
+                        "additionalProperties": false
                       }
                     },
-                    "required": [
-                      "_id",
-                      "tenantId",
-                      "buyer",
-                      "status",
-                      "statusHistory",
-                      "items"
-                    ],
-                    "additionalProperties": false
-                  }
+                    "page": {
+                      "type": "object",
+                      "properties": {
+                        "limit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 100
+                        },
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "hasMore": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "limit",
+                        "offset",
+                        "total",
+                        "hasMore"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "page"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -2747,6 +3397,26 @@
             "required": true
           },
           {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          {
             "in": "header",
             "name": "X-Tenant-Id",
             "schema": {
@@ -2762,48 +3432,96 @@
             "description": "Reviews",
             "content": {
               "application/json": {
-                "example": [],
+                "example": {
+                  "items": [],
+                  "page": {
+                    "limit": 20,
+                    "offset": 0,
+                    "total": 0,
+                    "hasMore": false
+                  }
+                },
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                        "example": "507f191e-810c-4197-9de8-60ea00000001"
-                      },
-                      "product": {
-                        "type": "string",
-                        "format": "uuid",
-                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                        "example": "507f191e-810c-4197-9de8-60ea00000001"
-                      },
-                      "author": {
-                        "type": "string",
-                        "format": "uuid",
-                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                        "example": "507f191e-810c-4197-9de8-60ea00000001"
-                      },
-                      "rating": {
-                        "type": "integer",
-                        "minimum": 1,
-                        "maximum": 5
-                      },
-                      "comment": {
-                        "type": "string"
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "example": "507f191e-810c-4197-9de8-60ea00000001"
+                          },
+                          "product": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "example": "507f191e-810c-4197-9de8-60ea00000001"
+                          },
+                          "author": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "example": "507f191e-810c-4197-9de8-60ea00000001"
+                          },
+                          "rating": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 5
+                          },
+                          "comment": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "_id",
+                          "product",
+                          "author",
+                          "rating",
+                          "comment"
+                        ],
+                        "additionalProperties": false
                       }
                     },
-                    "required": [
-                      "_id",
-                      "product",
-                      "author",
-                      "rating",
-                      "comment"
-                    ],
-                    "additionalProperties": false
-                  }
+                    "page": {
+                      "type": "object",
+                      "properties": {
+                        "limit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 100
+                        },
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "hasMore": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "limit",
+                        "offset",
+                        "total",
+                        "hasMore"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "page"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -2976,6 +3694,26 @@
         ],
         "parameters": [
           {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          {
             "in": "header",
             "name": "X-Tenant-Id",
             "schema": {
@@ -2991,39 +3729,87 @@
             "description": "Notifications",
             "content": {
               "application/json": {
-                "example": [],
+                "example": {
+                  "items": [],
+                  "page": {
+                    "limit": 20,
+                    "offset": 0,
+                    "total": 0,
+                    "hasMore": false
+                  }
+                },
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "_id": {
-                        "type": "string",
-                        "format": "uuid",
-                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                        "example": "507f191e-810c-4197-9de8-60ea00000001"
-                      },
-                      "user": {
-                        "type": "string",
-                        "format": "uuid",
-                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
-                        "example": "507f191e-810c-4197-9de8-60ea00000001"
-                      },
-                      "message": {
-                        "type": "string"
-                      },
-                      "read": {
-                        "type": "boolean"
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "_id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "example": "507f191e-810c-4197-9de8-60ea00000001"
+                          },
+                          "user": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "example": "507f191e-810c-4197-9de8-60ea00000001"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "read": {
+                            "type": "boolean"
+                          }
+                        },
+                        "required": [
+                          "_id",
+                          "user",
+                          "message",
+                          "read"
+                        ],
+                        "additionalProperties": false
                       }
                     },
-                    "required": [
-                      "_id",
-                      "user",
-                      "message",
-                      "read"
-                    ],
-                    "additionalProperties": false
-                  }
+                    "page": {
+                      "type": "object",
+                      "properties": {
+                        "limit": {
+                          "type": "integer",
+                          "minimum": 1,
+                          "maximum": 100
+                        },
+                        "offset": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "total": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "hasMore": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "limit",
+                        "offset",
+                        "total",
+                        "hasMore"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "items",
+                    "page"
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -3376,6 +4162,28 @@
         "example": "507f191e-810c-4197-9de8-60ea00000001",
         "type": "string",
         "format": "uuid"
+      },
+      "UpdateProductRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "subcategory": {
+            "type": "string"
+          },
+          "image": {
+            "type": "string"
+          }
+        }
       },
       "Welcome": {
         "type": "object",

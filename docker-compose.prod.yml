@@ -50,6 +50,7 @@ services:
       PORT: 3333
       TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
       CORS_ORIGIN: ${CORS_ORIGIN:?Set CORS_ORIGIN to the public frontend origin}
+      PRODUCT_IMAGE_HOSTS: ${PRODUCT_IMAGE_HOSTS:-example.com,images.unsplash.com}
       TENANT_HEADER_REQUIRED: 'true'
       HEALTHCHECK_TENANT_ID: mercadozetta
       RATE_LIMIT_AUTH_WINDOW_MS: ${RATE_LIMIT_AUTH_WINDOW_MS:-900000}

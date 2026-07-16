@@ -1,6 +1,10 @@
 import type { Request, Response } from 'express';
 import type { CommerceService } from '@/services/commerceService';
 import type { OrderStatus } from '@/orderStatus';
+import type { Pagination } from '@/pagination';
+import type { OrderListData } from '@/validators/commerceValidator';
+
+const pagination = (req: Request) => req.validated?.query as Pagination;
 
 const context = (req: Request) => ({
   userId: req.userId ?? '',
@@ -65,7 +69,13 @@ export function createCommerceController(service: CommerceService) {
   }
   async function listOrders(req: Request, res: Response) {
     const { userId, tenantId } = context(req);
-    res.send(await service.listOrders(userId, tenantId));
+    res.send(
+      await service.listOrders(
+        userId,
+        tenantId,
+        req.validated?.query as OrderListData,
+      ),
+    );
   }
   async function updateOrderStatus(req: Request, res: Response) {
     const { userId, tenantId } = context(req);
@@ -80,6 +90,7 @@ export function createCommerceController(service: CommerceService) {
       await service.listReviews(
         req.tenant?.id ?? '',
         (req.validated?.params as { productId: string }).productId,
+        pagination(req),
       ),
     );
   }
@@ -101,7 +112,9 @@ export function createCommerceController(service: CommerceService) {
   }
   async function listNotifications(req: Request, res: Response) {
     const { userId, tenantId } = context(req);
-    res.send(await service.listNotifications(userId, tenantId));
+    res.send(
+      await service.listNotifications(userId, tenantId, pagination(req)),
+    );
   }
   async function countUnreadNotifications(req: Request, res: Response) {
     const { userId, tenantId } = context(req);
