@@ -1,6 +1,6 @@
 services:
   mongo-integration:
-    image: mongo:7
+    image: mongo:7.0.37-jammy
     command: ['mongod', '--replSet', 'rs0', '--bind_ip_all']
     healthcheck:
       test:
@@ -17,6 +17,7 @@ services:
   integration-tests:
     build:
       context: ./backend
+      target: development
     environment:
       NODE_ENV: test
       JWT_SIGNING_KEYS: '{"current":"integration-jwt-current","previous":"integration-jwt-previous"}'

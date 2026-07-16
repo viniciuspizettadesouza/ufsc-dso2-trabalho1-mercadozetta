@@ -1,23 +1,17 @@
+import 'dotenv/config';
 import mongoose from 'mongoose';
 import app from '@/app';
 import { validateSecurityConfig } from '@/config/security';
-import dotenv from 'dotenv';
+import { getRuntimeConfig } from '@/config/runtime';
 import { Server } from 'http';
 
-dotenv.config();
-
-const mongoUri = process.env.MONGODB_URI;
-const port = Number(process.env.PORT) || 3333;
-
-if (!mongoUri) {
-  console.error('MONGODB_URI environment variable is required');
-  process.exit(1);
-}
+let runtime: ReturnType<typeof getRuntimeConfig>;
 
 try {
   validateSecurityConfig();
+  runtime = getRuntimeConfig();
 } catch (error) {
-  console.error('Invalid security configuration', error);
+  console.error('Invalid startup configuration', error);
   process.exit(1);
 }
 
@@ -41,11 +35,11 @@ async function shutdown(signal: string) {
 }
 
 mongoose
-  .connect(mongoUri)
+  .connect(runtime.mongoUri)
   .then(() => {
     console.log('MongoDB connected');
-    server = app.listen(port, () =>
-      console.log(`Server running on port ${port}`),
+    server = app.listen(runtime.port, () =>
+      console.log(`Server running on port ${runtime.port}`),
     );
   })
   .catch((err) => {

@@ -82,3 +82,6 @@ jobs:
 
       - name: Build frontend
         run: npm --prefix frontend run build
+
+      - name: Smoke test production images
+        run: npm run test:production

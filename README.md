@@ -9,8 +9,8 @@ The implemented application includes a public catalog and seller profiles,
 account registration and JWT login, product creation, persistent carts and
 watchlists, transactional checkout and inventory updates, buyer and seller
 order workflows, verified-purchase reviews, notifications, and repeatable demo
-data. It is a development and teaching system, not a production deployment
-baseline.
+data. It includes a production container baseline, while remaining a
+development and teaching system rather than a turnkey hosted service.
 
 For the design and business-rule explanation, read the
 [project overview](docs/project-overview.md). Detailed authentication behavior
@@ -92,6 +92,7 @@ cp frontend/.env.example frontend/.env
 | `SESSION_REFRESH_CONCURRENCY_WINDOW_MS`                            | Grace window for a parallel refresh loser      | `5000`                                                        |
 | `TENANT_HEADER_REQUIRED`                                           | Reject requests without `X-Tenant-Id`          | `false` locally; defaults to `true` outside development/test  |
 | `PORT`                                                             | API listen port                                | `3333`                                                        |
+| `TRUST_PROXY_HOPS`                                                 | Exact number of trusted reverse-proxy hops     | `0` locally; production Compose uses `1`                      |
 | `CORS_ORIGIN`                                                      | Comma-separated allowed browser origins        | `http://localhost:5173` locally                               |
 | `RATE_LIMIT_AUTH_WINDOW_MS` / `RATE_LIMIT_AUTH_MAX`                | Login rate-limit window and maximum            | `900000` / `5`                                                |
 | `RATE_LIMIT_REGISTER_WINDOW_MS` / `RATE_LIMIT_REGISTER_MAX`        | Registration rate-limit window and maximum     | `900000` / `10`                                               |
@@ -149,9 +150,22 @@ Stop and remove the application containers with:
 npm run compose:down
 ```
 
-The current Dockerfiles run `ts-node-dev` and the Vite development server. This
-Compose stack is for development and demonstrations; it does not build or serve
-production artifacts.
+This Compose stack explicitly selects the Dockerfiles' development stages and
+remains intended for development and demonstrations.
+
+### Production container baseline
+
+The separate production topology compiles the backend, serves the frontend
+through non-root Nginx, proxies `/api`, and includes health/readiness checks:
+
+```bash
+npm run compose:prod:up
+npm run compose:prod:down
+```
+
+Required secrets and the public `CORS_ORIGIN` must be exported first. See the
+[production deployment guide](docs/production-deployment.md) for TLS,
+trusted-proxy, deployment, smoke-test, and rollback requirements.
 
 ## Demo data and smoke test
 
@@ -180,18 +194,19 @@ The frontend also exposes `/products/new` for authenticated product creation.
 
 Run these from the repository root unless noted otherwise.
 
-| Command                           | Purpose                                                                         |
-| --------------------------------- | ------------------------------------------------------------------------------- |
-| `npm test`                        | Backend type-check, backend focused/contract tests, and frontend tests          |
-| `npm run test:integration`        | Database-backed tests against an ephemeral MongoDB replica set; requires Docker |
-| `npm run test:coverage`           | Backend and frontend coverage suites with configured thresholds                 |
-| `npm run typecheck`               | Backend TypeScript check without emitting                                       |
-| `npm run lint`                    | Backend and frontend ESLint checks                                              |
-| `npm run format:check`            | Check Prettier formatting without rewriting files                               |
-| `npm run format`                  | Format supported repository files                                               |
-| `npm --prefix frontend run build` | Type-check and create the frontend production bundle                            |
-| `npm run generate:openapi`        | Regenerate `docs/openapi.json` from validators and route metadata               |
-| `npm run seed:demo`               | Refresh repeatable demo data                                                    |
+| Command                           | Purpose                                                                          |
+| --------------------------------- | -------------------------------------------------------------------------------- |
+| `npm test`                        | Backend type-check, backend focused/contract tests, and frontend tests           |
+| `npm run test:integration`        | Database-backed tests against an ephemeral MongoDB replica set; requires Docker  |
+| `npm run test:production`         | Build and smoke-test the isolated production container topology; requires Docker |
+| `npm run test:coverage`           | Backend and frontend coverage suites with configured thresholds                  |
+| `npm run typecheck`               | Backend TypeScript check without emitting                                        |
+| `npm run lint`                    | Backend and frontend ESLint checks                                               |
+| `npm run format:check`            | Check Prettier formatting without rewriting files                                |
+| `npm run format`                  | Format supported repository files                                                |
+| `npm --prefix frontend run build` | Type-check and create the frontend production bundle                             |
+| `npm run generate:openapi`        | Regenerate `docs/openapi.json` from validators and route metadata                |
+| `npm run seed:demo`               | Refresh repeatable demo data                                                     |
 
 Dependency audits are run separately because there is no root aggregate script:
 
@@ -202,10 +217,11 @@ npm --prefix frontend audit --audit-level=high
 ```
 
 CI installs all three dependency trees and runs audits, backend type-checking,
-formatting, lint, backend and frontend tests, database integration tests, and
-the frontend build. Coverage is enforced by the coverage command, not by the
-current CI workflow. Git hooks format supported staged files before commits and
-run formatting plus the main test suite before pushes.
+formatting, lint, backend and frontend tests, database integration tests, the
+frontend build, and the production image smoke lane. Coverage is enforced by
+the coverage command, not by the current CI workflow. Git hooks format
+supported staged files before commits and run formatting plus the main test
+suite before pushes.
 
 ## Repository map
 

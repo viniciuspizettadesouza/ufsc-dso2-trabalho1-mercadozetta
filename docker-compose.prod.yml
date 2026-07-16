@@ -1,0 +1,82 @@
+services:
+  mongo:
+    image: mongo:7.0.37-jammy
+    command: ['mongod', '--replSet', 'rs0', '--bind_ip_all']
+    restart: unless-stopped
+    volumes:
+      - mercadozetta-mongo-data:/data/db
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'mongosh --quiet --eval "try { rs.status().ok } catch (error) { rs.initiate({_id: ''rs0'', members: [{_id: 0, host: ''mongo:27017''}]}).ok }"',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  backend:
+    image: ${BACKEND_IMAGE:-mercadozetta-backend:local}
+    build:
+      context: ./backend
+      target: production
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      MONGODB_URI: mongodb://mongo:27017/mercadozetta?replicaSet=rs0
+      JWT_SIGNING_KEYS: ${JWT_SIGNING_KEYS:?Set JWT_SIGNING_KEYS}
+      JWT_ACTIVE_KID: ${JWT_ACTIVE_KID:?Set JWT_ACTIVE_KID}
+      REFRESH_TOKEN_HASH_SECRETS: ${REFRESH_TOKEN_HASH_SECRETS:?Set REFRESH_TOKEN_HASH_SECRETS}
+      REFRESH_TOKEN_HASH_ACTIVE_VERSION: ${REFRESH_TOKEN_HASH_ACTIVE_VERSION:?Set REFRESH_TOKEN_HASH_ACTIVE_VERSION}
+      CSRF_SECRETS: ${CSRF_SECRETS:?Set CSRF_SECRETS}
+      CSRF_ACTIVE_VERSION: ${CSRF_ACTIVE_VERSION:?Set CSRF_ACTIVE_VERSION}
+      PORT: 3333
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
+      CORS_ORIGIN: ${CORS_ORIGIN:?Set CORS_ORIGIN to the public frontend origin}
+      TENANT_HEADER_REQUIRED: 'true'
+      HEALTHCHECK_TENANT_ID: mercadozetta
+      RATE_LIMIT_AUTH_WINDOW_MS: ${RATE_LIMIT_AUTH_WINDOW_MS:-900000}
+      RATE_LIMIT_AUTH_MAX: ${RATE_LIMIT_AUTH_MAX:-5}
+      RATE_LIMIT_REGISTER_WINDOW_MS: ${RATE_LIMIT_REGISTER_WINDOW_MS:-900000}
+      RATE_LIMIT_REGISTER_MAX: ${RATE_LIMIT_REGISTER_MAX:-10}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "const http=require('http');const request=http.get({host:'127.0.0.1',port:3333,path:'/ready',headers:{'X-Tenant-Id':'mercadozetta'}},response=>process.exit(response.statusCode===200?0:1));request.on('error',()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-mercadozetta-frontend:local}
+    build:
+      context: ./frontend
+      target: production
+      args:
+        VITE_API_URL: /api
+        VITE_TENANT_ID: ${VITE_TENANT_ID:-mercadozetta}
+    restart: unless-stopped
+    ports:
+      - '${APP_PORT:-8080}:8080'
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        ['CMD', 'wget', '--quiet', '--spider', 'http://127.0.0.1:8080/healthz']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  mercadozetta-mongo-data:

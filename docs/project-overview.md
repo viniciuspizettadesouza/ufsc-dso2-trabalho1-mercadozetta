@@ -351,16 +351,19 @@ isolated Chromium authentication lane.
 
 ## 13. Deployment model
 
-`docker-compose.yml` is a development/demo topology: MongoDB 7 runs as a
-single-node replica set, the backend container runs `ts-node-dev`, and the
-frontend container exposes Vite's development server. Source and dependencies
-are copied into simple Node Alpine images, and containers are not configured as
-non-root application users.
+`docker-compose.yml` remains the development/demo topology and explicitly uses
+the Dockerfiles' development targets. MongoDB 7 runs as a single-node replica
+set, the backend runs `ts-node-dev`, and the frontend exposes Vite.
 
-There are no production multi-stage images, static frontend server, TLS or
-reverse-proxy contract, production health checks in the application
-containers, deployment/rollback procedure, or production image smoke test.
-The Compose configuration must not be described as a production deployment.
+`docker-compose.prod.yml` is the production deployment baseline. Multi-stage
+images compile the backend and frontend, production Node runs emitted backend
+JavaScript, and non-root Nginx serves static assets and proxies `/api` to the
+non-root backend. Pinned Node, Nginx, and MongoDB image versions, startup
+configuration validation, liveness/readiness checks, immutable image-tag
+deployment and rollback guidance, TLS/trusted-proxy rules, and an isolated CI
+smoke lane are documented in [the production guide](production-deployment.md).
+The baseline still requires platform-managed TLS, secrets, backups, monitoring,
+and production database operations before hosting real data.
 
 ## 14. Operational behavior
 
@@ -404,22 +407,21 @@ or data-retention process.
   storage integration or documented host allowlist.
 - Browser end-to-end coverage currently exercises authentication only; there
   are no automated accessibility tests.
-- Production deployment, migration, retention, backup, and recovery procedures
-  are not established.
+- The production container baseline does not supply managed TLS, secrets,
+  monitoring, database authentication, backup/restore automation, retention, or
+  disaster recovery.
 
 These are descriptions of verified current behavior, not commitments about
 scope or sequence.
 
 ## 16. Improvement roadmap
 
-The current priority is production authentication hardening. Its decision
-record, backend cookie/session workflow, and frontend browser transport are
-implemented and verified through focused, database-backed, and Chromium tests.
-The current priority is production deployment, followed by broader browser-level workflow coverage, scalable
-catalog contracts, privileged authorization,
-theming/accessibility, centralized server state, API consistency,
-observability, account recovery, data lifecycle, and later marketplace
-features.
+Production authentication hardening is implemented and verified through
+focused, database-backed, and Chromium tests. The production deployment
+baseline follows it, then broader browser-level workflow coverage, scalable
+catalog contracts, privileged authorization, theming/accessibility, centralized
+server state, API consistency, observability, account recovery, data lifecycle,
+and later marketplace features.
 
 The authoritative checklist, sequencing, completed work, and next-session
 handoff are maintained only in the

@@ -1,6 +1,6 @@
 services:
   mongo:
-    image: mongo:7
+    image: mongo:7.0.37-jammy
     container_name: mercadozetta-mongo
     command: ['mongod', '--replSet', 'rs0', '--bind_ip_all']
     restart: unless-stopped
@@ -21,6 +21,7 @@ services:
   backend:
     build:
       context: ./backend
+      target: development
     restart: unless-stopped
     environment:
       MONGODB_URI: mongodb://mongo:27017/mercadozetta?replicaSet=rs0
@@ -31,6 +32,7 @@ services:
       CSRF_SECRETS: '{"current":"local_dev_csrf_secret_please_change_later"}'
       CSRF_ACTIVE_VERSION: current
       PORT: 3333
+      TRUST_PROXY_HOPS: 0
       CORS_ORIGIN: http://localhost:5173
       RATE_LIMIT_AUTH_WINDOW_MS: 900000
       RATE_LIMIT_AUTH_MAX: 5
@@ -45,6 +47,7 @@ services:
   frontend:
     build:
       context: ./frontend
+      target: development
     restart: unless-stopped
     environment:
       VITE_API_URL: http://localhost:3333

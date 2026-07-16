@@ -13,8 +13,8 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - TypeScript 7 is deferred until `typescript-eslint` publishes a compatible
   release; version 8.63.0 and its current canary support TypeScript only through
   versions earlier than 6.1.0.
-- Backend has 238 tests across 34 files and passes the 85% branch threshold with
-  86.17%. Frontend has 85 tests across 12 files and passes its 90% branch
+- Backend has 242 tests across 35 files and passes the 85% branch threshold with
+  87.19%. Frontend has 85 tests across 12 files and passes its 90% branch
   threshold with 90.60%. Type checks, tests, lint, formatting, OpenAPI
   generation, coverage, and the production build pass.
 - Checkout commits order creation, items, conditional inventory decrements, cart
@@ -81,11 +81,25 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   OpenAPI schemes, single-secret deployment variables, and Authorization CORS
   allowance are removed. Mocked and database-backed backend request tests now
   use active cookie sessions; the complete authentication phase is verified.
-- Next action: start the production deployment baseline in `backend/Dockerfile`,
-  `frontend/Dockerfile`, and Compose configuration by adding multi-stage
-  production images while preserving the current development workflow. Verify
-  compiled backend startup, static frontend serving, health/readiness, and one
-  proxied API request before marking that deployment item complete.
+- Multi-stage production images compile and run the backend output and serve the
+  built frontend from Nginx. Production application containers run as non-root,
+  base images are version-pinned, startup validates required production
+  configuration, and development, integration, and browser stacks retain their
+  explicit development targets.
+- The separate production Compose topology keeps MongoDB and the backend
+  internal, exposes Nginx with `/api` proxying and refresh-cookie path handling,
+  and includes liveness and readiness checks. The isolated production smoke lane
+  verifies image builds, compiled/static artifacts, non-root users, frontend
+  loading, health, readiness, and a proxied catalog request, then cleans up.
+- TLS termination, forwarded headers, exact trusted-proxy hops, secure-cookie
+  behavior, versioned-image deployment, rollback, and smoke procedures are
+  documented in `docs/production-deployment.md`; CI runs the production smoke
+  lane.
+- Next action: expand `e2e/` from the completed authentication checks into the
+  remaining browser workflow item. Start with deterministic tenant-scoped
+  registration, then cover buyer checkout and inventory changes followed by
+  seller fulfillment and buyer notification verification in the same isolated
+  stack.
 
 ## Recommended Order
 
@@ -119,21 +133,21 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   handling is implemented. Keep `jsonwebtoken` during this phase so transport
   and session design are not coupled to an unrelated JWT-library migration.
 
-### 2. Establish a production deployment baseline (current priority)
+### 2. Establish a production deployment baseline (completed)
 
-- [ ] Replace development-server Docker commands with multi-stage production
+- [x] Replace development-server Docker commands with multi-stage production
       images: compile and run the backend output with Node.js and serve the built
       frontend as static assets through a production server or hosting platform.
-- [ ] Run containers as non-root users, add application health checks, pin base
+- [x] Run containers as non-root users, add application health checks, pin base
       image versions, validate required production environment variables at
       startup, and keep development Compose behavior available separately.
-- [ ] Document TLS termination, reverse-proxy and trusted-proxy behavior,
+- [x] Document TLS termination, reverse-proxy and trusted-proxy behavior,
       forwarded headers, secure-cookie behavior, deployment, rollback, and smoke
       testing.
-- [ ] Add a CI smoke check proving that production images build and start and
+- [x] Add a CI smoke check proving that production images build and start and
       that health, readiness, frontend loading, and one API request work together.
 
-### 3. Add browser-level workflow coverage
+### 3. Add browser-level workflow coverage (current priority)
 
 - [x] Add `@playwright/test` and a root end-to-end test command, initially using
       Chromium in CI to control runtime and browser downloads.
