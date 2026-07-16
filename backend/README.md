@@ -24,7 +24,12 @@ Required values:
 
 ```env
 MONGODB_URI=mongodb+srv://user:password@cluster.example.mongodb.net/mercadozetta?retryWrites=true&w=majority
-JWT_SECRET=replace_with_a_long_random_secret
+JWT_SIGNING_KEYS={"current":"replace_with_a_long_random_secret"}
+JWT_ACTIVE_KID=current
+REFRESH_TOKEN_HASH_SECRETS={"current":"replace_with_a_distinct_random_secret"}
+REFRESH_TOKEN_HASH_ACTIVE_VERSION=current
+CSRF_SECRETS={"current":"replace_with_another_distinct_random_secret"}
+CSRF_ACTIVE_VERSION=current
 PORT=3333
 CORS_ORIGIN=http://localhost:5173
 RATE_LIMIT_AUTH_WINDOW_MS=900000
@@ -34,7 +39,8 @@ RATE_LIMIT_REGISTER_MAX=10
 ```
 
 `MONGODB_URI` is required when starting the server. `PORT` defaults to `3333`
-when omitted. `JWT_SECRET` is required outside development and test.
+when omitted. All three versioned security key rings are required outside
+development and test.
 `CORS_ORIGIN` accepts one or more comma-separated frontend origins. The rate
 limit variables control login and account creation attempts.
 

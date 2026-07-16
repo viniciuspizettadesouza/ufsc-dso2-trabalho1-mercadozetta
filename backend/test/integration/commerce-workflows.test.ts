@@ -8,7 +8,7 @@ import Review from '@/model/review';
 import User from '@/model/user';
 import Watchlist from '@/model/watchlist';
 import {
-  authorization,
+  sessionHeaders,
   clearDatabase,
   connectDatabase,
   disconnectDatabase,
@@ -49,39 +49,30 @@ describe('persistent commerce workflows', () => {
         seller: seller._id,
       },
     ]);
-    const auth = authorization(buyer._id);
+    const auth = await sessionHeaders(buyer._id);
 
     await request(app)
       .put('/cart/items')
-      .set('Authorization', auth)
+      .set(auth)
       .send({ productId: available._id, quantity: 2 })
       .expect(200);
-    const cart = await request(app)
-      .get('/cart')
-      .set('Authorization', auth)
-      .expect(200);
+    const cart = await request(app).get('/cart').set(auth).expect(200);
     expect(cart.body.items).toHaveLength(1);
     expect(cart.body.items[0]).toMatchObject({ quantity: 2 });
 
     for (const product of [unavailable, otherTenantProduct]) {
       const response = await request(app)
         .put('/cart/items')
-        .set('Authorization', auth)
+        .set(auth)
         .send({ productId: product._id, quantity: 1 });
       expect([404, 409]).toContain(response.status);
     }
 
-    await request(app)
-      .put(`/watchlist/${available._id}`)
-      .set('Authorization', auth)
-      .expect(201);
-    await request(app)
-      .put(`/watchlist/${available._id}`)
-      .set('Authorization', auth)
-      .expect(201);
+    await request(app).put(`/watchlist/${available._id}`).set(auth).expect(201);
+    await request(app).put(`/watchlist/${available._id}`).set(auth).expect(201);
     const watchlist = await request(app)
       .get('/watchlist')
-      .set('Authorization', auth)
+      .set(auth)
       .expect(200);
     expect(watchlist.body).toHaveLength(1);
     expect(await Watchlist.countDocuments({ tenantId, user: buyer._id })).toBe(
@@ -90,11 +81,11 @@ describe('persistent commerce workflows', () => {
 
     await request(app)
       .delete(`/watchlist/${available._id}`)
-      .set('Authorization', auth)
+      .set(auth)
       .expect(204);
     await request(app)
       .delete(`/cart/items/${available._id}`)
-      .set('Authorization', auth)
+      .set(auth)
       .expect(200);
     expect((await Cart.findOne({ buyer: buyer._id }))?.items).toHaveLength(0);
   });
@@ -117,42 +108,45 @@ describe('persistent commerce workflows', () => {
       buyer: buyer._id,
       items: [{ product: product._id, quantity: 1 }],
     });
+    const buyerAuth = await sessionHeaders(buyer._id);
+    const sellerAuth = await sessionHeaders(seller._id);
+    const outsiderAuth = await sessionHeaders(outsider._id);
 
     const checkout = await request(app)
       .post('/orders')
-      .set('Authorization', authorization(buyer._id))
+      .set(buyerAuth)
       .expect(201);
     const orderId = checkout.body._id;
 
     const sellerOrders = await request(app)
       .get('/orders')
-      .set('Authorization', authorization(seller._id))
+      .set(sellerAuth)
       .expect(200);
     expect(sellerOrders.body).toHaveLength(1);
     const outsiderOrders = await request(app)
       .get('/orders')
-      .set('Authorization', authorization(outsider._id))
+      .set(outsiderAuth)
       .expect(200);
     expect(outsiderOrders.body).toEqual([]);
 
     await request(app)
       .patch(`/orders/${orderId}/status`)
-      .set('Authorization', authorization(outsider._id))
+      .set(outsiderAuth)
       .send({ status: 'shipped' })
       .expect(403);
     await request(app)
       .patch(`/orders/${orderId}/status`)
-      .set('Authorization', authorization(seller._id))
+      .set(sellerAuth)
       .send({ status: 'shipped' })
       .expect(409);
     await request(app)
       .patch(`/orders/${orderId}/status`)
-      .set('Authorization', authorization(seller._id))
+      .set(sellerAuth)
       .send({ status: 'confirmed' })
       .expect(200);
     await request(app)
       .patch(`/orders/${orderId}/status`)
-      .set('Authorization', authorization(seller._id))
+      .set(sellerAuth)
       .send({ status: 'shipped' })
       .expect(200);
     const storedOrder = await Order.findById(orderId);
@@ -170,22 +164,22 @@ describe('persistent commerce workflows', () => {
 
     await request(app)
       .post(`/products/${product._id}/reviews`)
-      .set('Authorization', authorization(outsider._id))
+      .set(outsiderAuth)
       .send({ rating: 5, comment: 'Not purchased' })
       .expect(403);
     await request(app)
       .post(`/products/${product._id}/reviews`)
-      .set('Authorization', authorization(seller._id))
+      .set(sellerAuth)
       .send({ rating: 5, comment: 'Own product' })
       .expect(403);
     await request(app)
       .post(`/products/${product._id}/reviews`)
-      .set('Authorization', authorization(buyer._id))
+      .set(buyerAuth)
       .send({ rating: 4, comment: 'Good' })
       .expect(201);
     await request(app)
       .post(`/products/${product._id}/reviews`)
-      .set('Authorization', authorization(buyer._id))
+      .set(buyerAuth)
       .send({ rating: 5, comment: 'Excellent' })
       .expect(201);
     expect(
@@ -197,7 +191,7 @@ describe('persistent commerce workflows', () => {
 
     const sellerNotifications = await request(app)
       .get('/notifications')
-      .set('Authorization', authorization(seller._id))
+      .set(sellerAuth)
       .expect(200);
     expect(
       sellerNotifications.body.map(
@@ -211,23 +205,23 @@ describe('persistent commerce workflows', () => {
     );
     await request(app)
       .get('/notifications/unread-count')
-      .set('Authorization', authorization(seller._id))
+      .set(sellerAuth)
       .expect(200, { count: sellerNotifications.body.length });
     const notificationId = sellerNotifications.body[0]._id;
     await request(app)
       .patch(`/notifications/${notificationId}`)
-      .set('Authorization', authorization(buyer._id))
+      .set(buyerAuth)
       .send({ read: true })
       .expect(404);
     await request(app)
       .patch(`/notifications/${notificationId}`)
-      .set('Authorization', authorization(seller._id))
+      .set(sellerAuth)
       .send({ read: true })
       .expect(200)
       .expect(({ body }) => expect(body.read).toBe(true));
     await request(app)
       .get('/notifications/unread-count')
-      .set('Authorization', authorization(seller._id))
+      .set(sellerAuth)
       .expect(200, { count: sellerNotifications.body.length - 1 });
     const buyerNotifications = await Notification.find({
       tenantId,

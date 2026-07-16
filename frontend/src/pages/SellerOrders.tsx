@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Header from '@/pages/header';
 import { apiRoutes } from '@/routes';
 import api from '@/services/api';
+import { useAuth } from '@/auth/AuthContext';
 
 type OrderStatus =
   'placed' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
@@ -29,19 +30,9 @@ const nextStatus: Partial<Record<OrderStatus, OrderStatus>> = {
   shipped: 'delivered',
 };
 
-function getUserId() {
-  try {
-    const user = JSON.parse(localStorage.getItem('user') ?? '{}') as {
-      _id?: string;
-    };
-    return user._id ?? '';
-  } catch {
-    return '';
-  }
-}
-
 export default function SellerOrders() {
-  const sellerId = getUserId();
+  const { user } = useAuth();
+  const sellerId = user?._id ?? '';
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [pendingOrder, setPendingOrder] = useState('');

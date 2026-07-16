@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Login from '@/pages/Login';
 import api from '@/services/api';
+import { AuthTestProvider } from '@/test/AuthTestProvider';
 
 const navigate = vi.fn();
 
@@ -24,11 +25,16 @@ vi.mock('react-router', async () => {
   };
 });
 
-function renderLogin(state?: { from: string; prompt: string }) {
+function renderLogin(
+  state?: { from: string; prompt: string },
+  establishSession = vi.fn(),
+) {
   return render(
-    <MemoryRouter initialEntries={[{ pathname: '/login', state }]}>
-      <Login />
-    </MemoryRouter>,
+    <AuthTestProvider establishSession={establishSession}>
+      <MemoryRouter initialEntries={[{ pathname: '/login', state }]}>
+        <Login />
+      </MemoryRouter>
+    </AuthTestProvider>,
   );
 }
 
@@ -38,15 +44,14 @@ describe('Login', () => {
   });
 
   beforeEach(() => {
-    localStorage.clear();
     navigate.mockReset();
     vi.mocked(api.post).mockReset();
   });
 
-  it('calls the API, stores auth data, and navigates after successful login', async () => {
+  it('calls the API, establishes auth state, and navigates after successful login', async () => {
+    const establishSession = vi.fn();
     vi.mocked(api.post).mockResolvedValueOnce({
       data: {
-        token: 'token-123',
         user: {
           _id: 'user-1',
           email: 'seller@example.com',
@@ -54,7 +59,7 @@ describe('Login', () => {
       },
     });
 
-    renderLogin();
+    renderLogin(undefined, establishSession);
 
     await userEvent.type(
       screen.getByPlaceholderText('Email'),
@@ -69,13 +74,10 @@ describe('Login', () => {
         password: 'secret123',
       });
     });
-    expect(localStorage.getItem('token')).toBe('token-123');
-    expect(localStorage.getItem('user')).toBe(
-      JSON.stringify({
-        _id: 'user-1',
-        email: 'seller@example.com',
-      }),
-    );
+    expect(establishSession).toHaveBeenCalledWith({
+      _id: 'user-1',
+      email: 'seller@example.com',
+    });
     expect(navigate).toHaveBeenCalledWith('/sellers/user-1');
   });
 
@@ -97,14 +99,12 @@ describe('Login', () => {
     expect(
       await screen.findByText('E-mail ou senha inválidos'),
     ).toBeInTheDocument();
-    expect(localStorage.getItem('token')).toBeNull();
     expect(navigate).not.toHaveBeenCalled();
   });
 
   it('shows the auth prompt and returns to the protected route after login', async () => {
     vi.mocked(api.post).mockResolvedValueOnce({
       data: {
-        token: 'token-123',
         user: { _id: 'user-1' },
       },
     });

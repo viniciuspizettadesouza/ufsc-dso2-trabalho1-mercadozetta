@@ -11,6 +11,7 @@ declare global {
       };
       tenant?: { id: string; name: string; active: boolean };
       userId?: string;
+      sessionId?: string;
     }
   }
 }

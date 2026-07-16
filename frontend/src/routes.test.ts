@@ -33,6 +33,14 @@ describe('routes', () => {
 
   it('builds API URLs that match the backend contract', () => {
     expect(apiRoutes.login).toBe('/auth/login');
+    expect(apiRoutes.session).toBe('/auth/session');
+    expect(apiRoutes.refresh).toBe('/auth/refresh');
+    expect(apiRoutes.logout).toBe('/auth/logout');
+    expect(apiRoutes.logoutCurrent).toBe('/auth/logout/current');
+    expect(apiRoutes.sessions).toBe('/auth/sessions');
+    expect(apiRoutes.revokeSession('session-1')).toBe(
+      '/auth/sessions/session-1',
+    );
     expect(apiRoutes.users).toBe('/users');
     expect(apiRoutes.products).toBe('/products');
     expect(apiRoutes.productDetail('product-1')).toBe('/products/product-1');

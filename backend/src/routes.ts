@@ -6,6 +6,11 @@ import ProductController from '@/controller/productController';
 import CommerceController from '@/controller/commerceController';
 import authMiddleware from '@/middleware/auth';
 import asyncHandler from '@/middleware/asyncHandler';
+import {
+  requireAllowedOrigin,
+  requireCsrf,
+  validatePresentOrigin,
+} from '@/middleware/csrf';
 import { authRateLimiter, registerRateLimiter } from '@/middleware/rateLimit';
 import validateRequest from '@/middleware/validateRequest';
 import {
@@ -82,19 +87,60 @@ routes.post(
 routes.post(
   '/auth/login',
   authRateLimiter,
+  validatePresentOrigin,
   validateRequest({ body: validateLoginPayload }),
   asyncHandler(AuthController.authenticate),
+);
+
+routes.get(
+  '/auth/session',
+  authMiddleware,
+  asyncHandler(AuthController.session),
+);
+
+routes.post(
+  '/auth/refresh',
+  requireAllowedOrigin,
+  requireCsrf,
+  asyncHandler(AuthController.refresh),
+);
+
+routes.get(
+  '/auth/sessions',
+  authMiddleware,
+  asyncHandler(AuthController.sessions),
+);
+
+routes.delete(
+  '/auth/sessions/:sessionId',
+  authMiddleware,
+  requireAllowedOrigin,
+  requireCsrf,
+  validateRequest({
+    params: (params) => ({ sessionId: validateResourceId(params.sessionId) }),
+  }),
+  asyncHandler(AuthController.revokeSession),
+);
+
+routes.post(
+  '/auth/logout/current',
+  authMiddleware,
+  requireAllowedOrigin,
+  requireCsrf,
+  asyncHandler(AuthController.logoutCurrent),
 );
 
 routes.post(
   '/auth/logout',
   authMiddleware,
+  requireCsrf,
   asyncHandler(AuthController.logout),
 );
 
 routes.post(
   '/products',
   authMiddleware,
+  requireCsrf,
   validateRequest({ body: validateCreateProductPayload }),
   asyncHandler(ProductController.add),
 );
@@ -109,12 +155,14 @@ routes.get('/cart', authMiddleware, asyncHandler(CommerceController.getCart));
 routes.put(
   '/cart/items',
   authMiddleware,
+  requireCsrf,
   validateRequest({ body: validateCartItem }),
   asyncHandler(CommerceController.setCartItem),
 );
 routes.delete(
   '/cart/items/:productId',
   authMiddleware,
+  requireCsrf,
   validateRequest({ params: resourceParams('productId') }),
   asyncHandler(CommerceController.removeCartItem),
 );
@@ -126,12 +174,14 @@ routes.get(
 routes.put(
   '/watchlist/:productId',
   authMiddleware,
+  requireCsrf,
   validateRequest({ params: resourceParams('productId') }),
   asyncHandler(CommerceController.addWatchlist),
 );
 routes.delete(
   '/watchlist/:productId',
   authMiddleware,
+  requireCsrf,
   validateRequest({ params: resourceParams('productId') }),
   asyncHandler(CommerceController.removeWatchlist),
 );
@@ -143,11 +193,13 @@ routes.get(
 routes.post(
   '/orders',
   authMiddleware,
+  requireCsrf,
   asyncHandler(CommerceController.createOrder),
 );
 routes.patch(
   '/orders/:orderId/status',
   authMiddleware,
+  requireCsrf,
   validateRequest({
     params: resourceParams('orderId'),
     body: validateOrderStatus,
@@ -162,6 +214,7 @@ routes.get(
 routes.post(
   '/products/:productId/reviews',
   authMiddleware,
+  requireCsrf,
   validateRequest({
     params: resourceParams('productId'),
     body: validateReview,
@@ -181,6 +234,7 @@ routes.get(
 routes.patch(
   '/notifications/:notificationId',
   authMiddleware,
+  requireCsrf,
   validateRequest({
     params: resourceParams('notificationId'),
     body: validateNotificationRead,

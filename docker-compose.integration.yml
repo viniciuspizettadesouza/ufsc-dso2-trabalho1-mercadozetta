@@ -19,7 +19,12 @@ services:
       context: ./backend
     environment:
       NODE_ENV: test
-      JWT_SECRET: integration-test-secret
+      JWT_SIGNING_KEYS: '{"current":"integration-jwt-current","previous":"integration-jwt-previous"}'
+      JWT_ACTIVE_KID: current
+      REFRESH_TOKEN_HASH_SECRETS: '{"current":"integration-refresh-current","previous":"integration-refresh-previous"}'
+      REFRESH_TOKEN_HASH_ACTIVE_VERSION: current
+      CSRF_SECRETS: '{"current":"integration-csrf-current","previous":"integration-csrf-previous"}'
+      CSRF_ACTIVE_VERSION: current
       MONGODB_URI: mongodb://mongo-integration:27017/mercadozetta_integration?replicaSet=rs0
     depends_on:
       mongo-integration:

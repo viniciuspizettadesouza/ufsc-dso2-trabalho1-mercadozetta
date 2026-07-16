@@ -26,6 +26,12 @@ export const routePatterns = {
 
 export const apiRoutes = {
   login: '/auth/login',
+  session: '/auth/session',
+  refresh: '/auth/refresh',
+  logout: '/auth/logout',
+  logoutCurrent: '/auth/logout/current',
+  sessions: '/auth/sessions',
+  revokeSession: (sessionId: string) => `/auth/sessions/${sessionId}`,
   users: '/users',
   products: '/products',
   productDetail: (productId: string) => `/products/${productId}`,

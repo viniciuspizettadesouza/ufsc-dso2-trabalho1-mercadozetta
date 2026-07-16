@@ -5,6 +5,7 @@ import Header from '@/pages/header';
 import api from '@/services/api';
 import { useBrand } from '@/brands/brandContext';
 import { apiRoutes, appRoutes } from '@/routes';
+import { useAuth } from '@/auth/AuthContext';
 
 type Product = {
   _id: string;
@@ -23,6 +24,7 @@ type ActionFeedback = { type: 'success' | 'error'; message: string } | null;
 
 export default function ProductDetail() {
   const brand = useBrand();
+  const { status } = useAuth();
   const { productId } = useParams();
   const [product, setProduct] = useState<Product | null>(null);
   const [watched, setWatched] = useState(false);
@@ -44,7 +46,7 @@ export default function ProductDetail() {
         ]);
         setProduct(productResponse.data);
         setReviews(reviewsResponse.data);
-        if (localStorage.getItem('token')) {
+        if (status === 'authenticated') {
           const [cartResponse, watchlistResponse] = await Promise.all([
             api.get(apiRoutes.cart),
             api.get(apiRoutes.watchlist),
@@ -71,7 +73,7 @@ export default function ProductDetail() {
       }
     }
     load();
-  }, [productId]);
+  }, [productId, status]);
 
   async function toggleWatch() {
     if (!productId) return;

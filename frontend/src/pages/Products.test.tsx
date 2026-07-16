@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Products from '@/pages/Products';
 import api from '@/services/api';
+import { AuthTestProvider } from '@/test/AuthTestProvider';
+import type { AuthUser } from '@/auth/AuthContext';
 
 vi.mock('@/services/api', () => ({
   default: {
@@ -35,13 +37,15 @@ const products = [
   },
 ];
 
-function renderProducts(route = '/', path = '/') {
+function renderProducts(route = '/', path = '/', user: AuthUser | null = null) {
   return render(
-    <MemoryRouter initialEntries={[route]}>
-      <Routes>
-        <Route path={path} element={<Products />} />
-      </Routes>
-    </MemoryRouter>,
+    <AuthTestProvider user={user}>
+      <MemoryRouter initialEntries={[route]}>
+        <Routes>
+          <Route path={path} element={<Products />} />
+        </Routes>
+      </MemoryRouter>
+    </AuthTestProvider>,
   );
 }
 
@@ -51,7 +55,6 @@ describe('Products', () => {
   });
 
   beforeEach(() => {
-    localStorage.clear();
     vi.mocked(api.get).mockReset();
     vi.mocked(api.put).mockReset();
     vi.mocked(api.delete).mockReset();
@@ -161,7 +164,6 @@ describe('Products', () => {
   });
 
   it('toggles persisted watchlist and cart state', async () => {
-    localStorage.setItem('token', 'token-123');
     vi.mocked(api.get)
       .mockResolvedValueOnce({ data: products })
       .mockResolvedValueOnce({ data: [{ product: products[0] }] })
@@ -170,7 +172,7 @@ describe('Products', () => {
       });
     vi.mocked(api.delete).mockResolvedValue({ data: {} });
 
-    renderProducts();
+    renderProducts('/', '/', { _id: 'user-1' });
 
     expect(
       await screen.findByRole('button', { name: 'Favorito' }),

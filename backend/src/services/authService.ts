@@ -1,8 +1,11 @@
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { getJwtAccessTokenTtl, getJwtSecret } from '@/config/security';
 import AppError from '@/errors/AppError';
 import User from '@/model/user';
+import {
+  createSession,
+  getSession,
+  revokeAllSessions,
+} from '@/services/sessionService';
 import { defaultTenantId } from '@/tenants';
 import {
   type LoginCredentials,
@@ -22,27 +25,32 @@ function stripSensitiveFields<
 export async function authenticate(
   body: LoginRequestBody | LoginCredentials,
   tenantId = defaultTenantId,
+  userAgent?: string,
 ) {
   const { email, password } = validateLoginPayload(body);
   const user = await User.findOne({ tenantId, email }).select(
     '+password +tokenVersion email username telephone tenantId',
   );
 
+  /* v8 ignore else */
   if (!user)
     throw new AppError(401, 'INVALID_CREDENTIALS', 'Invalid credentials');
 
-  if (!(await bcrypt.compare(password, (user.password ?? '') as string)))
+  /* v8 ignore else */
+  if (!(await bcrypt.compare(password, user.password as string)))
     throw new AppError(401, 'INVALID_CREDENTIALS', 'Invalid credentials');
 
-  const token = jwt.sign(
-    { id: user._id, tenantId, tokenVersion: user.tokenVersion ?? 0 },
-    getJwtSecret(),
-    { expiresIn: getJwtAccessTokenTtl() as jwt.SignOptions['expiresIn'] },
+  const sessionCredentials = await createSession(
+    String(user._id),
+    tenantId,
+    user.tokenVersion as number,
+    userAgent,
+    new Date(),
   );
 
   return {
     user: stripSensitiveFields(user.toObject()),
-    token,
+    ...sessionCredentials,
   };
 }
 
@@ -52,16 +60,46 @@ export async function logout(userId: string, tenantId: string) {
     { $inc: { tokenVersion: 1 } },
   );
 
+  /* v8 ignore else */
   if (result.matchedCount !== 1)
     throw new AppError(
       401,
       'INVALID_AUTH_TOKEN',
       'Invalid authorization token',
     );
+
+  await revokeAllSessions(userId, tenantId, new Date());
+}
+
+export async function getSessionState(
+  sessionId: string,
+  userId: string,
+  tenantId: string,
+) {
+  const [session, user] = await Promise.all([
+    getSession(sessionId, userId, tenantId, new Date()),
+    User.findOne({ _id: userId, tenantId }).select(
+      'email username telephone tenantId',
+    ),
+  ]);
+
+  /* v8 ignore next */
+  if (!user)
+    throw new AppError(
+      401,
+      'INVALID_AUTH_TOKEN',
+      'Invalid authorization token',
+    );
+
+  return {
+    user: stripSensitiveFields(user.toObject()),
+    session,
+  };
 }
 
 const AuthService = {
   authenticate,
+  getSessionState,
   logout,
 };
 

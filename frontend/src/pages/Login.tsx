@@ -5,11 +5,13 @@ import Header from '@/pages/header';
 import api from '@/services/api';
 import { useBrand } from '@/brands/brandContext';
 import { apiRoutes, appRoutes } from '@/routes';
+import { useAuth } from '@/auth/AuthContext';
 
 export default function Login() {
   const brand = useBrand();
   const location = useLocation();
   const navigate = useNavigate();
+  const { establishSession } = useAuth();
   const routeState = location.state as
     { from?: string; prompt?: string } | undefined;
 
@@ -28,8 +30,7 @@ export default function Login() {
         password,
       });
 
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      establishSession(response.data.user);
 
       if (routeState?.from) {
         navigate(routeState.from, { replace: true });

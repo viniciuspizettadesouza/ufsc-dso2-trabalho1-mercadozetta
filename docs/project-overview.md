@@ -65,7 +65,7 @@ audit trail. The route name must not be interpreted as an authorization claim.
 
 ```mermaid
 flowchart LR
-    Browser[React application] -->|JSON + X-Tenant-Id + optional Bearer JWT| App[Express application]
+    Browser[React application] -->|JSON + cookies + tenant and CSRF headers| App[Express application]
     App --> Global[Helmet, CORS, request context, JSON parsing, tenant resolution]
     Global --> Routes[Routes, rate limits, authentication, Zod validation]
     Routes --> Controllers[HTTP controllers]
@@ -80,8 +80,8 @@ flowchart LR
 
 The browser chooses a checked-in brand using `VITE_TENANT_ID`. The brand
 provider applies identity, copy, colors, title, and favicon; the shared Axios
-instance adds the corresponding tenant header and any bearer token. Branding
-does not establish authority.
+instance sends credentials, adds the corresponding tenant header, and adds the
+CSRF proof to mutations. Branding does not establish authority.
 
 The Express middleware order is significant: Helmet and CORS run first,
 request context assigns a correlation ID, JSON parsing runs before global
@@ -136,9 +136,9 @@ sequenceDiagram
     participant DB as MongoDB
 
     UI->>HTTP: PUT /cart/items { productId, quantity }
-    HTTP->>MW: X-Tenant-Id + Bearer JWT + JSON
+    HTTP->>MW: Cookies + X-Tenant-Id + X-CSRF-Token + JSON
     MW->>MW: CORS, request ID, JSON, tenant resolution
-    MW->>Route: Verify JWT, tenant, user, token version
+    MW->>Route: Verify JWT cookie, session, tenant, user, token version, and CSRF
     Route->>Route: Zod normalize and validate body
     Route->>Controller: req.validated + req.userId + req.tenant
     Controller->>Service: setCartItem(user, tenant, product, quantity)
@@ -212,15 +212,18 @@ a substitute for including `tenantId` in each service query.
 ## 7. Authentication and authorization
 
 Login looks up an email within the resolved tenant, checks the bcrypt password,
-and returns a short-lived JWT containing user ID, tenant ID, and token version.
-The frontend stores both token and user JSON in `localStorage` and the Axios
-interceptor sends the token as `Authorization: Bearer ...`.
+creates a tenant/user-scoped session, sets access, rotating refresh, and CSRF
+cookies, and returns only public user/session data. The React frontend keeps the public user profile
+only in memory, and restores it through `GET /auth/session`.
 
-Protected requests verify the JWT signature and claims, require the token
-tenant to match the resolved request tenant, and confirm the user and token
-version in MongoDB. Logout increments the user's token version, invalidating all
-previous access tokens for that tenant/user; the frontend clears local state
-even if the logout request fails.
+Protected requests accept only the cookie access JWT,
+verify its signature and claims, require the token tenant to match the resolved
+request tenant, and confirm the user and revocation version in MongoDB. Cookie
+tokens additionally require an active matching session. Logout increments the
+user's token version and revokes all server sessions; current and individually
+owned sessions can also be revoked. Cookie-authenticated mutations require an
+allowed Origin and signed double-submit CSRF proof. The frontend clears its
+in-memory identity even if logout fails.
 
 Authorization has two layers:
 
@@ -233,11 +236,15 @@ The tenant header is also not proof of access: it selects one of the configured
 tenants and must agree with a protected token. Public data is intentionally
 tenant-scoped but public within that tenant.
 
-`localStorage` bearer transport is vulnerable to token theft through XSS and
-there are no refresh tokens, per-device sessions, rotation/reuse detection,
-CSRF contract, or signing-key rotation mechanism. Detailed current mechanics
-belong in [authentication-flow.md](authentication-flow.md); the planned redesign
-belongs in the [improvement plan](../PROJECT_IMPROVEMENT_PLAN.md).
+The browser transport now follows the cookie/session contract, including
+credentialed requests, in-memory bootstrap, hashed rotation, replay detection,
+CSRF checks, bounded renewal, and revocation. JWT signing, refresh hashing, and
+CSRF proofs use configured active/previous key rings with explicit versions.
+Authorization headers are not an authentication transport. Detailed
+mechanics belong in
+[authentication-flow.md](authentication-flow.md); the accepted contract is
+[ADR 0001](decisions/0001-cookie-sessions.md), and its implementation order is
+tracked in the [improvement plan](../PROJECT_IMPROVEMENT_PLAN.md).
 
 ## 8. Commerce consistency
 
@@ -273,9 +280,10 @@ the existing tenant/product/author record.
 ## 9. Frontend architecture
 
 `App.tsx` defines route composition and wraps protected pages in one shared
-guard. Route patterns and API paths are centralized in `routes.ts`; pages should
-not introduce endpoint strings. The Axios service owns the base URL, bearer
-header, and active tenant header.
+guard backed by `AuthProvider`. Route patterns and API paths are centralized in
+`routes.ts`; pages should not introduce endpoint strings. The Axios service owns
+the base URL, credential transport, tenant and CSRF headers, and bounded
+automatic renewal.
 
 Pages currently own remote data through `useState` and `useEffect`. Commerce
 mutations show pending, success, and failure feedback, disable conflicting
@@ -338,8 +346,8 @@ The testing strategy separates concerns by what each layer can establish:
 
 Type-checking, lint, formatting, dependency audit, build, and test commands are
 kept in the [README command reference](../README.md#common-commands). The
-current CI runs the database integration lane but not coverage or browser-level
-end-to-end tests.
+current CI runs the database integration lane but not coverage or the available
+isolated Chromium authentication lane.
 
 ## 13. Deployment model
 
@@ -377,8 +385,8 @@ or data-retention process.
 
 ## 15. Known limitations
 
-- Authentication uses persistent browser storage and has no renewable or
-  per-device session model.
+- Authentication is cookie-session-only; deployment key rings must retain old
+  versions for their documented overlap windows.
 - Catalog and seller filtering/sorting load tenant products before processing
   them in application memory; lists are unbounded and unpaginated.
 - Product creation exists, but editing, archival/reactivation workflows, and
@@ -394,7 +402,8 @@ or data-retention process.
 - Brand capability flags are stale relative to implemented commerce UI.
 - Product images are arbitrary stored strings; there is no upload/object
   storage integration or documented host allowlist.
-- There are no browser end-to-end or automated accessibility tests.
+- Browser end-to-end coverage currently exercises authentication only; there
+  are no automated accessibility tests.
 - Production deployment, migration, retention, backup, and recovery procedures
   are not established.
 
@@ -403,13 +412,14 @@ scope or sequence.
 
 ## 16. Improvement roadmap
 
-The current priority is production authentication hardening, beginning with a
-decision record for cookie transport and session renewal before implementation
-changes. The broader direction then addresses production deployment,
-browser-level workflow coverage, scalable catalog contracts, privileged
-authorization, theming/accessibility, centralized server state, API
-consistency, observability, account recovery, data lifecycle, and later
-marketplace features.
+The current priority is production authentication hardening. Its decision
+record, backend cookie/session workflow, and frontend browser transport are
+implemented and verified through focused, database-backed, and Chromium tests.
+The current priority is production deployment, followed by broader browser-level workflow coverage, scalable
+catalog contracts, privileged authorization,
+theming/accessibility, centralized server state, API consistency,
+observability, account recovery, data lifecycle, and later marketplace
+features.
 
 The authoritative checklist, sequencing, completed work, and next-session
 handoff are maintained only in the

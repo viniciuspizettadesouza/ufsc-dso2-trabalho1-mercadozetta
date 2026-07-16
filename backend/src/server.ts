@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import app from '@/app';
+import { validateSecurityConfig } from '@/config/security';
 import dotenv from 'dotenv';
 import { Server } from 'http';
 
@@ -10,6 +11,13 @@ const port = Number(process.env.PORT) || 3333;
 
 if (!mongoUri) {
   console.error('MONGODB_URI environment variable is required');
+  process.exit(1);
+}
+
+try {
+  validateSecurityConfig();
+} catch (error) {
+  console.error('Invalid security configuration', error);
   process.exit(1);
 }
 

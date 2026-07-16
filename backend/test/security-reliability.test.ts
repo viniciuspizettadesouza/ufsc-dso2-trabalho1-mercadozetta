@@ -40,7 +40,8 @@ beforeEach(() => {
     NODE_ENV: 'test',
   };
   delete process.env.CORS_ORIGIN;
-  delete process.env.JWT_SECRET;
+  delete process.env.JWT_SIGNING_KEYS;
+  delete process.env.JWT_ACTIVE_KID;
   delete process.env.RATE_LIMIT_AUTH_MAX;
   delete process.env.RATE_LIMIT_AUTH_WINDOW_MS;
   delete process.env.RATE_LIMIT_REGISTER_MAX;
@@ -128,22 +129,25 @@ describe('security and reliability middleware', () => {
     });
   });
 
-  it('requires JWT_SECRET outside development and test', () => {
+  it('requires the JWT signing key ring outside development and test', () => {
     process.env.NODE_ENV = 'production';
-    delete process.env.JWT_SECRET;
-    const { getJwtSecret } = loadSecurityConfig();
+    delete process.env.JWT_SIGNING_KEYS;
+    const { getJwtSigningKeyRing } = loadSecurityConfig();
 
-    expect(() => getJwtSecret()).toThrow(
-      'JWT_SECRET environment variable is required outside development and test',
+    expect(() => getJwtSigningKeyRing()).toThrow(
+      'JWT_SIGNING_KEYS is required outside development and test',
     );
   });
 
-  it('keeps a local JWT secret fallback only for development and test', () => {
+  it('keeps a local JWT signing fallback only for development and test', () => {
     process.env.NODE_ENV = 'development';
-    delete process.env.JWT_SECRET;
-    const { getJwtSecret } = loadSecurityConfig();
+    delete process.env.JWT_SIGNING_KEYS;
+    const { getJwtSigningKeyRing } = loadSecurityConfig();
 
-    expect(getJwtSecret()).toBe('mercadozetta-dev-secret');
+    expect(getJwtSigningKeyRing()).toEqual({
+      activeKid: 'local',
+      keys: { local: 'mercadozetta-dev-secret' },
+    });
   });
 
   it('returns a consistent error for malformed JSON payloads', async () => {

@@ -95,6 +95,11 @@ describe('commerce service authorization', () => {
     } as never);
     await setCartItem('buyer-1', 'mercadozetta', 'product-1', 2);
     expect(save).toHaveBeenCalled();
+    expect(Cart.findOneAndUpdate).toHaveBeenCalledWith(
+      { tenantId: 'mercadozetta', buyer: 'buyer-1' },
+      { $setOnInsert: { tenantId: 'mercadozetta', buyer: 'buyer-1' } },
+      { upsert: true, returnDocument: 'after' },
+    );
 
     vi.mocked(Cart.findOne).mockReturnValueOnce({
       populate: vi.fn().mockResolvedValue({ items: [] }),
@@ -145,6 +150,21 @@ describe('commerce service authorization', () => {
       product: 'product-1',
     } as never);
     await addWatchlist('buyer-1', 'mercadozetta', 'product-1');
+    expect(Watchlist.findOneAndUpdate).toHaveBeenCalledWith(
+      {
+        tenantId: 'mercadozetta',
+        user: 'buyer-1',
+        product: 'product-1',
+      },
+      {
+        $setOnInsert: {
+          tenantId: 'mercadozetta',
+          user: 'buyer-1',
+          product: 'product-1',
+        },
+      },
+      { upsert: true, returnDocument: 'after' },
+    );
     await removeWatchlist('buyer-1', 'mercadozetta', 'product-1');
     expect(Watchlist.deleteOne).toHaveBeenCalledWith({
       tenantId: 'mercadozetta',
@@ -197,7 +217,7 @@ describe('commerce service authorization', () => {
         user: 'buyer-1',
       },
       { read: true },
-      { new: true },
+      { returnDocument: 'after' },
     );
   });
 
@@ -532,7 +552,10 @@ describe('commerce service authorization', () => {
     expect(Review.findOneAndUpdate).toHaveBeenCalledWith(
       { tenantId: 'mercadozetta', product: 'product-1', author: 'buyer-1' },
       { rating: 5, comment: 'Excellent' },
-      expect.objectContaining({ upsert: true }),
+      expect.objectContaining({
+        upsert: true,
+        returnDocument: 'after',
+      }),
     );
     expect(Notification.create).toHaveBeenCalledWith(
       expect.objectContaining({ user: 'seller-1' }),

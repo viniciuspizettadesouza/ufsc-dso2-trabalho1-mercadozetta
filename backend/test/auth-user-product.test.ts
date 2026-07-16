@@ -11,6 +11,7 @@ const userControllerPath = require.resolve('@/controller/userController');
 const productControllerPath = require.resolve('@/controller/productController');
 const asyncHandlerPath = require.resolve('@/middleware/asyncHandler');
 const authMiddlewarePath = require.resolve('@/middleware/auth');
+const csrfMiddlewarePath = require.resolve('@/middleware/csrf');
 const errorHandlerPath = require.resolve('@/middleware/errorHandler');
 const rateLimitPath = require.resolve('@/middleware/rateLimit');
 const requestContextPath = require.resolve('@/middleware/requestContext');
@@ -18,10 +19,13 @@ const tenantMiddlewarePath = require.resolve('@/middleware/tenant');
 const validateRequestPath = require.resolve('@/middleware/validateRequest');
 const securityConfigPath = require.resolve('@/config/security');
 const authServicePath = require.resolve('@/services/authService');
+const sessionServicePath = require.resolve('@/services/sessionService');
 const userServicePath = require.resolve('@/services/userService');
 const productServicePath = require.resolve('@/services/productService');
 const userModelPath = require.resolve('@/model/user');
 const productModelPath = require.resolve('@/model/product');
+const sessionModelPath = require.resolve('@/model/session');
+const sessionId = '507f1f77bcf86cd799439011';
 
 type MockDocument = {
   _id?: string;
@@ -68,6 +72,7 @@ function resetModules() {
     productControllerPath,
     asyncHandlerPath,
     authMiddlewarePath,
+    csrfMiddlewarePath,
     errorHandlerPath,
     rateLimitPath,
     requestContextPath,
@@ -75,6 +80,7 @@ function resetModules() {
     validateRequestPath,
     securityConfigPath,
     authServicePath,
+    sessionServicePath,
     userServicePath,
     productServicePath,
   ].forEach((path) => {
@@ -82,6 +88,50 @@ function resetModules() {
   });
 
   const moduleCache = require.cache as Record<string, NodeModule>;
+
+  moduleCache[csrfMiddlewarePath] = {
+    id: csrfMiddlewarePath,
+    filename: csrfMiddlewarePath,
+    loaded: true,
+    exports: {
+      requireCsrf: (_req: unknown, _res: unknown, next: () => void) => next(),
+      requireAllowedOrigin: (_req: unknown, _res: unknown, next: () => void) =>
+        next(),
+      validatePresentOrigin: (_req: unknown, _res: unknown, next: () => void) =>
+        next(),
+    },
+  } as NodeModule;
+
+  moduleCache[sessionModelPath] = {
+    id: sessionModelPath,
+    filename: sessionModelPath,
+    loaded: true,
+    exports: { exists: async () => ({ _id: sessionId }) },
+  } as NodeModule;
+
+  moduleCache[sessionServicePath] = {
+    id: sessionServicePath,
+    filename: sessionServicePath,
+    loaded: true,
+    exports: {
+      accessTokenContract: {
+        issuer: 'mercadozetta',
+        audience: 'mercadozetta-api',
+      },
+      async createSession() {
+        return {
+          accessToken: 'cookie-access-token',
+          refreshToken: 'refresh-token',
+          csrfToken: 'csrf-token',
+          session: {
+            id: '507f1f77bcf86cd799439011',
+            expiresAt: new Date(Date.now() + 60_000),
+          },
+        };
+      },
+      async revokeAllSessions() {},
+    },
+  } as NodeModule;
 
   moduleCache[userModelPath] = {
     id: userModelPath,
@@ -198,8 +248,23 @@ function loadApp() {
   return require('@/app');
 }
 
+function accessCookie(tenantId = 'mercadozetta') {
+  const token = jwt.sign(
+    { tenantId, sid: sessionId, tokenVersion: 0, typ: 'access' },
+    'test-secret',
+    {
+      keyid: 'current',
+      subject: 'user-1',
+      issuer: 'mercadozetta',
+      audience: 'mercadozetta-api',
+    },
+  );
+  return `mz_at=${token}`;
+}
+
 beforeEach(async () => {
-  process.env.JWT_SECRET = 'test-secret';
+  process.env.JWT_SIGNING_KEYS = '{"current":"test-secret"}';
+  process.env.JWT_ACTIVE_KID = 'current';
   users = [
     {
       _id: 'user-1',
@@ -239,22 +304,18 @@ describe('auth, user, and product routes', () => {
     expect(response.body.user.email).toBe('seller@example.com');
     expect(response.body.user.password).toBeUndefined();
     expect(response.body.user.tokenVersion).toBeUndefined();
-    expect(response.body.token).toEqual(expect.any(String));
+    expect(response.body.token).toBeUndefined();
   });
 
   it('revokes the current token on logout', async () => {
     const app = loadApp();
-    const login = await request(app)
-      .post('/auth/login')
-      .send({ email: 'seller@example.com', password: 'secret123' });
-
     const logout = await request(app)
       .post('/auth/logout')
-      .set('Authorization', `Bearer ${login.body.token}`);
+      .set('Cookie', accessCookie());
 
     const reuse = await request(app)
       .post('/products')
-      .set('Authorization', `Bearer ${login.body.token}`)
+      .set('Cookie', accessCookie())
       .send({ name: 'Coffee', inventory: 1, image: 'coffee.jpg' });
 
     expect(logout.status).toBe(204);
@@ -440,7 +501,7 @@ describe('auth, user, and product routes', () => {
     });
   });
 
-  it('rejects product creation with invalid bearer format', async () => {
+  it('does not accept an Authorization header as authentication', async () => {
     const app = loadApp();
 
     const response = await request(app)
@@ -454,7 +515,7 @@ describe('auth, user, and product routes', () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toMatchObject({
-      error: 'Invalid authorization format',
+      error: 'Authorization token is required',
     });
   });
 
@@ -472,20 +533,17 @@ describe('auth, user, and product routes', () => {
 
     expect(response.status).toBe(401);
     expect(response.body).toMatchObject({
-      error: 'Invalid authorization token',
+      error: 'Authorization token is required',
     });
   });
 
   it('creates products for the authenticated seller', async () => {
     const app = loadApp();
-    const token = jwt.sign(
-      { id: 'user-1', tenantId: 'mercadozetta', tokenVersion: 0 },
-      process.env.JWT_SECRET,
-    );
+    const cookie = accessCookie();
 
     const response = await request(app)
       .post('/products')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', cookie)
       .send({
         name: 'Coffee',
         description: 'Fresh beans',
@@ -507,14 +565,11 @@ describe('auth, user, and product routes', () => {
 
   it('creates products with an explicit status', async () => {
     const app = loadApp();
-    const token = jwt.sign(
-      { id: 'user-1', tenantId: 'mercadozetta', tokenVersion: 0 },
-      process.env.JWT_SECRET,
-    );
+    const cookie = accessCookie();
 
     const response = await request(app)
       .post('/products')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', cookie)
       .send({
         name: 'Coffee',
         inventory: 3,
@@ -528,14 +583,11 @@ describe('auth, user, and product routes', () => {
 
   it('normalizes legacy quant payloads into numeric inventory', async () => {
     const app = loadApp();
-    const token = jwt.sign(
-      { id: 'user-1', tenantId: 'mercadozetta', tokenVersion: 0 },
-      process.env.JWT_SECRET,
-    );
+    const cookie = accessCookie();
 
     const response = await request(app)
       .post('/products')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', cookie)
       .send({
         name: 'Coffee',
         quant: '3',
@@ -555,15 +607,12 @@ describe('auth, user, and product routes', () => {
       tokenVersion: 0,
     });
     const app = loadApp();
-    const token = jwt.sign(
-      { id: 'user-1', tenantId: 'campus-market', tokenVersion: 0 },
-      process.env.JWT_SECRET,
-    );
+    const cookie = accessCookie('campus-market');
 
     const response = await request(app)
       .post('/products')
       .set('X-Tenant-Id', 'campus-market')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', cookie)
       .send({
         name: 'Notebook',
         inventory: 1,
@@ -576,14 +625,11 @@ describe('auth, user, and product routes', () => {
 
   it('rejects product creation with missing required fields', async () => {
     const app = loadApp();
-    const token = jwt.sign(
-      { id: 'user-1', tenantId: 'mercadozetta', tokenVersion: 0 },
-      process.env.JWT_SECRET,
-    );
+    const cookie = accessCookie();
 
     const response = await request(app)
       .post('/products')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', cookie)
       .send({
         description: 'Fresh beans',
       });
@@ -596,14 +642,11 @@ describe('auth, user, and product routes', () => {
 
   it('rejects product creation with invalid inventory', async () => {
     const app = loadApp();
-    const token = jwt.sign(
-      { id: 'user-1', tenantId: 'mercadozetta', tokenVersion: 0 },
-      process.env.JWT_SECRET,
-    );
+    const cookie = accessCookie();
 
     const response = await request(app)
       .post('/products')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', cookie)
       .send({
         name: 'Coffee',
         inventory: -1,
@@ -618,14 +661,11 @@ describe('auth, user, and product routes', () => {
 
   it('rejects product creation with invalid status', async () => {
     const app = loadApp();
-    const token = jwt.sign(
-      { id: 'user-1', tenantId: 'mercadozetta', tokenVersion: 0 },
-      process.env.JWT_SECRET,
-    );
+    const cookie = accessCookie();
 
     const response = await request(app)
       .post('/products')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', cookie)
       .send({
         name: 'Coffee',
         inventory: 3,
@@ -643,14 +683,11 @@ describe('auth, user, and product routes', () => {
   it('returns a friendly error when product creation fails', async () => {
     createProductError = new Error('database offline');
     const app = loadApp();
-    const token = jwt.sign(
-      { id: 'user-1', tenantId: 'mercadozetta', tokenVersion: 0 },
-      process.env.JWT_SECRET,
-    );
+    const cookie = accessCookie();
 
     const response = await request(app)
       .post('/products')
-      .set('Authorization', `Bearer ${token}`)
+      .set('Cookie', cookie)
       .send({
         name: 'Coffee',
         inventory: 3,

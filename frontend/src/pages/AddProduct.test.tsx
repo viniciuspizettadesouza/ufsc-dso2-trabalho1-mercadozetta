@@ -6,6 +6,8 @@ import { AxiosError, AxiosHeaders } from 'axios';
 
 import AddProduct from '@/pages/AddProduct';
 import api from '@/services/api';
+import { AuthTestProvider } from '@/test/AuthTestProvider';
+import type { AuthUser } from '@/auth/AuthContext';
 
 const navigate = vi.fn();
 
@@ -26,11 +28,13 @@ vi.mock('react-router', async () => {
   };
 });
 
-function renderAddProduct() {
+function renderAddProduct(user: AuthUser | null = null) {
   return render(
-    <MemoryRouter>
-      <AddProduct />
-    </MemoryRouter>,
+    <AuthTestProvider user={user}>
+      <MemoryRouter>
+        <AddProduct />
+      </MemoryRouter>
+    </AuthTestProvider>,
   );
 }
 
@@ -50,7 +54,6 @@ describe('AddProduct', () => {
   });
 
   beforeEach(() => {
-    localStorage.clear();
     navigate.mockReset();
     vi.mocked(api.post).mockReset();
     vi.mocked(api.get).mockReset();
@@ -73,13 +76,11 @@ describe('AddProduct', () => {
   });
 
   it('creates a product and redirects to the seller page', async () => {
-    localStorage.setItem('token', 'token-123');
-    localStorage.setItem('user', JSON.stringify({ _id: 'user-1' }));
     vi.mocked(api.post).mockResolvedValueOnce({
       data: { newProduct: { _id: 'product-1' } },
     });
 
-    renderAddProduct();
+    renderAddProduct({ _id: 'user-1' });
 
     await fillProductForm();
     await userEvent.click(
@@ -101,13 +102,11 @@ describe('AddProduct', () => {
   });
 
   it('submits the selected product status', async () => {
-    localStorage.setItem('token', 'token-123');
-    localStorage.setItem('user', JSON.stringify({ _id: 'user-1' }));
     vi.mocked(api.post).mockResolvedValueOnce({
       data: { newProduct: { _id: 'product-1' } },
     });
 
-    renderAddProduct();
+    renderAddProduct({ _id: 'user-1' });
 
     await fillProductForm();
     await userEvent.selectOptions(
@@ -129,11 +128,9 @@ describe('AddProduct', () => {
   });
 
   it('shows a generic error when product creation fails without an API message', async () => {
-    localStorage.setItem('token', 'token-123');
-    localStorage.setItem('user', JSON.stringify({ _id: 'user-1' }));
     vi.mocked(api.post).mockRejectedValueOnce(new Error('network error'));
 
-    renderAddProduct();
+    renderAddProduct({ _id: 'user-1' });
 
     await fillProductForm();
     await userEvent.click(
@@ -146,10 +143,7 @@ describe('AddProduct', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it('handles corrupted stored users as logged out', async () => {
-    localStorage.setItem('token', 'token-123');
-    localStorage.setItem('user', '{');
-
+  it('handles a missing in-memory user as logged out', async () => {
     renderAddProduct();
 
     await fillProductForm();
@@ -160,13 +154,9 @@ describe('AddProduct', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Entre para criar um anúncio.',
     );
-    expect(localStorage.getItem('user')).toBeNull();
   });
 
   it('shows the API error when product creation fails', async () => {
-    localStorage.setItem('token', 'token-123');
-    localStorage.setItem('user', JSON.stringify({ _id: 'user-1' }));
-
     const error = new AxiosError(
       'Product registration failed',
       undefined,
@@ -183,7 +173,7 @@ describe('AddProduct', () => {
 
     vi.mocked(api.post).mockRejectedValueOnce(error);
 
-    renderAddProduct();
+    renderAddProduct({ _id: 'user-1' });
 
     await fillProductForm();
     await userEvent.click(

@@ -80,16 +80,21 @@ cp frontend/.env.example frontend/.env
 
 ### Backend variables
 
-| Variable                                                    | Purpose                                        | Local example/default behavior                                                |
-| ----------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------- |
-| `MONGODB_URI`                                               | MongoDB connection string; required at startup | The example targets the local replica set                                     |
-| `JWT_SECRET`                                                | Signs and verifies access tokens               | A development fallback exists only in development and test; set it explicitly |
-| `JWT_ACCESS_TOKEN_TTL`                                      | JWT lifetime accepted by `jsonwebtoken`        | `15m`                                                                         |
-| `TENANT_HEADER_REQUIRED`                                    | Reject requests without `X-Tenant-Id`          | `false` locally; defaults to `true` outside development/test                  |
-| `PORT`                                                      | API listen port                                | `3333`                                                                        |
-| `CORS_ORIGIN`                                               | Comma-separated allowed browser origins        | `http://localhost:5173` locally                                               |
-| `RATE_LIMIT_AUTH_WINDOW_MS` / `RATE_LIMIT_AUTH_MAX`         | Login rate-limit window and maximum            | `900000` / `5`                                                                |
-| `RATE_LIMIT_REGISTER_WINDOW_MS` / `RATE_LIMIT_REGISTER_MAX` | Registration rate-limit window and maximum     | `900000` / `10`                                                               |
+| Variable                                                           | Purpose                                        | Local example/default behavior                                |
+| ------------------------------------------------------------------ | ---------------------------------------------- | ------------------------------------------------------------- |
+| `MONGODB_URI`                                                      | MongoDB connection string; required at startup | The example targets the local replica set                     |
+| `JWT_SIGNING_KEYS` / `JWT_ACTIVE_KID`                              | JSON JWT verification ring and active signer   | Retain old keys only through the bounded access-token overlap |
+| `REFRESH_TOKEN_HASH_SECRETS` / `REFRESH_TOKEN_HASH_ACTIVE_VERSION` | JSON refresh-hash ring and active version      | Keep a version until sessions using it expire or are revoked  |
+| `CSRF_SECRETS` / `CSRF_ACTIVE_VERSION`                             | JSON CSRF signing ring and active version      | Keep old versions through their cookie/session overlap        |
+| `SESSION_ACCESS_TOKEN_TTL_MS`                                      | Cookie access-token lifetime                   | `300000` (5 minutes)                                          |
+| `SESSION_REFRESH_IDLE_TTL_MS`                                      | Rotating refresh idle lifetime                 | `604800000` (7 days)                                          |
+| `SESSION_ABSOLUTE_TTL_MS`                                          | Maximum session-family lifetime                | `2592000000` (30 days)                                        |
+| `SESSION_REFRESH_CONCURRENCY_WINDOW_MS`                            | Grace window for a parallel refresh loser      | `5000`                                                        |
+| `TENANT_HEADER_REQUIRED`                                           | Reject requests without `X-Tenant-Id`          | `false` locally; defaults to `true` outside development/test  |
+| `PORT`                                                             | API listen port                                | `3333`                                                        |
+| `CORS_ORIGIN`                                                      | Comma-separated allowed browser origins        | `http://localhost:5173` locally                               |
+| `RATE_LIMIT_AUTH_WINDOW_MS` / `RATE_LIMIT_AUTH_MAX`                | Login rate-limit window and maximum            | `900000` / `5`                                                |
+| `RATE_LIMIT_REGISTER_WINDOW_MS` / `RATE_LIMIT_REGISTER_MAX`        | Registration rate-limit window and maximum     | `900000` / `10`                                               |
 
 When strict tenant-header mode is enabled, the global tenant middleware also
 requires `X-Tenant-Id` on `/`, `/health`, and `/ready`.
@@ -242,7 +247,7 @@ the exact `MONGODB_URI` from `backend/.env.example`.
 ### The API exits during startup
 
 Confirm that `backend/.env` exists and contains a reachable `MONGODB_URI`.
-Outside development and test, `JWT_SECRET` is also mandatory. Check MongoDB with
+Outside development and test, configure each active versioned security key ring. Check MongoDB with
 `npm run db:logs` and call `/ready` with the tenant header if strict tenant mode
 is enabled.
 
@@ -254,9 +259,9 @@ changing its environment, and ensure direct API requests include the matching
 
 ### Authenticated requests return 401
 
-The bearer token may be missing, expired, tenant-mismatched, or revoked by a
-logout that incremented the user's token version. Clear the frontend's stored
-session and log in again. See the [authentication flow](docs/authentication-flow.md)
+The cookie session may be missing, expired, tenant-mismatched, or revoked by a
+logout that incremented the user's token version. Reload once to allow automatic
+renewal; if renewal fails, log in again. See the [authentication flow](docs/authentication-flow.md)
 for the exact lifecycle.
 
 ### Browser requests fail while direct API calls work

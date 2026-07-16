@@ -13,20 +13,23 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - TypeScript 7 is deferred until `typescript-eslint` publishes a compatible
   release; version 8.63.0 and its current canary support TypeScript only through
   versions earlier than 6.1.0.
-- Backend has 180 tests across 30 files and passes the 85% branch threshold with
-  86.07%. Frontend has 68 tests across 11 files. Type checks, tests, lint,
-  formatting, OpenAPI generation, coverage, and the production build pass.
+- Backend has 238 tests across 34 files and passes the 85% branch threshold with
+  86.17%. Frontend has 85 tests across 12 files and passes its 90% branch
+  threshold with 90.60%. Type checks, tests, lint, formatting, OpenAPI
+  generation, coverage, and the production build pass.
 - Checkout commits order creation, items, conditional inventory decrements, cart
   clearing, and notifications in one transaction. Dockerized MongoDB uses a
   single-node replica set so local behavior matches this requirement.
 - A separate `npm run test:integration` lane builds an ephemeral MongoDB 7
-  replica set, runs 7 database-backed tests across 4 files against the real
+  replica set, runs 11 database-backed tests across 5 files against the real
   Express app and Mongoose models, and cleans up its isolated Compose project
   and database deterministically.
 - Database-backed tests verify atomic checkout and rollback, cart and
   watchlist persistence, order visibility and fulfillment, verified-purchase
   reviews, notifications, tenant and compound-index isolation, token-version
-  logout revocation, and repeatable non-destructive demo seeding.
+  logout revocation, repeatable non-destructive demo seeding, session login and
+  restoration, atomic refresh rotation, bounded concurrency, replay-family
+  revocation, tenant isolation, and idle and absolute expiry.
 - Shared authenticated route protection now redirects anonymous visitors from
   `/checkout`, `/products/new`, and `/admin` to login with a route-specific
   prompt, then returns them to the requested route after successful sign-in.
@@ -40,40 +43,83 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   unread count. Orders enforce seller progression from placed through confirmed,
   shipped, and delivered; buyers can cancel only placed or confirmed orders.
   Status history records the actor and timestamp for buyer and seller views.
-- Next action: begin production authentication hardening by designing the cookie
-  and session-renewal contract, then migrate token transport with focused CSRF,
-  CORS, login, and logout tests.
+- The authentication transport and renewal contract is accepted in
+  `docs/decisions/0001-cookie-sessions.md`. It defines host-only cookie scope,
+  CSRF and CORS rules, tenant-scoped rotating session families, lifetime and
+  concurrent-refresh behavior, revocation semantics, and signing-key overlap.
+- The backend cookie/session workflow is the sole authentication transport:
+  login issues host-scoped cookies and returns only public user/session data, protected requests accept
+  active cookie sessions, refresh uses atomic hashed rotation with a bounded
+  concurrency response and replay-family revocation, CSRF and credentialed CORS
+  are explicit, and current, individual, and all-session revocation are wired.
+- The React frontend now uses credentialed Axios requests, sends the readable
+  CSRF proof on mutations, keeps identity only in memory, restores it through
+  `GET /auth/session`, shares one bounded refresh across concurrent failures,
+  coordinates refresh completion between tabs when available, and retries an
+  original request at most once. Frontend source no longer reads or writes
+  authentication data in `localStorage` or constructs Bearer headers.
+- All authenticated product and commerce mutations apply the Origin and signed
+  double-submit CSRF middleware after cookie authentication; there is no
+  alternate transport or CSRF bypass.
+- Focused unit and contract tests pass for cookie flags, login response safety,
+  access validation, Origin/CSRF rejection, expiry, rotation, replay,
+  concurrency, tenant scoping, revocation, and failed frontend renewal. The
+  expanded database-backed integration lane passes all 11 tests and cleans up
+  its containers and isolated network successfully. Commerce updates use the
+  current Mongoose `returnDocument: 'after'` option without deprecation warnings.
+- The root `npm run test:e2e` lane builds an isolated, deterministically seeded
+  MongoDB/backend/frontend stack and runs Chromium through protected-route
+  return, login, exact cookie flags, access renewal, no persistent browser auth,
+  and logout. Its containers, network, and database are cleaned up on exit, and
+  Playwright artifacts are ignored.
+- JWT access cookies now carry a configured `kid`; signing and verification use
+  a bounded local key ring. Refresh hashes persist their secret version and CSRF
+  proofs encode theirs, allowing retained old versions during rotation. Startup
+  validates all three rings, and focused, database-backed, and browser tests use
+  active/previous configurations successfully.
+- Transitional token response fields, Bearer parsing, its CSRF bypass, Bearer
+  OpenAPI schemes, single-secret deployment variables, and Authorization CORS
+  allowance are removed. Mocked and database-backed backend request tests now
+  use active cookie sessions; the complete authentication phase is verified.
+- Next action: start the production deployment baseline in `backend/Dockerfile`,
+  `frontend/Dockerfile`, and Compose configuration by adding multi-stage
+  production images while preserving the current development workflow. Verify
+  compiled backend startup, static frontend serving, health/readiness, and one
+  proxied API request before marking that deployment item complete.
 
 ## Recommended Order
 
-### 1. Harden production authentication (current priority)
+### 1. Harden production authentication (completed)
 
-- [ ] Write an authentication decision record covering access-token transport,
+- [x] Write an authentication decision record covering access-token transport,
       refresh-token persistence, cookie path and domain, `SameSite` policy, CSRF,
       CORS, session lifetime, concurrent refreshes, and signing-key rotation before
       changing the implementation.
-- [ ] Replace access-token storage in `localStorage` with short-lived
+- [x] Replace access-token storage in `localStorage` with short-lived
       `HttpOnly`, `Secure`, and appropriately scoped `SameSite` cookies, or document
       an equivalent design that keeps access tokens out of persistent browser
       storage.
-- [ ] Add tenant-scoped session records and refresh-token rotation. Store only
+- [x] Add tenant-scoped session records and refresh-token rotation. Store only
       refresh-token hashes, revoke a token family after detected reuse, enforce an
       absolute session lifetime, and clean up expired sessions.
-- [ ] Support revoking the current session and individual sessions without
+- [x] Support revoking the current session and individual sessions without
       weakening the existing all-session logout behavior.
-- [ ] Configure Axios credential transport and explicit credential-enabled CORS
+- [x] Configure Axios credential transport and explicit credential-enabled CORS
       without exposing cookies, authorization values, or CSRF tokens in logs and
       errors.
-- [ ] Add focused login, refresh, expiration, rotation, replay, concurrent
+- [x] Add focused login, refresh, expiration, rotation, replay, concurrent
       refresh, CSRF, CORS, session-revocation, and logout tests. Include tenant
       isolation and failed-renewal behavior.
-- [ ] Remove transitional bearer-token compatibility after the frontend and
+- [x] Implement the configured JWT signing-key ring and bounded verification-key
+      overlap, plus versioned refresh-hash and CSRF-secret overlap, as specified
+      by the accepted authentication ADR.
+- [x] Remove transitional bearer-token compatibility after the frontend and
       browser tests use the new contract.
 - Add `cookie-parser` and `@types/cookie-parser` only when incoming cookie
   handling is implemented. Keep `jsonwebtoken` during this phase so transport
   and session design are not coupled to an unrelated JWT-library migration.
 
-### 2. Establish a production deployment baseline
+### 2. Establish a production deployment baseline (current priority)
 
 - [ ] Replace development-server Docker commands with multi-stage production
       images: compile and run the backend output with Node.js and serve the built
@@ -89,12 +135,12 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 
 ### 3. Add browser-level workflow coverage
 
-- [ ] Add `@playwright/test` and a root end-to-end test command, initially using
+- [x] Add `@playwright/test` and a root end-to-end test command, initially using
       Chromium in CI to control runtime and browser downloads.
 - [ ] Cover registration and login with protected-route return, session renewal
       and logout, buyer checkout with inventory changes, and seller fulfillment
       with buyer notifications.
-- [ ] Keep browser state and generated authentication artifacts out of version
+- [x] Keep browser state and generated authentication artifacts out of version
       control, and make test data deterministic, isolated, and tenant-scoped.
 - [ ] Add automated accessibility checks to important browser workflows and
       expand to Firefox, WebKit, or mobile projects only when compatibility

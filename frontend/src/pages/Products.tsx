@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router';
 import api from '@/services/api';
 import { useBrand } from '@/brands/brandContext';
 import { apiRoutes, appRoutes } from '@/routes';
+import { useAuth } from '@/auth/AuthContext';
 
 type Product = {
   _id: string;
@@ -29,6 +30,7 @@ const productSkeletons = [
 
 export default function Products() {
   const brand = useBrand();
+  const { status } = useAuth();
   const { sellerId } = useParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [newProducts, setNewProducts] = useState<Product[]>([]);
@@ -108,7 +110,7 @@ export default function Products() {
   }, [brand.copy.catalog.loadError, sellerId]);
 
   useEffect(() => {
-    if (!localStorage.getItem('token')) return;
+    if (status !== 'authenticated') return;
     Promise.all([api.get(apiRoutes.watchlist), api.get(apiRoutes.cart)]).then(
       ([watchlistResponse, cartResponse]) => {
         setFavorites(
@@ -127,7 +129,7 @@ export default function Products() {
         );
       },
     );
-  }, []);
+  }, [status]);
 
   async function toggleFavorite(productId: string) {
     const action = `watchlist-${productId}`;

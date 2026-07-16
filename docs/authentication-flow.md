@@ -1,32 +1,36 @@
 # Authentication Flow
 
-These diagrams show how MercadoZetta authenticates users, validates the
-tenant-bound session, revokes access tokens on logout, and reuses the JWT for
-protected product creation. The flow is split between frontend and backend to
-keep each diagram readable.
+This document describes the current cookie-based browser authentication flow.
+The accepted security contract and migration sequence are defined in
+[ADR 0001: Cookie-Based Authentication and Rotating Sessions](decisions/0001-cookie-sessions.md).
+The backend accepts browser authentication only through the access cookie and
+login returns no token field. The React application never reads, stores, or
+sends authentication credentials itself.
 
 ## High-Level Flow
 
 ```mermaid
 flowchart LR
     User[User] --> Login[Login form]
-    Login --> Api[Frontend API service]
+    Login --> Api[Credentialed Axios service]
     Api --> Backend[Express API]
-    Backend --> UserCheck[Find user and check password]
+    Backend --> UserCheck[Verify tenant user and password]
 
-    UserCheck -->|valid credentials| Token[Sign tenant-aware JWT]
-    UserCheck -->|invalid credentials| LoginError[Show login error]
+    UserCheck -->|valid| Session[Create rotating session family]
+    Session --> Cookies[Set access, refresh, and CSRF cookies]
+    Cookies --> Memory[Keep public user profile in React memory]
 
-    Token --> Store[Store short-lived token and user in localStorage]
-    Store --> ProductForm[Create product form]
-    ProductForm --> AuthHeader[Send Bearer token and tenant id]
-    AuthHeader --> Verify[Verify JWT, tenant, user, and token version]
+    Memory --> Mutation[Authenticated mutation]
+    Mutation --> Proof[Send cookies, tenant id, and CSRF proof]
+    Proof --> Verify[Verify JWT, session, tenant, user, Origin, and CSRF]
 
-    Verify -->|valid token| CreateProduct[Create product for authenticated seller]
-    Verify -->|invalid token| AuthError[Show auth/API error]
+    Verify -->|expired access cookie| Refresh[Atomically rotate refresh token]
+    Refresh --> Retry[Retry original request once]
+    Verify -->|valid| Action[Perform authorized action]
+    Verify -->|renewal fails| Anonymous[Clear in-memory identity]
 
-    Header[Header logout] --> Revoke[Increment server-side token version]
-    Revoke --> ClearAuth[Clear token and user]
+    Logout[Header logout] --> Revoke[Revoke all user sessions]
+    Revoke --> Anonymous
 ```
 
 ## Frontend Flow
@@ -35,49 +39,48 @@ flowchart LR
 sequenceDiagram
     autonumber
     actor User
-    participant Login as React Login page
+    participant Auth as React AuthProvider
     participant Api as Axios API service
-    participant Browser as localStorage
-    participant Header as React Header
-    participant AddProduct as React AddProduct page
+    participant Backend as Express API
+    participant Guard as Protected route
 
-    User->>Login: Submit email and password
-    Login->>Api: POST /auth/login
-    Api->>Api: Add X-Tenant-Id header
-    Api-->>Login: API response
-
-    alt login succeeds
-        Login->>Browser: Save token and user
-        Login->>User: Navigate to seller products page
-    else login fails
-        Login->>User: Show invalid credentials message
+    Auth->>Api: GET /auth/session with credentials
+    alt access cookie is active
+        Api-->>Auth: Public user and session metadata
+        Auth->>Auth: Keep user in memory
+    else access cookie expired and refresh cookie is active
+        Api->>Backend: POST /auth/refresh with CSRF proof
+        Backend-->>Api: 204 and rotated cookies
+        Api->>Backend: Retry GET /auth/session once
+        Backend-->>Auth: Public user and session metadata
+    else session cannot be renewed
+        Auth->>Auth: Become anonymous
     end
 
-    User->>AddProduct: Submit product form
-    AddProduct->>Browser: Read token and user
+    User->>Api: POST /auth/login with credentials
+    Api-->>Auth: Public user and session metadata; cookies set by browser
+    Auth->>Auth: Keep public user in memory
+    Auth->>Guard: Continue to requested destination
 
-    alt token or user id is missing
-        AddProduct->>User: Show sign-in-required message
-    else token and user id exist
-        AddProduct->>Api: POST /products
-        Api->>Api: Add Authorization: Bearer token
-        Api->>Api: Add X-Tenant-Id header
-        Api-->>AddProduct: API response
-
-        alt product creation succeeds
-            AddProduct->>User: Navigate to seller products page
-        else product creation fails
-            AddProduct->>User: Show API error message
-        end
+    User->>Api: Submit an authenticated mutation
+    Api->>Api: Add X-Tenant-Id and X-CSRF-Token
+    Api->>Backend: Send request with cookies
+    alt access cookie expired
+        Api->>Backend: One shared POST /auth/refresh
+        Backend-->>Api: 204 and rotated cookies
+        Api->>Backend: Retry original request once
     end
 
-    User->>Header: Click logout
-    Header->>Api: POST /auth/logout with Bearer token
-    Api->>Api: Add X-Tenant-Id header
-    Api-->>Header: 204, auth error, or network error
-    Header->>Browser: Always remove token and user
-    Header->>User: Navigate home
+    User->>Api: POST /auth/logout
+    Api-->>Auth: 204, auth error, or network error
+    Auth->>Auth: Always clear in-memory identity
 ```
+
+The Axios layer uses one in-flight refresh promise per tab. When available,
+`BroadcastChannel` communicates refresh start and completion between tabs. A
+`409 REFRESH_ALREADY_ROTATED` response waits briefly and retries refresh once
+with the successor cookie installed by the winning response. Login, refresh,
+and an already retried request are never recursively renewed.
 
 ## Backend Flow
 
@@ -86,87 +89,71 @@ sequenceDiagram
     autonumber
     participant Client as Frontend/Axios
     participant Tenant as tenantMiddleware
-    participant Routes as Express routes
-    participant Auth as AuthController/AuthService
-    participant UserModel as User model
-    participant AuthMw as authMiddleware
-    participant Product as ProductController/ProductService
+    participant Auth as authMiddleware
+    participant CSRF as CSRF middleware
+    participant Session as Session service/model
+    participant Domain as Domain controller/service
 
-    Client->>Tenant: POST /auth/login with X-Tenant-Id
-    Tenant->>Tenant: Resolve tenant from X-Tenant-Id
-    Tenant->>Routes: Attach req.tenant
-    Routes->>Routes: Apply auth rate limit
-    Routes->>Routes: Validate login payload
-    Routes->>Auth: authenticate(validated body, tenant id)
-    Auth->>UserModel: Find user by tenantId and email
-    UserModel-->>Auth: User with password and tokenVersion selected
-    Auth->>Auth: Compare password with bcrypt
+    Client->>Tenant: Request with X-Tenant-Id and cookies
+    Tenant->>Tenant: Resolve tenant and attach req.tenant
+    Tenant->>Auth: Validate access JWT cookie
+    Auth->>Session: Resolve active tenant/user session
+    Auth->>Auth: Match tenant and user tokenVersion
 
-    alt credentials are valid
-        Auth->>Auth: Sign JWT with id, tenantId, and tokenVersion
-        Note over Auth: Lifetime uses JWT_ACCESS_TOKEN_TTL (default 15m)
-        Auth-->>Client: 200 { user without password or tokenVersion, token }
-    else credentials are invalid
-        Auth-->>Client: 401 Invalid credentials
+    alt safe request
+        Auth->>Domain: Set req.userId and req.sessionId
+    else POST, PUT, PATCH, or DELETE
+        Auth->>CSRF: Validate allowed Origin and signed double-submit proof
+        CSRF->>Domain: Continue with authenticated identity
     end
 
-    Client->>Tenant: POST /products with X-Tenant-Id and Bearer token
-    Tenant->>Tenant: Resolve tenant from X-Tenant-Id
-    Tenant->>Routes: Attach req.tenant
-    Routes->>AuthMw: Require authenticated request
-    AuthMw->>AuthMw: Verify Bearer JWT with JWT_SECRET
-    AuthMw->>AuthMw: Require id, tenantId, and tokenVersion claims
-    AuthMw->>UserModel: Find matching tenant-scoped user and tokenVersion
-
-    alt token and server-side session are valid for current tenant
-        AuthMw->>Routes: Set req.userId
-        Routes->>Routes: Validate product payload
-        Routes->>Product: createProduct(body, req.userId, tenant id)
-        Product-->>Client: 201 Created
-    else token is missing, malformed, invalid, expired, revoked, or wrong tenant
-        AuthMw-->>Client: 401 auth error
+    Client->>Session: POST /auth/refresh with refresh cookie and CSRF proof
+    Session->>Session: Compare-and-swap current refresh hash
+    alt current token wins
+        Session-->>Client: 204 with rotated access, refresh, and CSRF cookies
+    else immediately previous token inside concurrency window
+        Session-->>Client: 409 REFRESH_ALREADY_ROTATED
+    else previous token is replayed outside window
+        Session->>Session: Revoke session family
+        Session-->>Client: 401 REFRESH_TOKEN_REUSED and clear cookies
     end
-
-    Client->>Tenant: POST /auth/logout with X-Tenant-Id and Bearer token
-    Tenant->>Routes: Attach req.tenant
-    Routes->>AuthMw: Validate current session
-    AuthMw->>Auth: logout(user id, tenant id)
-    Auth->>UserModel: Increment tokenVersion
-    Auth-->>Client: 204 No Content
 ```
 
-## Tenant Resolution
+## Tenant and Session Rules
 
-`tenantMiddleware` runs before every route. `TENANT_HEADER_REQUIRED` controls
-whether requests without `X-Tenant-Id` are rejected. It defaults to `false` in
-development and tests and `true` in production. When the header is optional,
-requests without it use the default MercadoZetta tenant. Because the middleware
-is global, strict mode currently also requires the header on public, health,
-and readiness requests.
-
-## Session Model
-
-- Access tokens are stored in `localStorage` and sent as Bearer tokens. This is
-  intentionally simple for the demo; the README records the XSS tradeoff and a
-  possible future move to secure cookies.
-- Every newly issued token contains the user id, tenant id, and the user's
-  current `tokenVersion`.
-- Protected requests verify both the JWT and a matching user record in MongoDB.
-- Logout increments `tokenVersion`, invalidating every previously issued token
-  for that user in the tenant. The frontend clears its local auth state even if
-  the logout request fails.
-- Users created before `tokenVersion` existed are treated as version `0` for
-  backward compatibility.
+- `tenantMiddleware` runs before every route. `TENANT_HEADER_REQUIRED` defaults
+  to `false` locally and `true` in production.
+- The frontend stores no authentication token or user profile in
+  `localStorage`; the browser owns the cookies and React holds only the public
+  user profile in memory.
+- Login creates a tenant/user-scoped session and sets a short-lived access
+  cookie, an `HttpOnly` rotating refresh cookie, and a readable session-bound
+  CSRF proof.
+- Access cookies carry the active configured signing-key `kid`; verification
+  selects only retained local keys. Refresh hashes persist their secret version,
+  and CSRF proofs encode theirs so deployments can overlap old and new secrets.
+- Refresh persistence contains only keyed hashes, uses atomic rotation, applies
+  idle and absolute expiry, and revokes the family after detected replay.
+- Every cookie-authenticated mutation requires an allowed Origin and matching
+  signed CSRF proof. Credentialed CORS uses an explicit origin allowlist.
+- Logout increments `tokenVersion`, revokes all active sessions for the
+  tenant/user, clears cookies, and clears frontend identity even if the request
+  fails.
+- Authorization headers are not accepted as authentication, and authenticated
+  mutations always pass the Origin and CSRF checks.
 
 ## Code Map
 
-- Frontend login: `frontend/src/pages/Login.tsx`
-- API request headers: `frontend/src/services/api.ts`
-- Stored auth state and logout UI: `frontend/src/pages/header/index.tsx`
-- Product creation auth check: `frontend/src/pages/AddProduct.tsx`
+- Frontend in-memory auth: `frontend/src/auth/AuthProvider.tsx`
+- Frontend credential, CSRF, and renewal transport: `frontend/src/services/api.ts`
+- Login and logout UI: `frontend/src/pages/Login.tsx` and
+  `frontend/src/pages/header/index.tsx`
 - Request tenant resolution: `backend/src/middleware/tenant.ts`
-- Auth and protected routes: `backend/src/routes.ts`
-- Login controller/service: `backend/src/controller/authController.ts` and `backend/src/services/authService.ts`
-- Security configuration: `backend/src/config/security.ts`
-- JWT verification middleware: `backend/src/middleware/auth.ts`
-- Authenticated product creation: `backend/src/controller/productController.ts`
+- Auth, CSRF, and protected routes: `backend/src/middleware/auth.ts`,
+  `backend/src/middleware/csrf.ts`, and `backend/src/routes.ts`
+- Login controller/service: `backend/src/controller/authController.ts` and
+  `backend/src/services/authService.ts`
+- Session persistence and rotation: `backend/src/model/session.ts` and
+  `backend/src/services/sessionService.ts`
+- Cookie and versioned key-ring configuration: `backend/src/config/security.ts` and
+  `backend/src/services/authCookieService.ts`

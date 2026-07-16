@@ -1,9 +1,10 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const apiGet = vi.fn();
 
 vi.mock('@/services/api', () => ({
+  setAuthenticationFailureHandler: vi.fn(),
   default: {
     get: apiGet,
     post: vi.fn(),
@@ -25,10 +26,25 @@ describe('App', () => {
   });
 
   beforeEach(() => {
-    localStorage.clear();
     apiGet.mockReset();
-    apiGet.mockResolvedValue({ data: [] });
+    apiGet.mockImplementation((url) =>
+      url === '/auth/session'
+        ? Promise.reject(new Error('anonymous'))
+        : Promise.resolve({ data: [] }),
+    );
   });
+
+  function authenticate(user = { _id: 'user-1', username: 'Seller' }) {
+    apiGet.mockImplementation((url) => {
+      if (url === '/auth/session') {
+        return Promise.resolve({
+          data: { user, session: { id: 'session-1' } },
+        });
+      }
+      if (url === '/cart') return Promise.resolve({ data: { items: [] } });
+      return Promise.resolve({ data: [] });
+    });
+  }
 
   it('renders the home page for /', async () => {
     await renderAppAt('/');
@@ -84,16 +100,18 @@ describe('App', () => {
   ])('requires authentication for %s', async (path, prompt) => {
     await renderAppAt(path);
 
-    expect(await screen.findByRole('status')).toHaveTextContent(prompt);
+    expect(await screen.findByText(prompt)).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Email')).toBeInTheDocument();
     expect(window.location.pathname).toBe('/login');
   });
 
   it('renders the product creation page for authenticated users', async () => {
-    localStorage.setItem('token', 'token-123');
+    authenticate();
     await renderAppAt('/products/new');
 
-    expect(screen.getByPlaceholderText('Product name')).toBeInTheDocument();
+    expect(
+      await screen.findByPlaceholderText('Product name'),
+    ).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Image URL')).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: 'Criar anúncio' }),
@@ -110,19 +128,25 @@ describe('App', () => {
   });
 
   it('renders the product detail page for /products/:productId', async () => {
-    apiGet.mockResolvedValueOnce({
-      data: {
-        _id: 'product-1',
-        name: 'Coffee',
-        description: 'Fresh beans',
-        image: 'coffee.jpg',
-        seller: 'seller-1',
-        sellerProfile: {
-          _id: 'seller-1',
-          username: 'Seller',
-          storeName: 'Seller store',
-        },
-      },
+    apiGet.mockImplementation((url) => {
+      if (url === '/auth/session')
+        return Promise.reject(new Error('anonymous'));
+      if (url === '/products/product-1')
+        return Promise.resolve({
+          data: {
+            _id: 'product-1',
+            name: 'Coffee',
+            description: 'Fresh beans',
+            image: 'coffee.jpg',
+            seller: 'seller-1',
+            sellerProfile: {
+              _id: 'seller-1',
+              username: 'Seller',
+              storeName: 'Seller store',
+            },
+          },
+        });
+      return Promise.resolve({ data: [] });
     });
 
     await renderAppAt('/products/product-1');
@@ -134,23 +158,22 @@ describe('App', () => {
   });
 
   it('renders the checkout page for authenticated users', async () => {
-    localStorage.setItem('token', 'token-123');
+    authenticate();
     await renderAppAt('/checkout');
 
     expect(
-      screen.getByRole('heading', { name: 'Checkout' }),
+      await screen.findByRole('heading', { name: 'Checkout' }),
     ).toBeInTheDocument();
   });
 
   it('renders the admin dashboard for authenticated users', async () => {
-    localStorage.setItem('token', 'token-123');
-    apiGet.mockResolvedValueOnce({ data: [] });
+    authenticate();
 
     await renderAppAt('/admin');
 
     expect(
       await screen.findByRole('heading', { name: 'Admin dashboard' }),
     ).toBeInTheDocument();
-    expect(apiGet).toHaveBeenCalledWith('/products');
+    await waitFor(() => expect(apiGet).toHaveBeenCalledWith('/products'));
   });
 });

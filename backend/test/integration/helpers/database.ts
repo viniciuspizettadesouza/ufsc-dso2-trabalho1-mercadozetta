@@ -1,10 +1,7 @@
-import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
-
-export const jwtSecret = 'integration-test-secret';
+import { createSession } from '@/services/sessionService';
 
 export async function connectDatabase() {
-  process.env.JWT_SECRET = jwtSecret;
   const uri = process.env.MONGODB_URI;
   if (!uri) throw new Error('MONGODB_URI is required for integration tests');
 
@@ -26,13 +23,21 @@ export async function disconnectDatabase() {
   await mongoose.disconnect();
 }
 
-export function authorization(
+export async function sessionHeaders(
   userId: mongoose.Types.ObjectId,
   tenantId = 'mercadozetta',
   tokenVersion = 0,
 ) {
-  return `Bearer ${jwt.sign(
-    { id: String(userId), tenantId, tokenVersion },
-    jwtSecret,
-  )}`;
+  const credentials = await createSession(
+    String(userId),
+    tenantId,
+    tokenVersion,
+    'integration test',
+    new Date(),
+  );
+  return {
+    Cookie: `mz_at=${credentials.accessToken}; mz_csrf=${credentials.csrfToken}`,
+    Origin: 'http://localhost:5173',
+    'X-CSRF-Token': credentials.csrfToken,
+  };
 }

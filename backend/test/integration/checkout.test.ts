@@ -7,7 +7,7 @@ import OrderItem from '@/model/orderItem';
 import Product from '@/model/product';
 import User from '@/model/user';
 import {
-  authorization,
+  sessionHeaders,
   clearDatabase,
   connectDatabase,
   disconnectDatabase,
@@ -46,12 +46,12 @@ describe('checkout with a MongoDB replica set', () => {
       },
     ]);
 
+    const buyerHeaders = await Promise.all(
+      [firstBuyer, secondBuyer].map((buyer) => sessionHeaders(buyer._id)),
+    );
     const responses = await Promise.all(
-      [firstBuyer, secondBuyer].map((buyer) =>
-        request(app)
-          .post('/orders')
-          .set('X-Tenant-Id', tenantId)
-          .set('Authorization', authorization(buyer._id)),
+      buyerHeaders.map((headers) =>
+        request(app).post('/orders').set('X-Tenant-Id', tenantId).set(headers),
       ),
     );
 

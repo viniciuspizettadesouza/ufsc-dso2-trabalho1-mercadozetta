@@ -45,7 +45,7 @@ Common commands:
 - `npm --prefix frontend run build` type-checks and builds the frontend.
 - `npm --prefix frontend run lint` runs ESLint for TypeScript and React files.
 
-For local development, start MongoDB and set `backend/.env` with `MONGODB_URI`, `JWT_SECRET`, and `PORT`. Set `frontend/.env` with `VITE_API_URL`.
+For local development, start MongoDB and set `backend/.env` with `MONGODB_URI`, the versioned JWT/refresh/CSRF key rings, and `PORT`. Set `frontend/.env` with `VITE_API_URL`.
 
 ## Coding Style & Naming Conventions
 

@@ -3,12 +3,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@/model/user', () => ({
   default: {
     findOne: vi.fn(),
+    updateOne: vi.fn(),
   },
 }));
 
-vi.mock('@/config/security', () => ({
-  getJwtSecret: vi.fn(() => 'test-secret'),
-  getJwtAccessTokenTtl: vi.fn(() => '15m'),
+vi.mock('@/services/sessionService', () => ({
+  createSession: vi.fn(async () => ({
+    accessToken: 'cookie-access-token',
+    refreshToken: 'refresh-token',
+    csrfToken: 'csrf-token',
+    session: { id: 'session-1' },
+  })),
+  getSession: vi.fn(),
+  revokeAllSessions: vi.fn(),
 }));
 
 vi.mock('bcryptjs', () => ({
@@ -17,27 +24,21 @@ vi.mock('bcryptjs', () => ({
   },
 }));
 
-vi.mock('jsonwebtoken', () => ({
-  default: {
-    sign: vi.fn(() => 'signed-token'),
-  },
-}));
-
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import User from '@/model/user';
-import { authenticate } from '@/services/authService';
+import { authenticate, getSessionState, logout } from '@/services/authService';
+import { getSession, revokeAllSessions } from '@/services/sessionService';
 
 const mockedUser = User as typeof User & {
   findOne: ReturnType<typeof vi.fn>;
+  updateOne: ReturnType<typeof vi.fn>;
 };
+
+const mockedGetSession = vi.mocked(getSession);
+const mockedRevokeAllSessions = vi.mocked(revokeAllSessions);
 
 const mockedBcrypt = bcrypt as typeof bcrypt & {
   compare: ReturnType<typeof vi.fn>;
-};
-
-const mockedJwt = jwt as typeof jwt & {
-  sign: ReturnType<typeof vi.fn>;
 };
 
 describe('auth service', () => {
@@ -45,7 +46,6 @@ describe('auth service', () => {
     vi.clearAllMocks();
     mockedUser.findOne.mockReset();
     mockedBcrypt.compare.mockReset();
-    mockedJwt.sign.mockReset();
   });
 
   it('authenticates users and strips password from the response', async () => {
@@ -63,7 +63,6 @@ describe('auth service', () => {
       }),
     });
     mockedBcrypt.compare.mockResolvedValue(true);
-    mockedJwt.sign.mockReturnValue('signed-token');
 
     const result = await authenticate(
       { email: 'Seller@Example.com', password: 'secret123' },
@@ -78,12 +77,54 @@ describe('auth service', () => {
       'secret123',
       'hashed-password',
     );
-    expect(mockedJwt.sign).toHaveBeenCalledWith(
-      { id: 'user-1', tenantId: 'mercadozetta', tokenVersion: 0 },
-      'test-secret',
-      { expiresIn: '15m' },
-    );
     expect(result.user).toEqual({ _id: 'user-1', email: 'seller@example.com' });
-    expect(result.token).toBe('signed-token');
+    expect(result).not.toHaveProperty('token');
+    expect(result.session).toEqual({ id: 'session-1' });
+  });
+
+  it('revokes all sessions after incrementing the user token version', async () => {
+    mockedUser.updateOne.mockResolvedValue({ matchedCount: 1 } as any);
+
+    await logout('user-1', 'mercadozetta');
+
+    expect(mockedUser.updateOne).toHaveBeenCalledWith(
+      { _id: 'user-1', tenantId: 'mercadozetta' },
+      { $inc: { tokenVersion: 1 } },
+    );
+    expect(mockedRevokeAllSessions).toHaveBeenCalledWith(
+      'user-1',
+      'mercadozetta',
+      expect.any(Date),
+    );
+
+    mockedUser.updateOne.mockResolvedValue({ matchedCount: 0 } as any);
+    await expect(logout('missing', 'mercadozetta')).rejects.toMatchObject({
+      code: 'INVALID_AUTH_TOKEN',
+    });
+  });
+
+  it('restores safe user and session state and rejects a deleted user', async () => {
+    mockedGetSession.mockResolvedValue({ id: 'session-1' } as any);
+    const select = vi.fn().mockResolvedValue({
+      toObject: () => ({
+        _id: 'user-1',
+        email: 'seller@example.com',
+        password: 'hidden',
+        tokenVersion: 2,
+      }),
+    });
+    mockedUser.findOne.mockReturnValue({ select } as any);
+
+    await expect(
+      getSessionState('session-1', 'user-1', 'mercadozetta'),
+    ).resolves.toEqual({
+      user: { _id: 'user-1', email: 'seller@example.com' },
+      session: { id: 'session-1' },
+    });
+
+    select.mockResolvedValueOnce(null);
+    await expect(
+      getSessionState('session-1', 'user-1', 'mercadozetta'),
+    ).rejects.toMatchObject({ code: 'INVALID_AUTH_TOKEN' });
   });
 });

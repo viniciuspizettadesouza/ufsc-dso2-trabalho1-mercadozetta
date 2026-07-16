@@ -8,6 +8,8 @@ import Checkout from '@/pages/Checkout';
 import ProductDetail from '@/pages/ProductDetail';
 import SellerProfile from '@/pages/SellerProfile';
 import api from '@/services/api';
+import { AuthTestProvider } from '@/test/AuthTestProvider';
+import type { AuthUser } from '@/auth/AuthContext';
 
 vi.mock('@/services/api', () => ({
   default: {
@@ -38,13 +40,20 @@ const product = {
   },
 };
 
-function renderAt(route: string, path: string, element: React.ReactNode) {
+function renderAt(
+  route: string,
+  path: string,
+  element: React.ReactNode,
+  user: AuthUser | null = null,
+) {
   return render(
-    <MemoryRouter initialEntries={[route]}>
-      <Routes>
-        <Route path={path} element={element} />
-      </Routes>
-    </MemoryRouter>,
+    <AuthTestProvider user={user}>
+      <MemoryRouter initialEntries={[route]}>
+        <Routes>
+          <Route path={path} element={element} />
+        </Routes>
+      </MemoryRouter>
+    </AuthTestProvider>,
   );
 }
 
@@ -54,7 +63,6 @@ describe('marketplace pages', () => {
   });
 
   beforeEach(() => {
-    localStorage.clear();
     vi.mocked(api.get).mockReset();
     vi.mocked(api.put).mockReset();
     vi.mocked(api.post).mockReset();
@@ -63,18 +71,20 @@ describe('marketplace pages', () => {
   });
 
   it('loads product details and records watchlist, cart, review, and notifications', async () => {
-    localStorage.setItem('token', 'token-123');
-    vi.mocked(api.get)
-      .mockResolvedValueOnce({ data: product })
-      .mockResolvedValueOnce({ data: [] })
-      .mockResolvedValueOnce({ data: { items: [] } })
-      .mockResolvedValueOnce({ data: [] });
+    vi.mocked(api.get).mockImplementation(async (url) => {
+      if (url === '/products/product-1') return { data: product };
+      if (url === '/cart') return { data: { items: [] } };
+      if (url === '/notifications/unread-count') return { data: { count: 0 } };
+      return { data: [] };
+    });
     vi.mocked(api.put).mockResolvedValue({ data: {} });
     vi.mocked(api.post).mockResolvedValue({
       data: { _id: 'review-1', rating: 5, comment: 'Great beans' },
     });
 
-    renderAt('/products/product-1', '/products/:productId', <ProductDetail />);
+    renderAt('/products/product-1', '/products/:productId', <ProductDetail />, {
+      _id: 'user-1',
+    });
 
     expect(
       await screen.findByRole('heading', { name: 'Coffee' }),

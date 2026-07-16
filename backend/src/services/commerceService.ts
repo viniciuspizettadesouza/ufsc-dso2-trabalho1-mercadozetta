@@ -45,7 +45,7 @@ export async function setCartItem(
   const cart = await Cart.findOneAndUpdate(
     { tenantId, buyer: userId },
     { $setOnInsert: { tenantId, buyer: userId } },
-    { upsert: true, new: true },
+    { upsert: true, returnDocument: 'after' },
   );
   const item = cart.items.find((entry) => String(entry.product) === productId);
   /* v8 ignore next -- both existing and new cart lines have focused coverage. */
@@ -83,7 +83,7 @@ export async function addWatchlist(
   return Watchlist.findOneAndUpdate(
     { tenantId, user: userId, product: productId },
     { $setOnInsert: { tenantId, user: userId, product: productId } },
-    { upsert: true, new: true },
+    { upsert: true, returnDocument: 'after' },
   );
 }
 
@@ -320,7 +320,7 @@ export async function createReview(
   const review = await Review.findOneAndUpdate(
     { tenantId, product: productId, author: userId },
     { rating, comment },
-    { upsert: true, new: true, setDefaultsOnInsert: true },
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
   );
   await Notification.create({
     tenantId,
@@ -350,7 +350,7 @@ export async function updateNotificationRead(
   const notification = await Notification.findOneAndUpdate(
     { _id: notificationId, tenantId, user: userId },
     { read },
-    { new: true },
+    { returnDocument: 'after' },
   );
   if (!notification)
     throw new AppError(404, 'NOTIFICATION_NOT_FOUND', 'Notification not found');

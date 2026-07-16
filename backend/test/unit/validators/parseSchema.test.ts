@@ -21,6 +21,7 @@ describe('parseAppSchema', () => {
   });
 
   it('maps ordinary Zod failures to the shared request error', () => {
+    expect(parseAppSchema(z.string(), 'value')).toBe('value');
     expect(() => parseAppSchema(z.string(), 42)).toThrow(
       expect.objectContaining({
         statusCode: 400,

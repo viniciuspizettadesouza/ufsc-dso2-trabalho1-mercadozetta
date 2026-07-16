@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,6 +7,8 @@ import Header from '@/pages/header/index';
 import { BrandProvider } from '@/brands/BrandProvider';
 import { campusMarketBrand, type BrandConfig } from '@/brands';
 import api from '@/services/api';
+import { AuthTestProvider } from '@/test/AuthTestProvider';
+import type { AuthUser } from '@/auth/AuthContext';
 
 const navigate = vi.fn();
 
@@ -25,15 +27,19 @@ vi.mock('react-router', async () => {
 });
 
 function renderHeader(
-  route = '/',
+  route: string | { pathname: string; state?: unknown } = '/',
   hideLoginAction = false,
   brand?: BrandConfig,
+  user: AuthUser | null = null,
+  clearSession = vi.fn(),
 ) {
   return render(
     <BrandProvider brand={brand}>
-      <MemoryRouter initialEntries={[route]}>
-        <Header hideLoginAction={hideLoginAction} />
-      </MemoryRouter>
+      <AuthTestProvider user={user} clearSession={clearSession}>
+        <MemoryRouter initialEntries={[route]}>
+          <Header hideLoginAction={hideLoginAction} />
+        </MemoryRouter>
+      </AuthTestProvider>
     </BrandProvider>,
   );
 }
@@ -44,7 +50,6 @@ describe('Header', () => {
   });
 
   beforeEach(() => {
-    localStorage.clear();
     navigate.mockReset();
     vi.mocked(api.post).mockReset();
     vi.mocked(api.get).mockReset();
@@ -94,17 +99,20 @@ describe('Header', () => {
   });
 
   it('shows authenticated user data and logs out', async () => {
-    localStorage.setItem('token', 'token-123');
-    localStorage.setItem(
-      'user',
-      JSON.stringify({
+    const clearSession = vi.fn();
+
+    renderHeader(
+      '/',
+      false,
+      undefined,
+      {
+        _id: 'seller-1',
         username: 'Seller',
         email: 'seller@example.com',
         telephone: '123',
-      }),
+      },
+      clearSession,
     );
-
-    renderHeader();
 
     expect(screen.getByText('Seller')).toBeInTheDocument();
     expect(screen.getByText('seller@example.com')).toBeInTheDocument();
@@ -113,19 +121,20 @@ describe('Header', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Sair' }));
 
     expect(api.post).toHaveBeenCalledWith('/auth/logout');
-    expect(localStorage.getItem('token')).toBeNull();
-    expect(localStorage.getItem('user')).toBeNull();
-    expect(navigate).toHaveBeenCalledWith('/');
+    expect(clearSession).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith('/', {
+      replace: true,
+      state: { clearSessionAfterLogout: true },
+    });
   });
 
   it('shows the unread notification count for authenticated users', async () => {
-    localStorage.setItem(
-      'user',
-      JSON.stringify({ _id: 'seller-1', username: 'Seller' }),
-    );
     vi.mocked(api.get).mockResolvedValue({ data: { count: 3 } } as never);
 
-    renderHeader();
+    renderHeader('/', false, undefined, {
+      _id: 'seller-1',
+      username: 'Seller',
+    });
 
     expect(
       await screen.findByLabelText('3 unread notifications'),
@@ -134,10 +143,12 @@ describe('Header', () => {
   });
 
   it('keeps navigation usable when the unread count request fails', async () => {
-    localStorage.setItem('user', JSON.stringify({ username: 'Seller' }));
     vi.mocked(api.get).mockRejectedValue(new Error('network error'));
 
-    renderHeader();
+    renderHeader('/', false, undefined, {
+      _id: 'seller-1',
+      username: 'Seller',
+    });
 
     expect(screen.getByRole('link', { name: 'Notifications' })).toHaveAttribute(
       'href',
@@ -146,7 +157,6 @@ describe('Header', () => {
   });
 
   it('ignores an unread count response after unmounting', async () => {
-    localStorage.setItem('user', JSON.stringify({ username: 'Seller' }));
     let resolveRequest!: (value: { data: { count: number } }) => void;
     vi.mocked(api.get).mockReturnValue(
       new Promise((resolve) => {
@@ -154,32 +164,57 @@ describe('Header', () => {
       }) as never,
     );
 
-    const { unmount } = renderHeader();
+    const { unmount } = renderHeader('/', false, undefined, {
+      _id: 'seller-1',
+      username: 'Seller',
+    });
     unmount();
     resolveRequest({ data: { count: 4 } });
 
     await Promise.resolve();
   });
 
-  it('clears the local session even when server-side logout fails', async () => {
-    localStorage.setItem('token', 'token-123');
-    localStorage.setItem('user', JSON.stringify({ username: 'Seller' }));
+  it('clears the in-memory session even when server-side logout fails', async () => {
+    const clearSession = vi.fn();
     vi.mocked(api.post).mockRejectedValue(new Error('network error'));
-    renderHeader();
+    renderHeader(
+      '/',
+      false,
+      undefined,
+      {
+        _id: 'seller-1',
+        username: 'Seller',
+      },
+      clearSession,
+    );
 
     await userEvent.click(screen.getByRole('button', { name: 'Sair' }));
 
-    expect(localStorage.getItem('token')).toBeNull();
-    expect(localStorage.getItem('user')).toBeNull();
-    expect(navigate).toHaveBeenCalledWith('/');
+    expect(clearSession).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith('/', {
+      replace: true,
+      state: { clearSessionAfterLogout: true },
+    });
   });
 
-  it('clears invalid stored users and falls back to anonymous state', () => {
-    localStorage.setItem('user', '{invalid-json');
-
+  it('falls back to anonymous state without an in-memory user', () => {
     renderHeader();
 
-    expect(localStorage.getItem('user')).toBeNull();
     expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument();
+  });
+
+  it('clears auth after logout navigation reaches the public route', async () => {
+    const clearSession = vi.fn();
+
+    renderHeader(
+      { pathname: '/', state: { clearSessionAfterLogout: true } },
+      false,
+      undefined,
+      { _id: 'seller-1', username: 'Seller' },
+      clearSession,
+    );
+
+    await waitFor(() => expect(clearSession).toHaveBeenCalledOnce());
+    expect(navigate).toHaveBeenCalledWith('/', { replace: true, state: null });
   });
 });

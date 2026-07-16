@@ -16,6 +16,8 @@ import ProductDetail from '@/pages/ProductDetail';
 import SellerProfile from '@/pages/SellerProfile';
 import SellerOrders from '@/pages/SellerOrders';
 import { BrandProvider } from '@/brands/BrandProvider';
+import { AuthProvider } from '@/auth/AuthProvider';
+import { useAuth } from '@/auth/AuthContext';
 import { routePatterns } from '@/routes';
 
 type AuthenticatedRouteProps = {
@@ -25,8 +27,13 @@ type AuthenticatedRouteProps = {
 
 function AuthenticatedRoute({ children, prompt }: AuthenticatedRouteProps) {
   const location = useLocation();
+  const { status } = useAuth();
 
-  if (!localStorage.getItem('token')) {
+  if (status === 'loading') {
+    return <p role="status">Restoring session...</p>;
+  }
+
+  if (status === 'anonymous') {
     return (
       <Navigate
         replace
@@ -101,7 +108,9 @@ const router = createBrowserRouter([
 export default function App() {
   return (
     <BrandProvider>
-      <RouterProvider router={router} />
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
     </BrandProvider>
   );
 }

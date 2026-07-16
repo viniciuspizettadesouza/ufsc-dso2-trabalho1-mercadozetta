@@ -65,4 +65,8 @@ npm audit
 
 ## Authentication Flow
 
-On successful login, the app stores the returned `token` and `user` in `localStorage`. The API service attaches the token to outgoing requests as a Bearer token, which allows authenticated product creation.
+On successful login, the browser receives access, refresh, and CSRF cookies.
+React keeps only the public user profile in memory and restores it through
+`GET /auth/session` after reload. The shared Axios service sends credentials,
+the tenant header, and the CSRF proof for mutations. The backend accepts only
+cookie sessions; authorization headers are not an authentication transport.

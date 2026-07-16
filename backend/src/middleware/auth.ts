@@ -1,19 +1,88 @@
 import jwt from 'jsonwebtoken';
 import type { Request, Response, NextFunction } from 'express';
 import AppError from '@/errors/AppError';
-import { getJwtSecret } from '@/config/security';
+import { getAuthCookieConfig, getJwtSigningKeyRing } from '@/config/security';
+import Session from '@/model/session';
 import User from '@/model/user';
+import { accessTokenContract } from '@/services/sessionService';
 
 type AuthTokenPayload = {
-  id?: string;
+  sub?: string;
   tenantId?: string;
+  sid?: string;
   tokenVersion?: number;
+  typ?: string;
 };
 
-async function authMiddleware(req: Request, res: Response, next: NextFunction) {
-  const authHeader = req.headers.authorization;
+async function authenticateCookie(req: Request, token: string) {
+  const decodedToken = jwt.decode(token, { complete: true });
+  const kid = decodedToken?.header.kid;
+  const secret =
+    typeof kid === 'string' ? getJwtSigningKeyRing().keys[kid] : undefined;
+  if (!secret) {
+    throw new AppError(
+      401,
+      'INVALID_AUTH_TOKEN',
+      'Invalid authorization token',
+    );
+  }
 
-  if (!authHeader)
+  const decoded = jwt.verify(token, secret, {
+    algorithms: ['HS256'],
+    issuer: accessTokenContract.issuer,
+    audience: accessTokenContract.audience,
+  }) as AuthTokenPayload;
+
+  if (
+    decoded.typ !== 'access' ||
+    typeof decoded.sub !== 'string' ||
+    !decoded.sub.trim() ||
+    typeof decoded.sid !== 'string' ||
+    typeof decoded.tenantId !== 'string' ||
+    typeof decoded.tokenVersion !== 'number' ||
+    (req.tenant && decoded.tenantId !== req.tenant.id)
+  ) {
+    throw new AppError(
+      401,
+      'INVALID_AUTH_TOKEN',
+      'Invalid authorization token',
+    );
+  }
+
+  const now = new Date();
+  const [activeSession, activeUser] = await Promise.all([
+    Session.exists({
+      _id: decoded.sid,
+      userId: decoded.sub,
+      tenantId: decoded.tenantId,
+      tokenVersion: decoded.tokenVersion,
+      revokedAt: { $exists: false },
+      expiresAt: { $gt: now },
+      absoluteExpiresAt: { $gt: now },
+    }),
+    User.exists({
+      _id: decoded.sub,
+      tenantId: decoded.tenantId,
+      tokenVersion: decoded.tokenVersion,
+    }),
+  ]);
+
+  if (!activeSession || !activeUser) {
+    throw new AppError(
+      401,
+      'INVALID_AUTH_TOKEN',
+      'Invalid authorization token',
+    );
+  }
+
+  req.userId = decoded.sub;
+  req.sessionId = decoded.sid;
+}
+
+async function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  const accessCookie = req.cookies?.[getAuthCookieConfig().access.name];
+
+  if (typeof accessCookie !== 'string')
     return next(
       new AppError(
         401,
@@ -22,59 +91,11 @@ async function authMiddleware(req: Request, res: Response, next: NextFunction) {
       ),
     );
 
-  const [scheme, token] = authHeader.split(' ');
-
-  if (scheme !== 'Bearer' || !token)
-    return next(
-      new AppError(401, 'INVALID_AUTH_FORMAT', 'Invalid authorization format'),
-    );
-
-  const jwtSecret = getJwtSecret();
-
   try {
-    const decoded = jwt.verify(token, jwtSecret) as AuthTokenPayload;
-    if (typeof decoded.id !== 'string' || !decoded.id.trim())
-      return next(
-        new AppError(401, 'INVALID_AUTH_TOKEN', 'Invalid authorization token'),
-      );
-
-    if (
-      typeof decoded.tenantId !== 'string' ||
-      typeof decoded.tokenVersion !== 'number'
-    )
-      return next(
-        new AppError(401, 'INVALID_AUTH_TOKEN', 'Invalid authorization token'),
-      );
-
-    if (decoded.tenantId && req.tenant && decoded.tenantId !== req.tenant.id)
-      return next(
-        new AppError(401, 'INVALID_AUTH_TOKEN', 'Invalid authorization token'),
-      );
-
-    const sessionQuery: Record<string, unknown> = {
-      _id: decoded.id,
-      tenantId: decoded.tenantId,
-      tokenVersion: decoded.tokenVersion,
-    };
-
-    if (decoded.tokenVersion === 0) {
-      delete sessionQuery.tokenVersion;
-      sessionQuery.$or = [
-        { tokenVersion: 0 },
-        { tokenVersion: { $exists: false } },
-      ];
-    }
-
-    const activeSession = await User.exists(sessionQuery);
-
-    if (!activeSession)
-      return next(
-        new AppError(401, 'INVALID_AUTH_TOKEN', 'Invalid authorization token'),
-      );
-
-    req.userId = decoded.id;
+    await authenticateCookie(req, accessCookie);
     return next();
   } catch (err) {
+    if (err instanceof AppError) return next(err);
     return next(
       new AppError(401, 'INVALID_AUTH_TOKEN', 'Invalid authorization token'),
     );

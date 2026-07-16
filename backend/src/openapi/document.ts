@@ -48,6 +48,24 @@ const userSchema = z
   })
   .meta({ id: 'User' });
 
+const sessionSchema = z
+  .object({
+    id: objectId,
+    createdAt: z.iso.datetime().optional(),
+    lastUsedAt: z.iso.datetime(),
+    expiresAt: z.iso.datetime(),
+    absoluteExpiresAt: z.iso.datetime(),
+    userAgentLabel: z.string().optional(),
+  })
+  .meta({ id: 'Session' });
+
+const csrfHeader = z.string().meta({
+  param: { name: 'X-CSRF-Token', in: 'header' },
+  description:
+    'Session-bound double-submit proof required for cookie-authenticated mutations.',
+  example: 'nonce.signature',
+});
+
 const sellerProfileSchema = z
   .object({
     _id: objectId,
@@ -274,11 +292,23 @@ export function createOpenApiDocument() {
           },
           responses: {
             200: {
-              description: 'Authenticated session',
-              content: json(z.object({ user: userSchema, token: z.string() }), {
-                user: userExample,
-                token: 'eyJhbGciOiJIUzI1NiJ9.example',
-              }),
+              description:
+                'Authenticated session; also sets access, refresh, and CSRF cookies',
+              content: json(
+                z.object({
+                  user: userSchema,
+                  session: sessionSchema,
+                }),
+                {
+                  user: userExample,
+                  session: {
+                    id: '507f1f77bcf86cd799439012',
+                    lastUsedAt: '2026-07-15T12:00:00.000Z',
+                    expiresAt: '2026-07-22T12:00:00.000Z',
+                    absoluteExpiresAt: '2026-08-14T12:00:00.000Z',
+                  },
+                },
+              ),
             },
             400: badRequest,
             401: unauthorized,
@@ -289,16 +319,111 @@ export function createOpenApiDocument() {
           },
         },
       },
+      '/auth/session': {
+        get: {
+          tags: ['Authentication'],
+          summary: 'Restore the current cookie session',
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader],
+          responses: {
+            200: {
+              description: 'Current user and session',
+              content: json(
+                z.object({ user: userSchema, session: sessionSchema }),
+              ),
+            },
+            400: badRequest,
+            401: unauthorized,
+          },
+        },
+      },
+      '/auth/refresh': {
+        post: {
+          tags: ['Authentication'],
+          summary: 'Rotate the current refresh token',
+          security: [{ refreshCookie: [] }],
+          parameters: [tenantHeader, csrfHeader],
+          responses: {
+            204: { description: 'Session rotated and cookies replaced' },
+            400: badRequest,
+            401: unauthorized,
+            403: {
+              description: 'Origin or CSRF validation failed',
+              content: json(errorSchema),
+            },
+            409: {
+              description: 'A concurrent request already rotated the token',
+              content: json(errorSchema),
+            },
+          },
+        },
+      },
+      '/auth/sessions': {
+        get: {
+          tags: ['Authentication'],
+          summary: 'List active sessions for the current tenant/user',
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader],
+          responses: {
+            200: {
+              description: 'Active sessions',
+              content: json(z.object({ sessions: z.array(sessionSchema) })),
+            },
+            400: badRequest,
+            401: unauthorized,
+          },
+        },
+      },
+      '/auth/sessions/{sessionId}': {
+        delete: {
+          tags: ['Authentication'],
+          summary: 'Revoke one owned session',
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
+          requestParams: { path: z.object({ sessionId: objectId }) },
+          responses: {
+            204: { description: 'Session revoked' },
+            400: badRequest,
+            401: unauthorized,
+            403: {
+              description: 'Origin or CSRF validation failed',
+              content: json(errorSchema),
+            },
+            404: notFound('Session'),
+          },
+        },
+      },
+      '/auth/logout/current': {
+        post: {
+          tags: ['Authentication'],
+          summary: 'Revoke the current cookie session',
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
+          responses: {
+            204: { description: 'Current session revoked' },
+            400: badRequest,
+            401: unauthorized,
+            403: {
+              description: 'Origin or CSRF validation failed',
+              content: json(errorSchema),
+            },
+          },
+        },
+      },
       '/auth/logout': {
         post: {
           tags: ['Authentication'],
           summary: 'Log out and invalidate existing access tokens',
-          security: [{ bearerAuth: [] }],
-          parameters: [tenantHeader],
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
           responses: {
             204: { description: 'Logged out' },
             400: badRequest,
             401: unauthorized,
+            403: {
+              description: 'Origin or CSRF validation failed',
+              content: json(errorSchema),
+            },
           },
         },
       },
@@ -385,8 +510,8 @@ export function createOpenApiDocument() {
         post: {
           tags: ['Products'],
           summary: 'Create a product',
-          security: [{ bearerAuth: [] }],
-          parameters: [tenantHeader],
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
           requestBody: {
             required: true,
             content: json(createProductSchema, {
@@ -408,6 +533,10 @@ export function createOpenApiDocument() {
             },
             400: badRequest,
             401: unauthorized,
+            403: {
+              description: 'Origin or CSRF validation failed',
+              content: json(errorSchema),
+            },
           },
         },
       },
@@ -431,7 +560,7 @@ export function createOpenApiDocument() {
         get: {
           tags: ['Commerce'],
           summary: 'Get the current buyer cart',
-          security: [{ bearerAuth: [] }],
+          security: [{ cookieAuth: [] }],
           parameters: [tenantHeader],
           responses: {
             200: {
@@ -450,8 +579,8 @@ export function createOpenApiDocument() {
         put: {
           tags: ['Commerce'],
           summary: 'Add or update a cart item',
-          security: [{ bearerAuth: [] }],
-          parameters: [tenantHeader],
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
           requestBody: {
             required: true,
             content: json(
@@ -470,6 +599,10 @@ export function createOpenApiDocument() {
             },
             400: badRequest,
             401: unauthorized,
+            403: {
+              description: 'Origin or CSRF validation failed',
+              content: json(errorSchema),
+            },
           },
         },
       },
@@ -477,8 +610,8 @@ export function createOpenApiDocument() {
         delete: {
           tags: ['Commerce'],
           summary: 'Remove a cart item',
-          security: [{ bearerAuth: [] }],
-          parameters: [tenantHeader],
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
           requestParams: { path: z.object({ productId: objectId }) },
           responses: {
             200: {
@@ -490,6 +623,10 @@ export function createOpenApiDocument() {
               }),
             },
             401: unauthorized,
+            403: {
+              description: 'Origin or CSRF validation failed',
+              content: json(errorSchema),
+            },
           },
         },
       },
@@ -497,7 +634,7 @@ export function createOpenApiDocument() {
         get: {
           tags: ['Commerce'],
           summary: 'List watched products',
-          security: [{ bearerAuth: [] }],
+          security: [{ cookieAuth: [] }],
           parameters: [tenantHeader],
           responses: {
             200: {
@@ -512,8 +649,8 @@ export function createOpenApiDocument() {
         put: {
           tags: ['Commerce'],
           summary: 'Watch a product',
-          security: [{ bearerAuth: [] }],
-          parameters: [tenantHeader],
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
           requestParams: { path: z.object({ productId: objectId }) },
           responses: {
             201: {
@@ -526,17 +663,25 @@ export function createOpenApiDocument() {
               }),
             },
             401: unauthorized,
+            403: {
+              description: 'Origin or CSRF validation failed',
+              content: json(errorSchema),
+            },
           },
         },
         delete: {
           tags: ['Commerce'],
           summary: 'Stop watching a product',
-          security: [{ bearerAuth: [] }],
-          parameters: [tenantHeader],
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
           requestParams: { path: z.object({ productId: objectId }) },
           responses: {
             204: { description: 'Watchlist entry removed' },
             401: unauthorized,
+            403: {
+              description: 'Origin or CSRF validation failed',
+              content: json(errorSchema),
+            },
           },
         },
       },
@@ -544,7 +689,7 @@ export function createOpenApiDocument() {
         get: {
           tags: ['Commerce'],
           summary: 'List buyer and seller orders',
-          security: [{ bearerAuth: [] }],
+          security: [{ cookieAuth: [] }],
           parameters: [tenantHeader],
           responses: {
             200: {
@@ -557,8 +702,8 @@ export function createOpenApiDocument() {
         post: {
           tags: ['Commerce'],
           summary: 'Place an order from the current cart',
-          security: [{ bearerAuth: [] }],
-          parameters: [tenantHeader],
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
           responses: {
             201: {
               description: 'Order placed',
@@ -579,6 +724,10 @@ export function createOpenApiDocument() {
             },
             400: badRequest,
             401: unauthorized,
+            403: {
+              description: 'Origin or CSRF validation failed',
+              content: json(errorSchema),
+            },
           },
         },
       },
@@ -586,8 +735,8 @@ export function createOpenApiDocument() {
         patch: {
           tags: ['Commerce'],
           summary: 'Update an order lifecycle status',
-          security: [{ bearerAuth: [] }],
-          parameters: [tenantHeader],
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
           requestParams: { path: z.object({ orderId: objectId }) },
           requestBody: {
             required: true,
@@ -619,6 +768,10 @@ export function createOpenApiDocument() {
               }),
             },
             401: unauthorized,
+            403: {
+              description: 'Origin or CSRF validation failed',
+              content: json(errorSchema),
+            },
             409: {
               description: 'Invalid order status transition',
               content: json(errorSchema, {
@@ -645,8 +798,8 @@ export function createOpenApiDocument() {
         post: {
           tags: ['Commerce'],
           summary: 'Create or update a verified-buyer review',
-          security: [{ bearerAuth: [] }],
-          parameters: [tenantHeader],
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
           requestParams: { path: z.object({ productId: objectId }) },
           requestBody: {
             required: true,
@@ -667,6 +820,10 @@ export function createOpenApiDocument() {
               }),
             },
             401: unauthorized,
+            403: {
+              description: 'Origin or CSRF validation failed',
+              content: json(errorSchema),
+            },
           },
         },
       },
@@ -674,7 +831,7 @@ export function createOpenApiDocument() {
         get: {
           tags: ['Commerce'],
           summary: 'List current user notifications',
-          security: [{ bearerAuth: [] }],
+          security: [{ cookieAuth: [] }],
           parameters: [tenantHeader],
           responses: {
             200: {
@@ -689,7 +846,7 @@ export function createOpenApiDocument() {
         get: {
           tags: ['Commerce'],
           summary: 'Count current user unread notifications',
-          security: [{ bearerAuth: [] }],
+          security: [{ cookieAuth: [] }],
           parameters: [tenantHeader],
           responses: {
             200: {
@@ -704,8 +861,8 @@ export function createOpenApiDocument() {
         patch: {
           tags: ['Commerce'],
           summary: 'Mark a current user notification as read or unread',
-          security: [{ bearerAuth: [] }],
-          parameters: [tenantHeader],
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
           requestParams: {
             path: z.object({ notificationId: objectId }),
           },
@@ -724,6 +881,10 @@ export function createOpenApiDocument() {
               }),
             },
             401: unauthorized,
+            403: {
+              description: 'Origin or CSRF validation failed',
+              content: json(errorSchema),
+            },
             404: notFound('Notification'),
           },
         },
@@ -731,7 +892,8 @@ export function createOpenApiDocument() {
     },
     components: {
       securitySchemes: {
-        bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+        cookieAuth: { type: 'apiKey', in: 'cookie', name: '__Host-mz_at' },
+        refreshCookie: { type: 'apiKey', in: 'cookie', name: '__Secure-mz_rt' },
       },
     },
   });

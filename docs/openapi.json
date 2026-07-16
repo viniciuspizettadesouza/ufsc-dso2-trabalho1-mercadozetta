@@ -151,7 +151,7 @@
         },
         "responses": {
           "200": {
-            "description": "Authenticated session",
+            "description": "Authenticated session; also sets access, refresh, and CSRF cookies",
             "content": {
               "application/json": {
                 "example": {
@@ -162,7 +162,12 @@
                     "username": "seller",
                     "telephone": "+55 48 99999-0000"
                   },
-                  "token": "eyJhbGciOiJIUzI1NiJ9.example"
+                  "session": {
+                    "id": "507f1f77bcf86cd799439012",
+                    "lastUsedAt": "2026-07-15T12:00:00.000Z",
+                    "expiresAt": "2026-07-22T12:00:00.000Z",
+                    "absoluteExpiresAt": "2026-08-14T12:00:00.000Z"
+                  }
                 },
                 "schema": {
                   "type": "object",
@@ -170,13 +175,13 @@
                     "user": {
                       "$ref": "#/components/schemas/User"
                     },
-                    "token": {
-                      "type": "string"
+                    "session": {
+                      "$ref": "#/components/schemas/Session"
                     }
                   },
                   "required": [
                     "user",
-                    "token"
+                    "session"
                   ],
                   "additionalProperties": false
                 }
@@ -224,15 +229,15 @@
         }
       }
     },
-    "/auth/logout": {
-      "post": {
+    "/auth/session": {
+      "get": {
         "tags": [
           "Authentication"
         ],
-        "summary": "Log out and invalidate existing access tokens",
+        "summary": "Restore the current cookie session",
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -245,6 +250,442 @@
               "type": "string"
             },
             "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current user and session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    },
+                    "session": {
+                      "$ref": "#/components/schemas/Session"
+                    }
+                  },
+                  "required": [
+                    "user",
+                    "session"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or tenant",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid tenant",
+                  "code": "INVALID_TENANT"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Rotate the current refresh token",
+        "security": [
+          {
+            "refreshCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Session rotated and cookies replaced"
+          },
+          "400": {
+            "description": "Invalid input or tenant",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid tenant",
+                  "code": "INVALID_TENANT"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin or CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A concurrent request already rotated the token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/sessions": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "List active sessions for the current tenant/user",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active sessions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Session"
+                      }
+                    }
+                  },
+                  "required": [
+                    "sessions"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or tenant",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid tenant",
+                  "code": "INVALID_TENANT"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/sessions/{sessionId}": {
+      "delete": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Revoke one owned session",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sessionId",
+            "schema": {
+              "type": "string",
+              "example": "507f1f77bcf86cd799439011"
+            },
+            "required": true
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Session revoked"
+          },
+          "400": {
+            "description": "Invalid input or tenant",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid tenant",
+                  "code": "INVALID_TENANT"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin or CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Session not found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Session not found",
+                  "code": "SESSION_NOT_FOUND"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout/current": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Revoke the current cookie session",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Current session revoked"
+          },
+          "400": {
+            "description": "Invalid input or tenant",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid tenant",
+                  "code": "INVALID_TENANT"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid credentials/token",
+            "content": {
+              "application/json": {
+                "example": {
+                  "error": "Invalid authorization token",
+                  "code": "INVALID_AUTH_TOKEN"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin or CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Log out and invalidate existing access tokens",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
           }
         ],
         "responses": {
@@ -273,6 +714,16 @@
                   "error": "Invalid authorization token",
                   "code": "INVALID_AUTH_TOKEN"
                 },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin or CSRF validation failed",
+            "content": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
                 }
@@ -740,7 +1191,7 @@
         "summary": "Create a product",
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -753,6 +1204,17 @@
               "type": "string"
             },
             "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
           }
         ],
         "requestBody": {
@@ -830,6 +1292,16 @@
                   "error": "Invalid authorization token",
                   "code": "INVALID_AUTH_TOKEN"
                 },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin or CSRF validation failed",
+            "content": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
                 }
@@ -927,7 +1399,7 @@
         "summary": "Get the current buyer cart",
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -1031,7 +1503,7 @@
         "summary": "Add or update a cart item",
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -1044,6 +1516,17 @@
               "type": "string"
             },
             "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
           }
         ],
         "requestBody": {
@@ -1166,6 +1649,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Origin or CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -1178,7 +1671,7 @@
         "summary": "Remove a cart item",
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -1200,6 +1693,17 @@
               "type": "string"
             },
             "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
           }
         ],
         "responses": {
@@ -1279,6 +1783,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Origin or CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -1291,7 +1805,7 @@
         "summary": "List watched products",
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -1377,7 +1891,7 @@
         "summary": "Watch a product",
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -1399,6 +1913,17 @@
               "type": "string"
             },
             "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
           }
         ],
         "responses": {
@@ -1462,6 +1987,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Origin or CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -1472,7 +2007,7 @@
         "summary": "Stop watching a product",
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -1494,6 +2029,17 @@
               "type": "string"
             },
             "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
           }
         ],
         "responses": {
@@ -1513,6 +2059,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Origin or CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -1525,7 +2081,7 @@
         "summary": "List buyer and seller orders",
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -1674,7 +2230,7 @@
         "summary": "Place an order from the current cart",
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -1687,6 +2243,17 @@
               "type": "string"
             },
             "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
           }
         ],
         "responses": {
@@ -1837,6 +2404,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Origin or CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -1849,7 +2426,7 @@
         "summary": "Update an order lifecycle status",
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -1871,6 +2448,17 @@
               "type": "string"
             },
             "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
           }
         ],
         "requestBody": {
@@ -2041,6 +2629,16 @@
               }
             }
           },
+          "403": {
+            "description": "Origin or CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
           "409": {
             "description": "Invalid order status transition",
             "content": {
@@ -2139,7 +2737,7 @@
         "summary": "Create or update a verified-buyer review",
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -2161,6 +2759,17 @@
               "type": "string"
             },
             "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
           }
         ],
         "requestBody": {
@@ -2252,6 +2861,16 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Origin or CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -2264,7 +2883,7 @@
         "summary": "List current user notifications",
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -2342,7 +2961,7 @@
         "summary": "Count current user unread notifications",
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -2407,7 +3026,7 @@
         "summary": "Mark a current user notification as read or unread",
         "security": [
           {
-            "bearerAuth": []
+            "cookieAuth": []
           }
         ],
         "parameters": [
@@ -2429,6 +3048,17 @@
               "type": "string"
             },
             "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
           }
         ],
         "requestBody": {
@@ -2500,6 +3130,16 @@
                   "error": "Invalid authorization token",
                   "code": "INVALID_AUTH_TOKEN"
                 },
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin or CSRF validation failed",
+            "content": {
+              "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
                 }
@@ -2736,6 +3376,45 @@
         ],
         "additionalProperties": false
       },
+      "Session": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "lastUsedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "absoluteExpiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "userAgentLabel": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "lastUsedAt",
+          "expiresAt",
+          "absoluteExpiresAt"
+        ],
+        "additionalProperties": false
+      },
       "Error": {
         "type": "object",
         "properties": {
@@ -2859,10 +3538,15 @@
       }
     },
     "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Host-mz_at"
+      },
+      "refreshCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "__Secure-mz_rt"
       }
     }
   }

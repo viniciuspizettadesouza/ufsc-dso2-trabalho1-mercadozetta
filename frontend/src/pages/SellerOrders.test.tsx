@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import SellerOrders from '@/pages/SellerOrders';
 import api from '@/services/api';
+import { AuthTestProvider } from '@/test/AuthTestProvider';
+import type { AuthUser } from '@/auth/AuthContext';
 
 vi.mock('@/services/api', () => ({
   default: {
@@ -14,11 +16,15 @@ vi.mock('@/services/api', () => ({
   },
 }));
 
-function renderSellerOrders() {
+function renderSellerOrders(
+  user: AuthUser | null = { _id: 'seller-1', username: 'Seller' },
+) {
   return render(
-    <MemoryRouter>
-      <SellerOrders />
-    </MemoryRouter>,
+    <AuthTestProvider user={user}>
+      <MemoryRouter>
+        <SellerOrders />
+      </MemoryRouter>
+    </AuthTestProvider>,
   );
 }
 
@@ -26,11 +32,6 @@ describe('SellerOrders', () => {
   afterEach(() => cleanup());
 
   beforeEach(() => {
-    localStorage.clear();
-    localStorage.setItem(
-      'user',
-      JSON.stringify({ _id: 'seller-1', username: 'Seller' }),
-    );
     vi.mocked(api.get).mockReset();
     vi.mocked(api.patch).mockReset();
   });
@@ -120,8 +121,7 @@ describe('SellerOrders', () => {
     );
   });
 
-  it('handles invalid stored user data without exposing seller items', async () => {
-    localStorage.setItem('user', '{invalid-json');
+  it('does not expose seller items without an in-memory user', async () => {
     mockOrders([
       {
         _id: 'order-1',
@@ -131,7 +131,7 @@ describe('SellerOrders', () => {
       },
     ]);
 
-    renderSellerOrders();
+    renderSellerOrders(null);
 
     expect(
       await screen.findByText('No seller orders found.'),

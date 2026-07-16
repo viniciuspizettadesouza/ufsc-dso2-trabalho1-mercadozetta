@@ -6,10 +6,7 @@ import Header from '@/pages/header';
 import api from '@/services/api';
 import { useBrand } from '@/brands/brandContext';
 import { apiRoutes, appRoutes } from '@/routes';
-
-type StoredUser = {
-  _id?: string;
-};
+import { useAuth } from '@/auth/AuthContext';
 
 type ProductStatus = 'draft' | 'active' | 'paused' | 'sold_out' | 'archived';
 
@@ -21,24 +18,10 @@ const productStatusOptions: ProductStatus[] = [
   'archived',
 ];
 
-function getStoredUser(): StoredUser | null {
-  const storedUser = localStorage.getItem('user');
-
-  if (!storedUser) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(storedUser);
-  } catch {
-    localStorage.removeItem('user');
-    return null;
-  }
-}
-
 export default function AddProduct() {
   const brand = useBrand();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -52,9 +35,7 @@ export default function AddProduct() {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    const user = getStoredUser();
-
-    if (!localStorage.getItem('token') || !user?._id) {
+    if (!user?._id) {
       setError(brand.copy.validation.loginRequiredForProduct);
       return;
     }

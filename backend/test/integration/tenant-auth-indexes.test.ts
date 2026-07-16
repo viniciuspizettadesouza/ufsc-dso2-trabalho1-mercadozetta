@@ -9,7 +9,7 @@ import Review from '@/model/review';
 import User from '@/model/user';
 import Watchlist from '@/model/watchlist';
 import {
-  authorization,
+  sessionHeaders,
   clearDatabase,
   connectDatabase,
   disconnectDatabase,
@@ -187,10 +187,11 @@ describe('tenant, authentication, and index persistence', () => {
       ).toBe(1);
     }
 
+    const marketAuth = await sessionHeaders(marketUser._id, 'mercadozetta');
     const crossTenantToken = await request(app)
       .get('/orders')
       .set('X-Tenant-Id', 'campus-market')
-      .set('Authorization', authorization(marketUser._id, 'mercadozetta'))
+      .set(marketAuth)
       .expect(401);
     expect(crossTenantToken.body.code).toBe('INVALID_AUTH_TOKEN');
   });
@@ -203,24 +204,14 @@ describe('tenant, authentication, and index persistence', () => {
       username: 'Login User',
       telephone: '555-0101',
     });
-    const login = await request(app)
-      .post('/auth/login')
-      .send({ email: 'login@example.com', password: 'password123' })
-      .expect(200);
-    const auth = `Bearer ${login.body.token}`;
+    const auth = await sessionHeaders(user._id);
 
-    await request(app).get('/cart').set('Authorization', auth).expect(200);
-    await request(app)
-      .post('/auth/logout')
-      .set('Authorization', auth)
-      .expect(204);
+    await request(app).get('/cart').set(auth).expect(200);
+    await request(app).post('/auth/logout').set(auth).expect(204);
     expect(
       (await User.findById(user._id).select('+tokenVersion'))?.tokenVersion,
     ).toBe(1);
-    const revoked = await request(app)
-      .get('/cart')
-      .set('Authorization', auth)
-      .expect(401);
+    const revoked = await request(app).get('/cart').set(auth).expect(401);
     expect(revoked.body.code).toBe('INVALID_AUTH_TOKEN');
   });
 });

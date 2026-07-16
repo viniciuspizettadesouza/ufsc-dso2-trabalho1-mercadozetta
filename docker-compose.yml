@@ -24,7 +24,12 @@ services:
     restart: unless-stopped
     environment:
       MONGODB_URI: mongodb://mongo:27017/mercadozetta?replicaSet=rs0
-      JWT_SECRET: local_dev_secret_please_change_later
+      JWT_SIGNING_KEYS: '{"current":"local_dev_secret_please_change_later"}'
+      JWT_ACTIVE_KID: current
+      REFRESH_TOKEN_HASH_SECRETS: '{"current":"local_dev_refresh_secret_please_change_later"}'
+      REFRESH_TOKEN_HASH_ACTIVE_VERSION: current
+      CSRF_SECRETS: '{"current":"local_dev_csrf_secret_please_change_later"}'
+      CSRF_ACTIVE_VERSION: current
       PORT: 3333
       CORS_ORIGIN: http://localhost:5173
       RATE_LIMIT_AUTH_WINDOW_MS: 900000

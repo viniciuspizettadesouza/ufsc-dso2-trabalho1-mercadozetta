@@ -37,7 +37,6 @@ describe('Index', () => {
   });
 
   beforeEach(() => {
-    localStorage.clear();
     navigate.mockReset();
     vi.mocked(api.get).mockResolvedValue({ data: [] });
   });

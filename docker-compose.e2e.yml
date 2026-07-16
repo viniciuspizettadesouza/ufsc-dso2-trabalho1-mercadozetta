@@ -1,0 +1,60 @@
+services:
+  mongo-e2e:
+    image: mongo:7
+    command: ['mongod', '--replSet', 'rs0', '--bind_ip_all']
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'mongosh --quiet --eval "try { rs.status().ok } catch (error) { rs.initiate({_id: ''rs0'', members: [{_id: 0, host: ''mongo-e2e:27017''}]}).ok }"',
+        ]
+      interval: 1s
+      timeout: 5s
+      retries: 30
+    tmpfs:
+      - /data/db
+
+  backend-e2e:
+    build:
+      context: ./backend
+    environment:
+      NODE_ENV: test
+      MONGODB_URI: mongodb://mongo-e2e:27017/mercadozetta_e2e?replicaSet=rs0
+      JWT_SIGNING_KEYS: '{"current":"e2e-jwt-current","previous":"e2e-jwt-previous"}'
+      JWT_ACTIVE_KID: current
+      REFRESH_TOKEN_HASH_SECRETS: '{"current":"e2e-refresh-current","previous":"e2e-refresh-previous"}'
+      REFRESH_TOKEN_HASH_ACTIVE_VERSION: current
+      CSRF_SECRETS: '{"current":"e2e-csrf-current","previous":"e2e-csrf-previous"}'
+      CSRF_ACTIVE_VERSION: current
+      PORT: 3333
+      CORS_ORIGIN: http://localhost:6173
+      RATE_LIMIT_AUTH_MAX: 100
+      RATE_LIMIT_REGISTER_MAX: 100
+    ports:
+      - '4333:3333'
+    depends_on:
+      mongo-e2e:
+        condition: service_healthy
+    healthcheck:
+      test:
+        ['CMD', 'wget', '--quiet', '--spider', 'http://localhost:3333/health']
+      interval: 1s
+      timeout: 5s
+      retries: 30
+
+  frontend-e2e:
+    build:
+      context: ./frontend
+    environment:
+      VITE_API_URL: http://localhost:4333
+      VITE_TENANT_ID: mercadozetta
+    ports:
+      - '6173:5173'
+    depends_on:
+      backend-e2e:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--spider', 'http://127.0.0.1:5173']
+      interval: 1s
+      timeout: 5s
+      retries: 30

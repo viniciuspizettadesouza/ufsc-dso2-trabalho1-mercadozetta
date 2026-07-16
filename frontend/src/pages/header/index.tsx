@@ -4,39 +4,29 @@ import { Link, useLocation, useNavigate } from 'react-router';
 import { useBrand } from '@/brands/brandContext';
 import { apiRoutes, appRoutes } from '@/routes';
 import api from '@/services/api';
-
-type StoredUser = {
-  _id?: string;
-  email?: string;
-  username?: string;
-  telephone?: string;
-};
+import { useAuth } from '@/auth/AuthContext';
 
 type HeaderProps = {
   hideLoginAction?: boolean;
 };
 
-function getStoredUser(): StoredUser | null {
-  const storedUser = localStorage.getItem('user');
-
-  if (!storedUser) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(storedUser);
-  } catch {
-    localStorage.removeItem('user');
-    return null;
-  }
-}
-
 const Header = ({ hideLoginAction = false }: HeaderProps) => {
   const brand = useBrand();
   const navigate = useNavigate();
   const location = useLocation();
-  const [user] = useState(getStoredUser);
+  const { user, clearSession } = useAuth();
   const [unreadCount, setUnreadCount] = useState(0);
+  const clearSessionAfterLogout = Boolean(
+    (location.state as { clearSessionAfterLogout?: boolean } | null)
+      ?.clearSessionAfterLogout,
+  );
+
+  useEffect(() => {
+    if (!clearSessionAfterLogout) return;
+
+    clearSession();
+    navigate(appRoutes.home, { replace: true, state: null });
+  }, [clearSession, clearSessionAfterLogout, navigate]);
 
   useEffect(() => {
     if (!user) return;
@@ -57,13 +47,14 @@ const Header = ({ hideLoginAction = false }: HeaderProps) => {
 
   async function handleLogout() {
     try {
-      await api.post('/auth/logout');
+      await api.post(apiRoutes.logout);
     } catch {
       // Local logout must still succeed when the API is unavailable.
     } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      navigate(appRoutes.home);
+      navigate(appRoutes.home, {
+        replace: true,
+        state: { clearSessionAfterLogout: true },
+      });
     }
   }
 

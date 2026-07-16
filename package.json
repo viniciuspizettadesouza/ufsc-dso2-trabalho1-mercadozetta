@@ -26,6 +26,8 @@
     "format:check": "prettier . --check",
     "test": "npm run typecheck && npm run test:backend && npm run test:frontend",
     "test:integration": "bash scripts/test-integration.sh",
+    "test:e2e": "bash scripts/test-e2e.sh",
+    "test:e2e:browser": "playwright test",
     "test:coverage": "npm run test:coverage:backend && npm run test:coverage:frontend",
     "test:backend": "npm --prefix backend test",
     "test:frontend": "npm --prefix frontend test",
@@ -33,6 +35,7 @@
     "test:coverage:frontend": "npm --prefix frontend run test:coverage"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.8",
