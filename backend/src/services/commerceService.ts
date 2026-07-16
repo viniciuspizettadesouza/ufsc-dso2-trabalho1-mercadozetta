@@ -1,36 +1,36 @@
 import AppError from '@/errors/AppError';
-import mongoose from 'mongoose';
-import Cart from '@/model/cart';
-import Notification from '@/model/notification';
-import Order from '@/model/order';
 import {
   buyerCancellableStatuses,
   type OrderStatus,
   sellerOrderTransitions,
 } from '@/orderStatus';
-import OrderItem from '@/model/orderItem';
-import Product from '@/model/product';
-import Review from '@/model/review';
-import Watchlist from '@/model/watchlist';
+import type { CheckoutTransactionCoordinator } from '@/repositories/checkoutTransaction';
+import type { CartRepository } from '@/repositories/cartRepository';
+import type { NotificationRepository } from '@/repositories/notificationRepository';
+import type { OrderItemRepository } from '@/repositories/orderItemRepository';
+import type { OrderRepository } from '@/repositories/orderRepository';
+import type { ProductRepository } from '@/repositories/productRepository';
+import type { ReviewRepository } from '@/repositories/reviewRepository';
+import type { WatchlistRepository } from '@/repositories/watchlistRepository';
 
-export async function getCart(userId: string, tenantId: string) {
-  const cart = await Cart.findOne({ tenantId, buyer: userId }).populate(
-    'items.product',
-  );
+async function getCartWithRepository(
+  carts: CartRepository,
+  userId: string,
+  tenantId: string,
+) {
+  const cart = await carts.get(tenantId, userId);
   return cart ?? { tenantId, buyer: userId, items: [] };
 }
 
-export async function setCartItem(
+async function setCartItemWithRepository(
+  carts: CartRepository,
+  productRepository: ProductRepository,
   userId: string,
   tenantId: string,
   productId: string,
   quantity: number,
 ) {
-  const product = await Product.findOne({
-    _id: productId,
-    tenantId,
-    status: 'active',
-  });
+  const product = await productRepository.findActiveById(tenantId, productId);
   /* v8 ignore next -- covered through mocked model branches; CommonJS integration tests load a duplicate module copy. */
   if (!product)
     throw new AppError(404, 'PRODUCT_NOT_FOUND', 'Product not found');
@@ -42,215 +42,155 @@ export async function setCartItem(
       'Insufficient product inventory',
     );
 
-  const cart = await Cart.findOneAndUpdate(
-    { tenantId, buyer: userId },
-    { $setOnInsert: { tenantId, buyer: userId } },
-    { upsert: true, returnDocument: 'after' },
-  );
-  const item = cart.items.find((entry) => String(entry.product) === productId);
-  /* v8 ignore next -- both existing and new cart lines have focused coverage. */
-  if (item) item.quantity = quantity;
-  else cart.items.push({ product: product._id, quantity });
-  await cart.save();
-  return getCart(userId, tenantId);
+  await carts.setItem(tenantId, userId, product._id, quantity);
+  return getCartWithRepository(carts, userId, tenantId);
 }
 
-export async function removeCartItem(
+async function removeCartItemWithRepository(
+  carts: CartRepository,
   userId: string,
   tenantId: string,
   productId: string,
 ) {
-  await Cart.updateOne(
-    { tenantId, buyer: userId },
-    { $pull: { items: { product: productId } } },
-  );
-  return getCart(userId, tenantId);
+  await carts.removeItem(tenantId, userId, productId);
+  return getCartWithRepository(carts, userId, tenantId);
 }
 
-export async function listWatchlist(userId: string, tenantId: string) {
-  return Watchlist.find({ tenantId, user: userId }).populate('product');
-}
-
-export async function addWatchlist(
+async function addWatchlistWithRepository(
+  watchlists: WatchlistRepository,
+  productRepository: ProductRepository,
   userId: string,
   tenantId: string,
   productId: string,
 ) {
-  const product = await Product.exists({ _id: productId, tenantId });
+  const product = await productRepository.findById(tenantId, productId);
   /* v8 ignore next -- covered through mocked model branches; CommonJS integration tests load a duplicate module copy. */
   if (!product)
     throw new AppError(404, 'PRODUCT_NOT_FOUND', 'Product not found');
-  return Watchlist.findOneAndUpdate(
-    { tenantId, user: userId, product: productId },
-    { $setOnInsert: { tenantId, user: userId, product: productId } },
-    { upsert: true, returnDocument: 'after' },
-  );
+  return watchlists.add(tenantId, userId, productId, new Date());
 }
 
-export async function removeWatchlist(
+async function createOrderWithRepository(
+  checkoutTransactions: CheckoutTransactionCoordinator,
   userId: string,
   tenantId: string,
-  productId: string,
 ) {
-  await Watchlist.deleteOne({ tenantId, user: userId, product: productId });
-}
+  return checkoutTransactions.run(async (repositories) => {
+    const now = new Date();
+    const cart = await repositories.carts.findForCheckout(tenantId, userId);
+    /* v8 ignore next -- empty and populated carts have focused coverage. */
+    if (!cart?.items.length)
+      throw new AppError(400, 'EMPTY_CART', 'Cart is empty');
 
-export async function createOrder(userId: string, tenantId: string) {
-  const session = await mongoose.startSession();
-  let transactionResult;
-
-  try {
-    transactionResult = await session.withTransaction(async () => {
-      const cart = await Cart.findOne({ tenantId, buyer: userId }, null, {
-        session,
-      });
-      /* v8 ignore next -- empty and populated carts have focused coverage. */
-      if (!cart?.items.length)
-        throw new AppError(400, 'EMPTY_CART', 'Cart is empty');
-
-      const products = await Product.find(
-        {
-          tenantId,
-          _id: { $in: cart.items.map((item) => item.product) },
-        },
-        null,
-        { session },
-      );
-      const productMap = new Map(
-        products.map((product) => [String(product._id), product]),
-      );
-      for (const item of cart.items) {
-        const product = productMap.get(String(item.product));
-        /* v8 ignore next -- missing, inactive, understocked, and available products have focused coverage. */
-        if (
-          !product ||
-          product.status !== 'active' ||
-          product.inventory < item.quantity
-        )
-          throw new AppError(
-            409,
-            'INSUFFICIENT_INVENTORY',
-            'A cart item is unavailable',
-          );
-      }
-
-      const [order] = await Order.create(
-        [
-          {
-            tenantId,
-            buyer: userId,
-            status: 'placed',
-            statusHistory: [{ status: 'placed', actor: userId }],
-          },
-        ],
-        { session },
-      );
-      const items = cart.items.map((item) => {
-        const product = productMap.get(String(item.product))!;
-        return {
-          tenantId,
-          order: order._id,
-          product: product._id,
-          seller: product.seller,
-          productName: product.name,
-          quantity: item.quantity,
-        };
-      });
-      await OrderItem.insertMany(items, { session });
-
-      for (const item of items) {
-        const inventoryUpdate = await Product.updateOne(
-          {
-            _id: item.product,
-            tenantId,
-            status: 'active',
-            inventory: { $gte: item.quantity },
-          },
-          { $inc: { inventory: -item.quantity } },
-          { session },
+    const products = await repositories.products.findByIdsForUpdate(
+      tenantId,
+      cart.items.map((item) => item.productId),
+    );
+    const productMap = new Map(
+      products.map((product) => [String(product._id), product]),
+    );
+    for (const item of cart.items) {
+      const product = productMap.get(item.productId);
+      /* v8 ignore next -- missing, inactive, understocked, and available products have focused coverage. */
+      if (
+        !product ||
+        product.status !== 'active' ||
+        product.inventory < item.quantity
+      )
+        throw new AppError(
+          409,
+          'INSUFFICIENT_INVENTORY',
+          'A cart item is unavailable',
         );
-        if (inventoryUpdate.modifiedCount !== 1)
-          throw new AppError(
-            409,
-            'INSUFFICIENT_INVENTORY',
-            'A cart item is unavailable',
-          );
-      }
+    }
 
-      await Cart.updateOne(
-        { _id: cart._id, tenantId },
-        { $set: { items: [] } },
-        { session },
-      );
-      await Notification.create(
-        [
-          {
-            tenantId,
-            user: userId,
-            message: `Order ${order._id} created`,
-          },
-        ],
-        { session },
-      );
-      await Notification.insertMany(
-        [...new Set(items.map((item) => String(item.seller)))].map(
-          (seller) => ({
-            tenantId,
-            user: seller,
-            message: `New order ${order._id}`,
-          }),
-        ),
-        { session },
-      );
-      return { order, items };
+    const order = await repositories.orders.createPlaced(tenantId, userId, now);
+    const items = cart.items.map((item) => {
+      const product = productMap.get(item.productId)!;
+      return {
+        tenantId,
+        order: order._id,
+        product: product._id,
+        seller: String(product.seller),
+        productName: product.name,
+        quantity: item.quantity,
+      };
     });
-  } finally {
-    await session.endSession();
-  }
+    await repositories.orderItems.createMany(items, now);
 
-  /* v8 ignore next -- a committed transaction always assigns its order. */
-  if (!transactionResult) throw new Error('Order transaction did not commit');
-  return {
-    ...transactionResult.order.toObject(),
-    items: transactionResult.items,
-  };
+    for (const item of items) {
+      const inventoryUpdated =
+        await repositories.products.decrementAvailableInventory(
+          tenantId,
+          String(item.product),
+          item.quantity,
+        );
+      if (!inventoryUpdated)
+        throw new AppError(
+          409,
+          'INSUFFICIENT_INVENTORY',
+          'A cart item is unavailable',
+        );
+    }
+
+    await repositories.carts.clear(tenantId, cart.id);
+    await repositories.notifications.create(
+      {
+        tenantId,
+        userId,
+        message: `Order ${order._id} created`,
+      },
+      now,
+    );
+    await repositories.notifications.createMany(
+      [...new Set(items.map((item) => item.seller))].map((seller) => ({
+        tenantId,
+        userId: seller,
+        message: `New order ${order._id}`,
+      })),
+      now,
+    );
+    return { ...order, items };
+  });
 }
 
-export async function listOrders(userId: string, tenantId: string) {
-  const buyerOrders = await Order.find({ tenantId, buyer: userId }).sort({
-    createdAt: -1,
-  });
-  const soldItems = await OrderItem.find({ tenantId, seller: userId });
+async function listOrdersWithRepositories(
+  orderRepository: OrderRepository,
+  orderItems: OrderItemRepository,
+  userId: string,
+  tenantId: string,
+) {
   const orderIds = [
     ...new Set([
-      ...buyerOrders.map((order) => String(order._id)),
-      ...soldItems.map((item) => String(item.order)),
+      ...(await orderRepository.listIdsByBuyer(tenantId, userId)),
+      ...(await orderItems.listOrderIdsBySeller(tenantId, userId)),
     ]),
   ];
-  const orders = await Order.find({ tenantId, _id: { $in: orderIds } }).sort({
-    createdAt: -1,
-  });
-  const items = await OrderItem.find({ tenantId, order: { $in: orderIds } });
+  const orders = await orderRepository.listByIds(tenantId, orderIds);
+  const items = await orderItems.listByOrderIds(tenantId, orderIds);
   return orders.map((order) => ({
-    ...order.toObject(),
-    items: items.filter((item) => String(item.order) === String(order._id)),
+    ...order,
+    items: items.filter((item) => item.order === order._id),
   }));
 }
 
-export async function updateOrderStatus(
+async function updateOrderStatusWithRepositories(
+  orderRepository: OrderRepository,
+  orderItems: OrderItemRepository,
+  notifications: NotificationRepository,
   userId: string,
   tenantId: string,
   orderId: string,
   status: OrderStatus,
 ) {
-  const order = await Order.findOne({ _id: orderId, tenantId });
+  const order = await orderRepository.findById(tenantId, orderId);
   /* v8 ignore next -- missing and existing orders have focused coverage. */
   if (!order) throw new AppError(404, 'ORDER_NOT_FOUND', 'Order not found');
-  const sellerItem = await OrderItem.exists({
+  const sellerItem = await orderItems.sellerOwnsOrder(
     tenantId,
-    order: orderId,
-    seller: userId,
-  });
+    orderId,
+    userId,
+  );
   const isBuyerCancellation =
     String(order.buyer) === userId && status === 'cancelled';
   /* v8 ignore next -- seller, buyer cancellation, and unrelated-user paths have focused coverage. */
@@ -270,29 +210,36 @@ export async function updateOrderStatus(
       'ORDER_STATUS_TRANSITION_INVALID',
       `Order cannot transition from ${order.status} to ${status}`,
     );
-  order.status = status;
-  order.statusHistory.push({ status, actor: userId, changedAt: new Date() });
-  await order.save();
-  await Notification.create({
+  const now = new Date();
+  const updated = await orderRepository.updateStatus(
     tenantId,
-    user: order.buyer,
-    message: `Order ${order._id} is now ${status}`,
-  });
-  return order;
+    orderId,
+    status,
+    userId,
+    now,
+  );
+  await notifications.create(
+    {
+      tenantId,
+      userId: order.buyer,
+      message: `Order ${order._id} is now ${status}`,
+    },
+    now,
+  );
+  return updated;
 }
 
-export async function listReviews(tenantId: string, productId: string) {
-  return Review.find({ tenantId, product: productId }).sort({ createdAt: -1 });
-}
-
-export async function createReview(
+async function createReviewWithRepository(
+  reviews: ReviewRepository,
+  productRepository: ProductRepository,
+  notifications: NotificationRepository,
   userId: string,
   tenantId: string,
   productId: string,
   rating: number,
   comment: string,
 ) {
-  const product = await Product.findOne({ _id: productId, tenantId });
+  const product = await productRepository.findById(tenantId, productId);
   /* v8 ignore next -- missing and existing products have focused coverage. */
   if (!product)
     throw new AppError(404, 'PRODUCT_NOT_FOUND', 'Product not found');
@@ -303,13 +250,11 @@ export async function createReview(
       'REVIEW_FORBIDDEN',
       'Sellers cannot review their own products',
     );
-  const purchased = await OrderItem.exists({
+  const purchased = await reviews.hasPurchasedProduct(
     tenantId,
-    product: productId,
-    order: {
-      $in: await Order.find({ tenantId, buyer: userId }).distinct('_id'),
-    },
-  });
+    userId,
+    productId,
+  );
   /* v8 ignore next -- purchased and unpurchased paths have focused coverage. */
   if (!purchased)
     throw new AppError(
@@ -317,42 +262,170 @@ export async function createReview(
       'REVIEW_PURCHASE_REQUIRED',
       'Only buyers can review purchased products',
     );
-  const review = await Review.findOneAndUpdate(
-    { tenantId, product: productId, author: userId },
-    { rating, comment },
-    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true },
-  );
-  await Notification.create({
+  const now = new Date();
+  const review = await reviews.upsert(
     tenantId,
-    user: product.seller,
-    message: `New review for ${product.name}`,
-  });
+    productId,
+    userId,
+    rating,
+    comment,
+    now,
+  );
+  await notifications.create(
+    {
+      tenantId,
+      userId: String(product.seller),
+      message: `New review for ${product.name}`,
+    },
+    now,
+  );
   return review;
 }
 
-export async function listNotifications(userId: string, tenantId: string) {
-  return Notification.find({ tenantId, user: userId }).sort({ createdAt: -1 });
+export function createCommerceProductService(
+  _productRepository: ProductRepository,
+  checkoutTransactions: CheckoutTransactionCoordinator,
+) {
+  return {
+    createOrder: (userId: string, tenantId: string) =>
+      createOrderWithRepository(checkoutTransactions, userId, tenantId),
+  };
 }
 
-export async function countUnreadNotifications(
-  userId: string,
-  tenantId: string,
+export function createWatchlistCommerceService(
+  watchlists: WatchlistRepository,
+  products: ProductRepository,
 ) {
-  return Notification.countDocuments({ tenantId, user: userId, read: false });
+  return {
+    listWatchlist: (userId: string, tenantId: string) =>
+      watchlists.list(tenantId, userId),
+    addWatchlist: (userId: string, tenantId: string, productId: string) =>
+      addWatchlistWithRepository(
+        watchlists,
+        products,
+        userId,
+        tenantId,
+        productId,
+      ),
+    removeWatchlist: (userId: string, tenantId: string, productId: string) =>
+      watchlists.remove(tenantId, userId, productId),
+  };
 }
 
-export async function updateNotificationRead(
-  userId: string,
-  tenantId: string,
-  notificationId: string,
-  read: boolean,
+export function createReviewCommerceService(
+  reviews: ReviewRepository,
+  products: ProductRepository,
+  notifications: NotificationRepository,
 ) {
-  const notification = await Notification.findOneAndUpdate(
-    { _id: notificationId, tenantId, user: userId },
-    { read },
-    { returnDocument: 'after' },
-  );
-  if (!notification)
-    throw new AppError(404, 'NOTIFICATION_NOT_FOUND', 'Notification not found');
-  return notification;
+  return {
+    listReviews: (tenantId: string, productId: string) =>
+      reviews.list(tenantId, productId),
+    createReview: (
+      userId: string,
+      tenantId: string,
+      productId: string,
+      rating: number,
+      comment: string,
+    ) =>
+      createReviewWithRepository(
+        reviews,
+        products,
+        notifications,
+        userId,
+        tenantId,
+        productId,
+        rating,
+        comment,
+      ),
+  };
 }
+
+export function createCartCommerceService(
+  carts: CartRepository,
+  products: ProductRepository,
+) {
+  return {
+    getCart: (userId: string, tenantId: string) =>
+      getCartWithRepository(carts, userId, tenantId),
+    setCartItem: (
+      userId: string,
+      tenantId: string,
+      productId: string,
+      quantity: number,
+    ) =>
+      setCartItemWithRepository(
+        carts,
+        products,
+        userId,
+        tenantId,
+        productId,
+        quantity,
+      ),
+    removeCartItem: (userId: string, tenantId: string, productId: string) =>
+      removeCartItemWithRepository(carts, userId, tenantId, productId),
+  };
+}
+
+export function createOrderCommerceService(
+  orders: OrderRepository,
+  orderItems: OrderItemRepository,
+  notifications: NotificationRepository,
+) {
+  return {
+    listOrders: (userId: string, tenantId: string) =>
+      listOrdersWithRepositories(orders, orderItems, userId, tenantId),
+    updateOrderStatus: (
+      userId: string,
+      tenantId: string,
+      orderId: string,
+      status: OrderStatus,
+    ) =>
+      updateOrderStatusWithRepositories(
+        orders,
+        orderItems,
+        notifications,
+        userId,
+        tenantId,
+        orderId,
+        status,
+      ),
+  };
+}
+
+export function createNotificationCommerceService(
+  notifications: NotificationRepository,
+) {
+  return {
+    listNotifications: (userId: string, tenantId: string) =>
+      notifications.list(tenantId, userId),
+    countUnreadNotifications: (userId: string, tenantId: string) =>
+      notifications.countUnread(tenantId, userId),
+    updateNotificationRead: async (
+      userId: string,
+      tenantId: string,
+      notificationId: string,
+      read: boolean,
+    ) => {
+      const notification = await notifications.updateRead(
+        tenantId,
+        userId,
+        notificationId,
+        read,
+      );
+      if (!notification)
+        throw new AppError(
+          404,
+          'NOTIFICATION_NOT_FOUND',
+          'Notification not found',
+        );
+      return notification;
+    },
+  };
+}
+
+export type CommerceService = ReturnType<typeof createCartCommerceService> &
+  ReturnType<typeof createCommerceProductService> &
+  ReturnType<typeof createOrderCommerceService> &
+  ReturnType<typeof createNotificationCommerceService> &
+  ReturnType<typeof createWatchlistCommerceService> &
+  ReturnType<typeof createReviewCommerceService>;

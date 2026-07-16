@@ -1,5 +1,5 @@
-import mongoose from 'mongoose';
 import { productStatuses, type ProductStatus } from '@/productStatus';
+import { isUuid, UUID_EXAMPLE } from '@/ids';
 import type { RequestFieldValue } from '@/types/request';
 import { z } from 'zod';
 import {
@@ -223,24 +223,29 @@ export type ProductListFilters = z.infer<typeof productFiltersSchema>;
 
 export const productIdSchema = z
   .unknown()
-  .transform((value) => requestString(value).trim())
-  .refine((id) => Boolean(id), {
+  .transform((value) => requestString(value).trim().toLowerCase())
+  .refine((id) => isUuid(id), {
     message: 'Invalid product id',
     params: { appCode: 'INVALID_PRODUCT_ID', statusCode: 400 },
   })
   .meta({
     id: 'ProductId',
-    example: '507f191e810c19729de860ea',
-    override: { type: 'string' },
+    example: UUID_EXAMPLE,
+    override: { type: 'string', format: 'uuid' },
   });
 
 export const sellerIdSchema = z
   .string()
-  .refine((id) => mongoose.Types.ObjectId.isValid(id), {
+  .transform((id) => id.trim().toLowerCase())
+  .refine((id) => isUuid(id), {
     message: 'Invalid seller id',
     params: { appCode: 'INVALID_SELLER_ID', statusCode: 400 },
   })
-  .meta({ id: 'SellerId', example: '507f1f77bcf86cd799439011' });
+  .meta({
+    id: 'SellerId',
+    example: UUID_EXAMPLE,
+    override: { type: 'string', format: 'uuid' },
+  });
 
 export function validateCreateProductPayload(
   body: CreateProductRequestBody = {},

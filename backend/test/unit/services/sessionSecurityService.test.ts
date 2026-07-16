@@ -13,8 +13,8 @@ import {
   verifyCsrfToken,
 } from '@/services/sessionSecurityService';
 
-const sessionId = '507f1f77bcf86cd799439011';
-const anotherSessionId = '507f1f77bcf86cd799439012';
+const sessionId = '507f1f77-bcf8-4ecd-8994-390110000001';
+const anotherSessionId = '507f1f77-bcf8-4ecd-8994-390120000002';
 const refreshHashSecret = 'test-refresh-hash-secret';
 const csrfSecret = 'test-csrf-secret';
 const config = {
@@ -33,7 +33,7 @@ describe('session security service', () => {
     expect(first).not.toBe(second);
     expect(getRefreshTokenSessionId(first)).toBe(sessionId);
     expect(first).toMatch(new RegExp(`^${sessionId}\\.[A-Za-z0-9_-]{43}$`));
-    expect(() => createRefreshToken('not-an-object-id')).toThrow(
+    expect(() => createRefreshToken('not-a-uuid')).toThrow(
       'Invalid session id',
     );
   });

@@ -13,17 +13,16 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - TypeScript 7 is deferred until `typescript-eslint` publishes a compatible
   release; version 8.63.0 and its current canary support TypeScript only through
   versions earlier than 6.1.0.
-- Backend has 242 tests across 35 files and passes the 85% branch threshold with
-  87.19%. Frontend has 85 tests across 12 files and passes its 90% branch
+- Backend has 104 focused tests across 26 files and passes its coverage thresholds
+  with 88.91% branches and 85.27% functions. Frontend has 85 tests across 12 files and passes its 90% branch
   threshold with 90.60%. Type checks, tests, lint, formatting, OpenAPI
   generation, coverage, and the production build pass.
 - Checkout commits order creation, items, conditional inventory decrements, cart
-  clearing, and notifications in one transaction. Dockerized MongoDB uses a
-  single-node replica set so local behavior matches this requirement.
-- A separate `npm run test:integration` lane builds an ephemeral MongoDB 7
-  replica set, runs 11 database-backed tests across 5 files against the real
-  Express app and Mongoose models, and cleans up its isolated Compose project
-  and database deterministically.
+  clearing, and notifications in one PostgreSQL transaction.
+- A separate `npm run test:integration` lane builds ephemeral PostgreSQL 18,
+  applies committed migrations, runs 9 database-backed scenarios across two
+  files against the real Express composition and Drizzle adapters, and cleans up
+  its isolated Compose project and database deterministically.
 - Database-backed tests verify atomic checkout and rollback, cart and
   watchlist persistence, order visibility and fulfillment, verified-purchase
   reviews, notifications, tenant and compound-index isolation, token-version
@@ -64,16 +63,15 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - Focused unit and contract tests pass for cookie flags, login response safety,
   access validation, Origin/CSRF rejection, expiry, rotation, replay,
   concurrency, tenant scoping, revocation, and failed frontend renewal. The
-  expanded database-backed integration lane passes all 11 tests and cleans up
-  its containers and isolated network successfully. Commerce updates use the
-  current Mongoose `returnDocument: 'after'` option without deprecation warnings.
-- The root `npm run test:e2e` lane builds an isolated, deterministically seeded
-  MongoDB/backend/frontend stack and runs Chromium through protected-route
+  database-backed integration lane passes all 9 scenarios and cleans up its
+  containers and isolated network successfully.
+- The root `npm run test:e2e` lane builds isolated, deterministically seeded
+  PostgreSQL backend/frontend stacks and runs Chromium through protected-route
   return, login, exact cookie flags, access renewal, no persistent browser auth,
   logout, tenant-scoped registration, buyer checkout with inventory decrement,
-  seller fulfillment through delivery, and buyer notification read state. Its
-  two tests use isolated browser contexts where required; containers, network,
-  and database are cleaned up on exit, and Playwright artifacts are ignored.
+  seller fulfillment through delivery, and buyer notification read state. The
+  two tests use isolated browser contexts where required; containers, networks,
+  and databases are cleaned up on exit, and Playwright artifacts are ignored.
 - Axe checks run within those deterministic workflows against protected login,
   registration, checkout, seller orders, and buyer notifications. The forms use
   main landmarks, level-one headings, explicit labels, and autocomplete hints,
@@ -98,7 +96,7 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   base images are version-pinned, startup validates required production
   configuration, and development, integration, and browser stacks retain their
   explicit development targets.
-- The separate production Compose topology keeps MongoDB and the backend
+- The separate production Compose topology keeps PostgreSQL and the backend
   internal, exposes Nginx with `/api` proxying and refresh-cookie path handling,
   and includes liveness and readiness checks. The isolated production smoke lane
   verifies image builds, compiled/static artifacts, non-root users, frontend
@@ -107,10 +105,57 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   behavior, versioned-image deployment, rollback, and smoke procedures are
   documented in `docs/production-deployment.md`; CI runs the production smoke
   lane.
-- Next action: begin phase 4 by writing the database decision record under
-  `docs/decisions/`. Compare MongoDB and PostgreSQL against the marketplace's
-  integrity, transaction, tenant-isolation, query, operations, migration, and
-  rollback requirements before selecting data-access or migration tooling.
+- The database direction is accepted in
+  `docs/decisions/0002-postgresql-persistence.md`: PostgreSQL will become the
+  sole authoritative database, persistent entities will use native UUIDs, and
+  tenant-qualified constraints and short explicit transactions will preserve
+  isolation, inventory, checkout, fulfillment, and session semantics. The ADR
+  requires a rehearsed maintenance-window migration, deterministic validation,
+  and a database-aware rollback; it deliberately leaves data-access tooling to
+  the focused spike.
+- The tooling-independent relational design is recorded in
+  `docs/postgresql-schema-design.md`. It maps the current models to
+  tenant-qualified tables and foreign keys, defines checks, uniqueness, delete
+  behavior, immutable order snapshots/history, query-driven baseline indexes,
+  migration invariants, and exact checkout, fulfillment, and session transaction
+  boundaries without expanding the product contract.
+- The executable tooling spike is recorded in
+  `docs/postgresql-tooling-spike.md`. Prisma 7.8.0, Drizzle ORM 0.45.2, and
+  direct `pg` 8.22.0 all passed equivalent checkout commit/rollback and
+  single-winner refresh-rotation scenarios. Drizzle and direct SQL additionally
+  generated the accepted checks and partial index; the unmodified Prisma
+  migration accepted invalid negative inventory.
+- Data-access tooling is accepted in
+  `docs/decisions/0003-drizzle-postgresql-tooling.md`: use Drizzle ORM with the
+  `pg` pool, generate and review versioned SQL through Drizzle Kit, and reserve
+  parameterized SQL fragments/custom migrations for explicit PostgreSQL
+  behavior. No candidate dependency was added during the disposable spike.
+- All persistent and security identifiers are canonical UUID strings. New IDs
+  use `crypto.randomUUID()`, deterministic demo IDs are fixed UUIDs, and shared
+  validation covers resource paths, JWT `sub`/`sid`, refresh selectors, CSRF
+  binding, and OpenAPI `format: uuid`.
+- PostgreSQL is the sole persistence runtime. The backend pins Drizzle ORM
+  0.45.2, Drizzle Kit 0.31.10, and `pg` 8.22.0; its reviewed 12-table migration
+  encodes UUID keys, tenant-qualified foreign keys, checks, indexes, immutable
+  order snapshots/history, session metadata, and deterministic tenant anchors.
+  Local, integration, E2E, and production Compose topologies apply migrations
+  before startup and expose PostgreSQL readiness.
+- Database-neutral repository contracts and Drizzle adapters cover users,
+  products, carts, checkout, orders/history/items, notifications, watchlists,
+  reviews, and sessions. PostgreSQL transactions use ordered locks and
+  conditional updates for checkout and refresh rotation while preserving API,
+  tenant, ownership, replay, revocation, and lifecycle contracts.
+- No deployed database or production data exists, so the cutover was a direct
+  repository switch. MongoDB/Mongoose adapters, models, containers,
+  migration-only configuration, duplicated tests, and dependencies are removed;
+  no data migration, backup, or restore procedure is applicable to this project.
+- Typecheck, 104 focused backend tests, 85 frontend tests, backend coverage
+  thresholds, lint, formatting, 9 PostgreSQL integration scenarios, both
+  Chromium workflows, the OpenAPI contract, production-only dependency audit,
+  and the PostgreSQL production-image smoke lane pass.
+- Next action: begin Step 5 by moving catalog search, filters, availability,
+  status, seller scoping, and sorting into tenant-scoped PostgreSQL queries while
+  preserving the current API response and validation contracts.
 
 ## Recommended Order
 
@@ -171,44 +216,43 @@ marketplace demo while evolving the new persistent commerce workflows safely.
       expand to Firefox, WebKit, or mobile projects only when compatibility
       requirements justify the additional CI cost.
 
-### 4. Migrate persistence to PostgreSQL
+### 4. Migrate persistence to PostgreSQL (completed)
 
-- [ ] Write and accept a database ADR before implementation. Compare the current
+- [x] Write and accept a database ADR before implementation. Compare the current
       MongoDB design with PostgreSQL using the marketplace's relational integrity,
       transaction, tenant-isolation, query, operational, hosting-cost, migration,
       and rollback requirements. Record PostgreSQL and UUID identifiers as the
       intended direction unless the investigation identifies a concrete blocker.
-- [ ] Design the relational schema with explicit foreign keys, tenant-scoped
+- [x] Design the relational schema with explicit foreign keys, tenant-scoped
       unique constraints and indexes, immutable order-item snapshots, inventory
       invariants, and transaction boundaries for checkout and fulfillment.
-- [ ] Choose the PostgreSQL data-access and migration tooling through a focused
+- [x] Choose the PostgreSQL data-access and migration tooling through a focused
       spike. Evaluate Prisma, Drizzle, and a SQL-oriented client against the
       existing service boundaries, transaction behavior, generated SQL,
       migration reviewability, testability, and production deployment model.
-- [ ] Remove MongoDB-specific identifiers from public and security contracts.
+- [x] Remove MongoDB-specific identifiers from public and security contracts.
       Replace ObjectId validation and the ObjectId-shaped refresh-token session
       selector with database-neutral UUID or opaque identifiers without changing
       the accepted cookie, CSRF, rotation, replay, revocation, or key-ring rules.
-- [ ] Implement PostgreSQL persistence behind the existing service boundaries,
+- [x] Implement PostgreSQL persistence behind the existing service boundaries,
       preserving API contracts and keeping transactions short and explicit.
-- [ ] Build versioned schema and data migrations plus deterministic validation
-      reports. Preserve password hashes, ownership, tenant isolation, inventory,
-      immutable order history, timestamps, and other required data without
-      logging secrets or personal data.
-- [ ] Port database-backed integration tests and deterministic seed data to an
+- [x] Build and verify versioned PostgreSQL schema migrations. A MongoDB data
+      migration and validation report are not required because the project has
+      no deployed database or retained production data; deterministic PostgreSQL
+      seed data replaces the undeployed development dataset.
+- [x] Port database-backed integration tests and deterministic seed data to an
       ephemeral PostgreSQL service. Require checkout rollback, concurrent
       inventory updates, session rotation/replay, tenant isolation, and critical
       browser workflows to pass before cutover.
-- [ ] Rehearse backup, migration, validation, application startup, smoke testing,
-      and rollback against production-like data before changing the deployed
-      database.
-- [ ] Perform one controlled maintenance-window cutover: stop writes, take a
-      final MongoDB backup, migrate and validate the data, revoke existing
-      sessions so users sign in again, point the application at PostgreSQL, and
-      pass readiness and critical workflow smoke tests before reopening writes.
-- [ ] Keep the final MongoDB backup and deployment configuration available for a
-      documented rollback window. Remove Mongoose, MongoDB containers, and old
-      configuration only after PostgreSQL has been monitored and accepted.
+- [x] Verify schema migration, application startup, readiness, integration,
+      critical browser workflows, and production-image smoke testing in isolated
+      PostgreSQL environments. Backup/data rollback rehearsal is not applicable
+      because no deployed database or production data exists.
+- [x] Switch the undeployed application directly to PostgreSQL. No maintenance
+      window, production backup, session revocation, or data transfer is needed
+      because no production environment or production data exists.
+- [x] Remove the transitional Mongoose models, MongoDB adapters, containers,
+      migration-only configuration, and dependency after the direct switch.
 
 ### 5. Make catalog queries scalable and complete seller product management
 
@@ -318,8 +362,7 @@ marketplace demo while evolving the new persistent commerce workflows safely.
       and new application versions.
 - [ ] Define retention and cleanup for sessions, recovery tokens,
       notifications, abandoned carts, and other temporary records, using
-      scheduled, observable cleanup jobs where PostgreSQL does not provide the
-      current MongoDB TTL-index behavior.
+      scheduled, observable cleanup jobs where automatic expiry is unavailable.
 - [ ] Document backup and restore procedures and rehearse a migration and
       restore using production-like data without exposing secrets or personal data.
 

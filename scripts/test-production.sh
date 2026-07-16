@@ -14,6 +14,7 @@ trap cleanup EXIT
 
 export APP_PORT="$app_port"
 export CORS_ORIGIN="$base_url"
+export POSTGRES_PASSWORD='production-smoke-database-secret'
 export JWT_SIGNING_KEYS='{"smoke":"production-smoke-jwt-secret"}'
 export JWT_ACTIVE_KID='smoke'
 export REFRESH_TOKEN_HASH_SECRETS='{"smoke":"production-smoke-refresh-secret"}'

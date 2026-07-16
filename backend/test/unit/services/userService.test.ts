@@ -1,37 +1,35 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { clearModules, mockModule } from '../helpers/moduleMock';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  DuplicateUserEmailError,
+  type UserRepository,
+} from '@/repositories/userRepository';
+import { createUserService } from '@/services/userService';
 
-const servicePath = require.resolve('@/services/userService');
-const userModelPath = require.resolve('@/model/user');
-
-function loadUserService(userModel: NodeModule['exports']) {
-  clearModules(servicePath, userModelPath);
-  mockModule(userModelPath, userModel);
-  return require('@/services/userService');
+function repository(overrides: Partial<UserRepository> = {}): UserRepository {
+  return {
+    emailExists: vi.fn().mockResolvedValue(false),
+    create: vi.fn(),
+    findPublicById: vi.fn().mockResolvedValue(null),
+    findForAuthentication: vi.fn().mockResolvedValue(null),
+    findTokenVersion: vi.fn().mockResolvedValue(null),
+    hasTokenVersion: vi.fn().mockResolvedValue(false),
+    incrementTokenVersion: vi.fn().mockResolvedValue(false),
+    ...overrides,
+  };
 }
 
-afterEach(() => {
-  clearModules(servicePath, userModelPath);
-});
-
 describe('userService', () => {
-  it('creates normalized users for a tenant and strips the password', async () => {
-    const findOne = vi.fn().mockResolvedValue(null);
-    const create = vi.fn().mockImplementation(async (user) => ({
-      _id: 'user-1',
-      ...user,
-      toObject() {
-        return {
-          _id: this._id,
-          email: this.email,
-          password: this.password,
-          username: this.username,
-          telephone: this.telephone,
-          tenantId: this.tenantId,
-        };
-      },
-    }));
-    const { createUser } = loadUserService({ findOne, create });
+  it('creates normalized users for a tenant without persistence details', async () => {
+    const userRepository = repository({
+      create: vi.fn().mockResolvedValue({
+        _id: 'user-1',
+        tenantId: 'campus-market',
+        email: 'buyer@example.com',
+        username: 'Buyer',
+        telephone: '999',
+      }),
+    });
+    const { createUser } = createUserService(userRepository);
 
     const user = await createUser(
       {
@@ -43,32 +41,29 @@ describe('userService', () => {
       'campus-market',
     );
 
-    expect(findOne).toHaveBeenCalledWith({
-      tenantId: 'campus-market',
-      email: 'buyer@example.com',
-    });
-    expect(create).toHaveBeenCalledWith({
+    expect(userRepository.emailExists).toHaveBeenCalledWith(
+      'campus-market',
+      'buyer@example.com',
+    );
+    expect(userRepository.create).toHaveBeenCalledWith({
       tenantId: 'campus-market',
       email: 'buyer@example.com',
       password: 'secret123',
       username: 'Buyer',
       telephone: '999',
     });
-    expect(user).toEqual(
-      expect.objectContaining({
-        _id: 'user-1',
-        email: 'buyer@example.com',
-        tenantId: 'campus-market',
-      }),
+    expect(user).toMatchObject({
+      _id: 'user-1',
+      email: 'buyer@example.com',
+      tenantId: 'campus-market',
+    });
+    expect(user).not.toHaveProperty('password');
+  });
+
+  it('maps lookup hits and repository uniqueness races to USER_EXISTS', async () => {
+    let { createUser } = createUserService(
+      repository({ emailExists: vi.fn().mockResolvedValue(true) }),
     );
-    expect(user.password).toBeUndefined();
-  });
-
-  it('maps duplicate lookup hits and duplicate index errors to USER_EXISTS', async () => {
-    let { createUser } = loadUserService({
-      findOne: vi.fn().mockResolvedValue({ _id: 'existing' }),
-      create: vi.fn(),
-    });
 
     await expect(
       createUser({
@@ -77,17 +72,13 @@ describe('userService', () => {
         username: 'Buyer',
         telephone: '999',
       }),
-    ).rejects.toMatchObject({
-      statusCode: 400,
-      code: 'USER_EXISTS',
-    });
+    ).rejects.toMatchObject({ statusCode: 400, code: 'USER_EXISTS' });
 
-    ({ createUser } = loadUserService({
-      findOne: vi.fn().mockResolvedValue(null),
-      create: vi
-        .fn()
-        .mockRejectedValue({ code: 11000, keyPattern: { email: 1 } }),
-    }));
+    ({ createUser } = createUserService(
+      repository({
+        create: vi.fn().mockRejectedValue(new DuplicateUserEmailError()),
+      }),
+    ));
 
     await expect(
       createUser({
@@ -96,38 +87,14 @@ describe('userService', () => {
         username: 'Buyer',
         telephone: '999',
       }),
-    ).rejects.toMatchObject({
-      statusCode: 400,
-      code: 'USER_EXISTS',
-    });
-
-    ({ createUser } = loadUserService({
-      findOne: vi.fn().mockResolvedValue(null),
-      create: vi.fn().mockRejectedValue({
-        code: 11000,
-        keyValue: { tenantId: 'mercadozetta' },
-      }),
-    }));
-
-    await expect(
-      createUser({
-        email: 'seller@example.com',
-        password: 'secret123',
-        username: 'Seller',
-        telephone: '999',
-      }),
-    ).rejects.toMatchObject({
-      statusCode: 400,
-      code: 'USER_EXISTS',
-    });
+    ).rejects.toMatchObject({ statusCode: 400, code: 'USER_EXISTS' });
   });
 
-  it('rethrows non-duplicate create errors', async () => {
+  it('rethrows non-duplicate repository errors', async () => {
     const error = new Error('database down');
-    const { createUser } = loadUserService({
-      findOne: vi.fn().mockResolvedValue(null),
-      create: vi.fn().mockRejectedValue(error),
-    });
+    const { createUser } = createUserService(
+      repository({ create: vi.fn().mockRejectedValue(error) }),
+    );
 
     await expect(
       createUser({
@@ -139,14 +106,20 @@ describe('userService', () => {
     ).rejects.toBe(error);
   });
 
-  it('returns public seller profiles', async () => {
-    const findOne = vi.fn().mockResolvedValue({
-      _id: 'user-1',
-      username: 'Seller',
-      telephone: '123',
-      email: 'seller@example.com',
-    });
-    const { getPublicSellerProfile } = loadUserService({ findOne });
+  it('returns public seller profiles and reports missing sellers', async () => {
+    const findPublicById = vi
+      .fn()
+      .mockResolvedValueOnce({
+        _id: 'user-1',
+        tenantId: 'mercadozetta',
+        username: 'Seller',
+        telephone: '123',
+        email: 'seller@example.com',
+      })
+      .mockResolvedValueOnce(null);
+    const { getPublicSellerProfile } = createUserService(
+      repository({ findPublicById }),
+    );
 
     await expect(
       getPublicSellerProfile('user-1', 'mercadozetta'),
@@ -157,22 +130,10 @@ describe('userService', () => {
       email: 'seller@example.com',
       storeName: 'Seller store',
     });
-    expect(findOne).toHaveBeenCalledWith({
-      _id: 'user-1',
-      tenantId: 'mercadozetta',
-    });
-  });
-
-  it('reports missing sellers', async () => {
-    const { getPublicSellerProfile } = loadUserService({
-      findOne: vi.fn().mockResolvedValue(null),
-    });
+    expect(findPublicById).toHaveBeenCalledWith('mercadozetta', 'user-1');
 
     await expect(
       getPublicSellerProfile('missing', 'mercadozetta'),
-    ).rejects.toMatchObject({
-      statusCode: 404,
-      code: 'SELLER_NOT_FOUND',
-    });
+    ).rejects.toMatchObject({ statusCode: 404, code: 'SELLER_NOT_FOUND' });
   });
 });

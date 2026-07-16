@@ -138,7 +138,9 @@ describe('productValidator', () => {
   });
 
   it('validates product and seller identifiers', () => {
-    expect(validateProductId(' product-1 ')).toBe('product-1');
+    expect(validateProductId(' 507F191E-810C-4197-9DE8-60EA00000001 ')).toBe(
+      '507f191e-810c-4197-9de8-60ea00000001',
+    );
     expect(() => validateProductId('')).toThrow(
       expect.objectContaining({ code: 'INVALID_PRODUCT_ID' }),
     );
@@ -146,10 +148,10 @@ describe('productValidator', () => {
       expect.objectContaining({ code: 'INVALID_PRODUCT_ID' }),
     );
 
-    expect(validateSellerId('507f1f77bcf86cd799439011')).toBe(
-      '507f1f77bcf86cd799439011',
+    expect(validateSellerId('507F1F77-BCF8-4ECD-8994-390110000001')).toBe(
+      '507f1f77-bcf8-4ecd-8994-390110000001',
     );
-    expect(() => validateSellerId('not-an-object-id')).toThrow(
+    expect(() => validateSellerId('not-a-uuid')).toThrow(
       expect.objectContaining({ code: 'INVALID_SELLER_ID' }),
     );
   });

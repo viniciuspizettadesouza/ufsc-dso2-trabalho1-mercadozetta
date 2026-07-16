@@ -1,66 +1,79 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { clearModules, mockModule } from '../helpers/moduleMock';
+import { describe, expect, it, vi } from 'vitest';
+import type { ProductRepository } from '@/repositories/productRepository';
+import { createProductService } from '@/services/productService';
 
-const servicePath = require.resolve('@/services/productService');
-const productModelPath = require.resolve('@/model/product');
-const userServicePath = require.resolve('@/services/userService');
-
-function loadProductService(
-  productModel: NodeModule['exports'],
-  userService: any = {},
-) {
-  clearModules(servicePath, productModelPath, userServicePath);
-  mockModule(productModelPath, productModel);
-  mockModule(userServicePath, {
-    getPublicSellerProfile: userService.getPublicSellerProfile || vi.fn(),
-  });
-  return require('@/services/productService');
+function repository(
+  overrides: Partial<ProductRepository> = {},
+): ProductRepository {
+  return {
+    list: vi.fn().mockResolvedValue([]),
+    create: vi.fn(),
+    findById: vi.fn().mockResolvedValue(null),
+    findActiveById: vi.fn().mockResolvedValue(null),
+    findByIds: vi.fn().mockResolvedValue([]),
+    findByIdsForUpdate: vi.fn().mockResolvedValue([]),
+    decrementAvailableInventory: vi.fn().mockResolvedValue(false),
+    ...overrides,
+  };
 }
 
-afterEach(() => {
-  clearModules(servicePath, productModelPath, userServicePath);
-});
+const productId = '507f191e-810c-4197-9de8-60ea00000001';
+const missingProductId = '507f191e-810c-4197-9de8-60ea00000002';
+const sellerId = '507f1f77-bcf8-4ecd-8994-390110000001';
+const products = [
+  {
+    _id: 'product-1',
+    tenantId: 'mercadozetta',
+    name: 'Mouse',
+    description: 'Wireless mouse',
+    category: 'peripherals',
+    subcategory: 'mice',
+    seller: sellerId,
+    image: 'mouse.png',
+    status: 'active' as const,
+    inventory: 5,
+    createdAt: new Date('2024-01-02T00:00:00.000Z'),
+  },
+  {
+    _id: 'product-2',
+    tenantId: 'mercadozetta',
+    name: 'Keyboard',
+    description: 'Mechanical keyboard',
+    category: 'peripherals',
+    subcategory: 'keyboards',
+    seller: '507f1f77-bcf8-4ecd-8994-390110000002',
+    image: 'keyboard.png',
+    status: 'sold_out' as const,
+    inventory: 0,
+    createdAt: new Date('2024-01-03T00:00:00.000Z'),
+  },
+  {
+    _id: 'product-3',
+    tenantId: 'mercadozetta',
+    name: 'Desk',
+    description: 'Standing desk',
+    category: 'furniture',
+    subcategory: 'desks',
+    seller: sellerId,
+    image: 'desk.png',
+    status: 'paused' as const,
+    inventory: 2,
+    createdAt: new Date('2024-01-01T00:00:00.000Z'),
+  },
+];
+
+function service(productRepository: ProductRepository, profile = vi.fn()) {
+  return createProductService(productRepository, {
+    getPublicSellerProfile: profile,
+  });
+}
 
 describe('productService', () => {
-  const products = [
-    {
-      _id: 'product-1',
-      name: 'Mouse',
-      description: 'Wireless mouse',
-      category: 'peripherals',
-      subcategory: 'mice',
-      seller: 'seller-1',
-      status: 'active',
-      inventory: 5,
-      createdAt: '2024-01-02T00:00:00.000Z',
-    },
-    {
-      _id: 'product-2',
-      name: 'Keyboard',
-      description: 'Mechanical keyboard',
-      category: 'peripherals',
-      subcategory: 'keyboards',
-      seller: 'seller-2',
-      status: 'sold_out',
-      inventory: 0,
-      createdAt: '2024-01-03T00:00:00.000Z',
-    },
-    {
-      _id: 'product-3',
-      name: 'Desk',
-      description: 'Standing desk',
-      category: 'furniture',
-      subcategory: 'desks',
-      seller: 'seller-1',
-      status: 'paused',
-      inventory: 2,
-      createdAt: '2024-01-01T00:00:00.000Z',
-    },
-  ];
-
-  it('lists products for a tenant with text, category, availability, and sort filters', async () => {
-    const find = vi.fn().mockResolvedValue(products);
-    const { listProducts } = loadProductService({ find });
+  it('lists products with text, category, availability, and sort filters', async () => {
+    const productRepository = repository({
+      list: vi.fn().mockResolvedValue(products),
+    });
+    const { listProducts } = service(productRepository);
 
     const result = await listProducts('campus-market', {
       q: 'keyboard',
@@ -69,44 +82,31 @@ describe('productService', () => {
       sort: 'name_asc',
     });
 
-    expect(find).toHaveBeenCalledWith({ tenantId: 'campus-market' });
-    expect(result.map((product: { _id: string }) => product._id)).toEqual([
-      'product-2',
-    ]);
+    expect(productRepository.list).toHaveBeenCalledWith('campus-market');
+    expect(result.map((product) => product._id)).toEqual(['product-2']);
   });
 
-  it('uses default tenant listing and applies seller, subcategory, status, and stock filters', async () => {
-    const find = vi.fn().mockResolvedValue([
-      ...products,
-      {
-        _id: 'product-4',
-        name: '',
-        category: 'peripherals',
-        subcategory: 'mice',
-        seller: 'seller-1',
-        status: 'active',
-        inventory: 1,
-      },
-    ]);
-    const { listProducts } = loadProductService({ find });
+  it('uses the default tenant and applies seller and stock filters', async () => {
+    const productRepository = repository({
+      list: vi.fn().mockResolvedValue(products),
+    });
+    const { listProducts } = service(productRepository);
 
     const result = await listProducts(undefined, {
       subcategory: 'mice',
-      seller: 'seller-1',
+      seller: sellerId,
       status: 'active',
       availability: 'in_stock',
     });
 
-    expect(find).toHaveBeenCalledWith({ tenantId: 'mercadozetta' });
-    expect(result.map((product: { _id: string }) => product._id)).toEqual([
-      'product-1',
-      'product-4',
-    ]);
+    expect(productRepository.list).toHaveBeenCalledWith('mercadozetta');
+    expect(result.map((product) => product._id)).toEqual(['product-1']);
   });
 
   it('sorts products by creation, name, and inventory', async () => {
-    const find = vi.fn().mockResolvedValue(products);
-    const { listProducts } = loadProductService({ find });
+    const { listProducts } = service(
+      repository({ list: vi.fn().mockResolvedValue(products) }),
+    );
 
     await expect(
       listProducts('mercadozetta', { sort: 'created_asc' }),
@@ -131,22 +131,17 @@ describe('productService', () => {
     ]);
   });
 
-  it('creates products with validated payload, seller id, and tenant id', async () => {
+  it('creates products with validated payload, seller, and tenant', async () => {
     const create = vi.fn().mockResolvedValue({ _id: 'product-1' });
-    const { createProduct } = loadProductService({ create });
+    const { createProduct } = service(repository({ create }));
 
     await expect(
       createProduct(
-        {
-          name: ' Keyboard ',
-          inventory: '2',
-          image: 'keyboard.png',
-        },
-        'seller-1',
+        { name: ' Keyboard ', inventory: '2', image: 'keyboard.png' },
+        sellerId,
         'campus-market',
       ),
     ).resolves.toEqual({ _id: 'product-1' });
-
     expect(create).toHaveBeenCalledWith({
       name: 'Keyboard',
       description: '',
@@ -155,88 +150,60 @@ describe('productService', () => {
       inventory: 2,
       image: 'keyboard.png',
       status: 'active',
-      seller: 'seller-1',
+      seller: sellerId,
       tenantId: 'campus-market',
     });
   });
 
   it('returns product detail with seller profile when available', async () => {
-    const product = {
-      _id: 'product-1',
-      seller: '507f1f77bcf86cd799439011',
-      toObject() {
-        return {
-          _id: this._id,
-          seller: this.seller,
-        };
-      },
-    };
-    const findOne = vi.fn().mockResolvedValue(product);
-    const getPublicSellerProfile = vi
-      .fn()
-      .mockResolvedValue({ _id: product.seller, username: 'Seller' });
-    const { getProductById } = loadProductService(
-      { findOne },
-      { getPublicSellerProfile },
-    );
+    const product = { ...products[0], _id: productId };
+    const profile = vi.fn().mockResolvedValue({
+      _id: sellerId,
+      username: 'Seller',
+    });
+    const productRepository = repository({
+      findById: vi.fn().mockResolvedValue(product),
+    });
+    const { getProductById } = service(productRepository, profile);
 
     await expect(
-      getProductById(' product-1 ', 'mercadozetta'),
-    ).resolves.toEqual({
-      _id: product._id,
-      seller: product.seller,
-      sellerProfile: { _id: product.seller, username: 'Seller' },
+      getProductById(` ${productId} `, 'mercadozetta'),
+    ).resolves.toMatchObject({
+      _id: productId,
+      sellerProfile: { _id: sellerId, username: 'Seller' },
     });
-    expect(findOne).toHaveBeenCalledWith({
-      _id: 'product-1',
-      tenantId: 'mercadozetta',
-    });
-    expect(getPublicSellerProfile).toHaveBeenCalledWith(
-      product.seller,
+    expect(productRepository.findById).toHaveBeenCalledWith(
       'mercadozetta',
+      productId,
     );
+    expect(profile).toHaveBeenCalledWith(sellerId, 'mercadozetta');
   });
 
-  it('returns null for missing products and falls back when seller profile lookup fails', async () => {
-    let { getProductById } = loadProductService({
-      findOne: vi.fn().mockResolvedValue(null),
-    });
+  it('returns null for missing products and falls back on profile errors', async () => {
+    let { getProductById } = service(repository());
+    await expect(
+      getProductById(missingProductId, 'mercadozetta'),
+    ).resolves.toBeNull();
 
-    await expect(getProductById('missing', 'mercadozetta')).resolves.toBeNull();
-
-    const product = { _id: 'product-1', seller: '507f1f77bcf86cd799439011' };
-    ({ getProductById } = loadProductService(
-      {
-        findOne: vi.fn().mockResolvedValue(product),
-      },
-      {
-        getPublicSellerProfile: vi
-          .fn()
-          .mockRejectedValue(new Error('seller missing')),
-      },
+    const product = { ...products[0], _id: productId };
+    ({ getProductById } = service(
+      repository({ findById: vi.fn().mockResolvedValue(product) }),
+      vi.fn().mockRejectedValue(new Error('seller missing')),
     ));
-
-    await expect(getProductById('product-1', 'mercadozetta')).resolves.toBe(
+    await expect(getProductById(productId, 'mercadozetta')).resolves.toBe(
       product,
     );
   });
 
-  it('lists products by seller with seller validation and filters', async () => {
-    const find = vi.fn().mockResolvedValue(products);
-    const { listProductsBySeller } = loadProductService({ find });
-    const sellerId = '507f1f77bcf86cd799439011';
+  it('lists products by a validated seller', async () => {
+    const list = vi.fn().mockResolvedValue(products);
+    const { listProductsBySeller } = service(repository({ list }));
 
     const result = await listProductsBySeller(sellerId, 'campus-market', {
-      seller: 'seller-1',
       status: 'active',
     });
 
-    expect(find).toHaveBeenCalledWith({
-      tenantId: 'campus-market',
-      seller: sellerId,
-    });
-    expect(result.map((product: { _id: string }) => product._id)).toEqual([
-      'product-1',
-    ]);
+    expect(list).toHaveBeenCalledWith('campus-market', sellerId);
+    expect(result.map((product) => product._id)).toEqual(['product-1']);
   });
 });

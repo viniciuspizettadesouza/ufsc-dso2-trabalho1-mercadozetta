@@ -1,6 +1,90 @@
 import { getAllowedCorsOrigins, isLocalEnv } from '@/config/security';
 
 const DEFAULT_PORT = 3333;
+const DEFAULT_POSTGRES_POOL_MAX = 10;
+const DEFAULT_POSTGRES_CONNECTION_TIMEOUT_MS = 5000;
+const DEFAULT_POSTGRES_IDLE_TIMEOUT_MS = 30000;
+const DEFAULT_POSTGRES_STATEMENT_TIMEOUT_MS = 10000;
+const DEFAULT_POSTGRES_IDLE_TRANSACTION_TIMEOUT_MS = 10000;
+function parseBoundedInteger(
+  name: string,
+  defaultValue: number,
+  minimum: number,
+  maximum: number,
+) {
+  const configured = process.env[name]?.trim();
+  if (!configured) return defaultValue;
+
+  const value = Number(configured);
+  if (!Number.isInteger(value) || value < minimum || value > maximum) {
+    throw new Error(
+      `${name} must be an integer between ${minimum} and ${maximum}`,
+    );
+  }
+
+  return value;
+}
+
+export type PostgresRuntimeConfig = {
+  connectionString: string;
+  max: number;
+  connectionTimeoutMillis: number;
+  idleTimeoutMillis: number;
+  statementTimeoutMillis: number;
+  idleInTransactionSessionTimeoutMillis: number;
+  applicationName: string;
+};
+
+export function getPostgresRuntimeConfig(): PostgresRuntimeConfig | undefined {
+  const connectionString = process.env.POSTGRESQL_URL?.trim();
+  if (!connectionString) return undefined;
+
+  let url: URL;
+  try {
+    url = new URL(connectionString);
+  } catch {
+    throw new Error('POSTGRESQL_URL must be a valid PostgreSQL connection URL');
+  }
+
+  if (!['postgres:', 'postgresql:'].includes(url.protocol)) {
+    throw new Error('POSTGRESQL_URL must be a valid PostgreSQL connection URL');
+  }
+
+  return {
+    connectionString,
+    max: parseBoundedInteger(
+      'POSTGRES_POOL_MAX',
+      DEFAULT_POSTGRES_POOL_MAX,
+      1,
+      50,
+    ),
+    connectionTimeoutMillis: parseBoundedInteger(
+      'POSTGRES_CONNECTION_TIMEOUT_MS',
+      DEFAULT_POSTGRES_CONNECTION_TIMEOUT_MS,
+      100,
+      30000,
+    ),
+    idleTimeoutMillis: parseBoundedInteger(
+      'POSTGRES_IDLE_TIMEOUT_MS',
+      DEFAULT_POSTGRES_IDLE_TIMEOUT_MS,
+      1000,
+      120000,
+    ),
+    statementTimeoutMillis: parseBoundedInteger(
+      'POSTGRES_STATEMENT_TIMEOUT_MS',
+      DEFAULT_POSTGRES_STATEMENT_TIMEOUT_MS,
+      100,
+      60000,
+    ),
+    idleInTransactionSessionTimeoutMillis: parseBoundedInteger(
+      'POSTGRES_IDLE_TRANSACTION_TIMEOUT_MS',
+      DEFAULT_POSTGRES_IDLE_TRANSACTION_TIMEOUT_MS,
+      100,
+      60000,
+    ),
+    applicationName: 'mercadozetta-api',
+  };
+}
 
 function parsePort() {
   const configured = process.env.PORT?.trim();
@@ -50,9 +134,9 @@ function validateCorsOrigins() {
 }
 
 export function getRuntimeConfig() {
-  const mongoUri = process.env.MONGODB_URI?.trim();
-  if (!mongoUri)
-    throw new Error('MONGODB_URI environment variable is required');
+  const postgres = getPostgresRuntimeConfig();
+  if (!postgres)
+    throw new Error('POSTGRESQL_URL environment variable is required');
 
   if (!isLocalEnv() && !process.env.TRUST_PROXY_HOPS?.trim()) {
     throw new Error(
@@ -63,7 +147,7 @@ export function getRuntimeConfig() {
   validateCorsOrigins();
 
   return {
-    mongoUri,
+    postgres,
     port: parsePort(),
     trustProxyHops: getTrustProxyHops(),
   };

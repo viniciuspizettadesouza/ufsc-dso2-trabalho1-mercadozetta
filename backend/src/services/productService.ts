@@ -1,6 +1,8 @@
-import Product, { type ProductRecord } from '@/model/product';
+import type {
+  ProductRecord,
+  ProductRepository,
+} from '@/repositories/productRepository';
 import { defaultTenantId } from '@/tenants';
-import UserService from '@/services/userService';
 import {
   type CreateProductData,
   type CreateProductRequestBody,
@@ -99,71 +101,75 @@ function sortProducts<T extends ProductListItem>(products: T[], sort?: string) {
   }
 }
 
-export async function listProducts(
-  tenantId = defaultTenantId,
-  filters: ProductFilterQuery | ProductListFilters = {},
-) {
-  const validatedFilters = validateProductFilters(filters);
-  const products = await Product.find({ tenantId });
-  return sortProducts(
-    filterProducts(products, validatedFilters),
-    String(validatedFilters.sort || 'created_desc'),
-  );
-}
-
-export async function createProduct(
-  body: CreateProductRequestBody | CreateProductData,
-  seller: string,
-  tenantId = defaultTenantId,
-) {
-  const productData = validateCreateProductPayload(body);
-
-  return Product.create({
-    ...productData,
-    tenantId,
-    seller,
-  });
-}
-
-export async function getProductById(
-  productId: string,
-  tenantId = defaultTenantId,
-) {
-  const _id = validateProductId(productId);
-  const product = await Product.findOne({ _id, tenantId });
-
-  if (!product) return null;
-
-  try {
-    const seller = await UserService.getPublicSellerProfile(
-      String(product.seller),
-      tenantId,
-    );
-    return { ...product.toObject(), sellerProfile: seller };
-  } catch {
-    return product;
-  }
-}
-
-export async function listProductsBySeller(
-  userId: string,
-  tenantId = defaultTenantId,
-  filters: ProductFilterQuery | ProductListFilters = {},
-) {
-  const seller = validateSellerId(userId);
-  const validatedFilters = validateProductFilters(filters);
-  const products = await Product.find({ tenantId, seller });
-  return sortProducts(
-    filterProducts(products, validatedFilters),
-    String(validatedFilters.sort || 'created_desc'),
-  );
-}
-
-const ProductService = {
-  listProducts,
-  createProduct,
-  getProductById,
-  listProductsBySeller,
+type SellerProfileService = {
+  getPublicSellerProfile(
+    userId: string,
+    tenantId?: string,
+  ): Promise<Record<string, unknown>>;
 };
 
-export default ProductService;
+export function createProductService(
+  repository: ProductRepository,
+  userService: SellerProfileService,
+) {
+  async function listProducts(
+    tenantId = defaultTenantId,
+    filters: ProductFilterQuery | ProductListFilters = {},
+  ) {
+    const validatedFilters = validateProductFilters(filters);
+    const products = await repository.list(tenantId);
+    return sortProducts(
+      filterProducts(products, validatedFilters),
+      String(validatedFilters.sort || 'created_desc'),
+    );
+  }
+
+  async function createProduct(
+    body: CreateProductRequestBody | CreateProductData,
+    seller: string,
+    tenantId = defaultTenantId,
+  ) {
+    const productData = validateCreateProductPayload(body);
+    return repository.create({ ...productData, tenantId, seller });
+  }
+
+  async function getProductById(productId: string, tenantId = defaultTenantId) {
+    const _id = validateProductId(productId);
+    const product = await repository.findById(tenantId, _id);
+
+    if (!product) return null;
+
+    try {
+      const seller = await userService.getPublicSellerProfile(
+        String(product.seller),
+        tenantId,
+      );
+      return { ...product, sellerProfile: seller };
+    } catch {
+      return product;
+    }
+  }
+
+  async function listProductsBySeller(
+    userId: string,
+    tenantId = defaultTenantId,
+    filters: ProductFilterQuery | ProductListFilters = {},
+  ) {
+    const seller = validateSellerId(userId);
+    const validatedFilters = validateProductFilters(filters);
+    const products = await repository.list(tenantId, seller);
+    return sortProducts(
+      filterProducts(products, validatedFilters),
+      String(validatedFilters.sort || 'created_desc'),
+    );
+  }
+
+  return {
+    listProducts,
+    createProduct,
+    getProductById,
+    listProductsBySeller,
+  };
+}
+
+export type ProductService = ReturnType<typeof createProductService>;

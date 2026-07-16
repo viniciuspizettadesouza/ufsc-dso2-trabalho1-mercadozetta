@@ -10,8 +10,8 @@ import {
   getSessionSecurityConfig,
   type SessionSecurityConfig,
 } from '@/config/security';
+import { isUuid } from '@/ids';
 
-const SESSION_ID_PATTERN = /^[a-f\d]{24}$/i;
 const TOKEN_VALUE_PATTERN = /^[A-Za-z\d_-]{43}$/;
 const SECRET_VERSION_PATTERN = /^[A-Za-z\d_-]{1,32}$/;
 
@@ -37,8 +37,7 @@ function safeEqual(left: string, right: string) {
 
 export function createRefreshToken(sessionId: string) {
   /* v8 ignore next */
-  if (!SESSION_ID_PATTERN.test(sessionId))
-    throw new Error('Invalid session id');
+  if (!isUuid(sessionId)) throw new Error('Invalid session id');
   return `${sessionId}.${randomBytes(32).toString('base64url')}`;
 }
 
@@ -48,7 +47,7 @@ export function getRefreshTokenSessionId(refreshToken: string) {
   if (
     extra !== undefined ||
     !sessionId ||
-    !SESSION_ID_PATTERN.test(sessionId) ||
+    !isUuid(sessionId) ||
     !secret ||
     !TOKEN_VALUE_PATTERN.test(secret)
   ) {
@@ -100,8 +99,7 @@ export function versionedRefreshTokenMatches(
 
 export function createCsrfToken(sessionId: string, secret?: string) {
   /* v8 ignore next */
-  if (!SESSION_ID_PATTERN.test(sessionId))
-    throw new Error('Invalid session id');
+  if (!isUuid(sessionId)) throw new Error('Invalid session id');
   const nonce = randomBytes(32).toString('base64url');
   if (secret) return `${nonce}.${hmac(`${sessionId}.${nonce}`, secret)}`;
 
@@ -118,7 +116,7 @@ export function verifyCsrfToken(
   secret?: string,
 ) {
   /* v8 ignore else */
-  if (!SESSION_ID_PATTERN.test(sessionId)) return false;
+  if (!isUuid(sessionId)) return false;
 
   const parts = csrfToken.split('.');
   const versioned = parts.length === 3;

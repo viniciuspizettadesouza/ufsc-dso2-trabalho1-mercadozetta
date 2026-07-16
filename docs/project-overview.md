@@ -4,7 +4,7 @@
 
 MercadoZetta is an educational white-label marketplace built for INE5612. A
 single React frontend and Express API serve two configured brands,
-MercadoZetta and CampusMarket, while tenant-owned records share MongoDB and are
+MercadoZetta and CampusMarket, while tenant-owned records share PostgreSQL and are
 isolated by `tenantId`.
 
 The project demonstrates a marketplace's main consistency and authorization
@@ -33,7 +33,7 @@ priorities, and session handoff belong only in the
 
 - Maintain one persistent cart and a persistent watchlist within a tenant.
 - Add, remove, and change cart quantities subject to current inventory.
-- Convert the cart into an order through a MongoDB transaction.
+- Convert the cart into an order through a PostgreSQL transaction.
 - View owned orders and status history, and cancel orders in permitted states.
 - Create or update one review per purchased product; sellers cannot review
   their own products.
@@ -70,8 +70,8 @@ flowchart LR
     Global --> Routes[Routes, rate limits, authentication, Zod validation]
     Routes --> Controllers[HTTP controllers]
     Controllers --> Services[Domain services]
-    Services --> Models[Mongoose models]
-    Models --> Mongo[(MongoDB replica set)]
+    Services --> Repositories[Repository contracts + Drizzle adapters]
+    Repositories --> Postgres[(PostgreSQL)]
     Validators[Zod validators] --> Routes
     Validators --> Generator[OpenAPI generator]
     Metadata[Operation and response metadata] --> Generator
@@ -87,11 +87,11 @@ The Express middleware order is significant: Helmet and CORS run first,
 request context assigns a correlation ID, JSON parsing runs before global
 tenant resolution, and routes then apply endpoint-specific authentication,
 rate limiting, and validation. Controllers translate HTTP inputs and outputs.
-Services enforce business rules and issue tenant-scoped model operations. A
+Services enforce business rules and issue tenant-scoped repository operations. A
 final error handler turns known `AppError` values and malformed JSON into
 stable JSON errors and hides unexpected details behind a generic 500 response.
 
-MongoDB is the only external runtime dependency represented in the repository.
+PostgreSQL is the only external runtime dependency represented in the repository.
 No payment, email, object-storage, queue, cache, or third-party identity system
 is integrated.
 
@@ -102,7 +102,9 @@ is integrated.
 - `backend/src/controller/` contains thin Express request/response adapters.
 - `backend/src/services/` owns authentication, tenant/ownership checks,
   persistence workflows, inventory rules, and lifecycle transitions.
-- `backend/src/model/` contains Mongoose schemas, relationships, and indexes.
+- `backend/src/database/` contains the Drizzle schema and PostgreSQL connection.
+- `backend/src/repositories/` contains database-neutral contracts and Drizzle
+  PostgreSQL adapters.
 - `backend/src/validators/` owns request normalization and constraints through
   Zod schemas.
 - `backend/src/middleware/` contains global and route-specific transport
@@ -133,7 +135,7 @@ sequenceDiagram
     participant Route as Route + validator
     participant Controller as Commerce controller
     participant Service as Commerce service
-    participant DB as MongoDB
+    participant DB as PostgreSQL
 
     UI->>HTTP: PUT /cart/items { productId, quantity }
     HTTP->>MW: Cookies + X-Tenant-Id + X-CSRF-Token + JSON
@@ -187,7 +189,11 @@ erDiagram
 ```
 
 `TENANT` is conceptual: the two tenants are application configuration, not a
-MongoDB model. Every persistent marketplace record carries a tenant ID.
+database table. Every persistent marketplace record carries a tenant ID. All
+database keys, public route parameters, JWT `sub`/`sid`, refresh-token session
+selectors, CSRF bindings, OpenAPI examples, and persisted references use
+canonical UUID strings. New records use `crypto.randomUUID()` and deterministic
+demo records use fixed UUIDs.
 
 - A user is unique by tenant and email. Passwords are bcrypt hashes and
   `tokenVersion` supports all-token logout revocation.
@@ -218,7 +224,7 @@ only in memory, and restores it through `GET /auth/session`.
 
 Protected requests accept only the cookie access JWT,
 verify its signature and claims, require the token tenant to match the resolved
-request tenant, and confirm the user and revocation version in MongoDB. Cookie
+request tenant, and confirm the user and revocation version in PostgreSQL. Cookie
 tokens additionally require an active matching session. Logout increments the
 user's token version and revokes all server sessions; current and individually
 owned sessions can also be revoked. Cookie-authenticated mutations require an
@@ -248,8 +254,8 @@ tracked in the [improvement plan](../PROJECT_IMPROVEMENT_PLAN.md).
 
 ## 8. Commerce consistency
 
-Checkout is authoritative on the backend. The service starts a Mongoose session
-and transaction, loads the user's tenant cart, and rejects an empty cart. It
+Checkout is authoritative on the backend. The service starts a short PostgreSQL
+transaction, locks the user's tenant cart and referenced products, and rejects an empty cart. It
 then loads all referenced tenant products and rejects missing, inactive, or
 understocked items.
 
@@ -320,7 +326,7 @@ response types rather than consuming generated or shared contract types.
 ## 11. Local development
 
 The recommended setup runs the two Node development servers on the host and
-MongoDB as a single-node replica set in Docker. The repository also provides a
+PostgreSQL 18 in Docker. The repository also provides a
 complete development Compose stack and repeatable seed. See the
 [README quick start](../README.md#quick-start) for instructions and
 [configuration](../README.md#configuration) for every supported environment
@@ -330,14 +336,14 @@ variable.
 
 The testing strategy separates concerns by what each layer can establish:
 
-- Backend focused tests exercise validators, middleware, controllers, services,
-  models, and HTTP behavior with Vitest and Supertest.
+- Backend focused tests exercise validators, middleware, services, repository
+  mappings, and HTTP contracts with Vitest and Supertest.
 - Contract tests detect stale OpenAPI output, route divergence, error-shape
   regressions, and selected cross-layer assumptions.
-- Database integration tests run the real application and Mongoose models
-  against an ephemeral MongoDB 7 replica set. They cover transactions,
-  rollback, persistence, indexes, tenant isolation, authorization, logout
-  revocation, and seed repeatability that mocks cannot prove.
+- Database integration tests run the real application and Drizzle adapters
+  against ephemeral PostgreSQL 18. They cover transactions, concurrency,
+  persistence, tenant isolation, authorization, session behavior, and seed
+  repeatability that mocks cannot prove.
 - Frontend focused and workflow tests use Vitest, jsdom, Testing Library, and
   `jest-dom` to verify routing, forms, HTTP interactions, protected-route
   return, and user-visible mutation states.
@@ -352,13 +358,13 @@ isolated Chromium authentication lane.
 ## 13. Deployment model
 
 `docker-compose.yml` remains the development/demo topology and explicitly uses
-the Dockerfiles' development targets. MongoDB 7 runs as a single-node replica
-set, the backend runs `ts-node-dev`, and the frontend exposes Vite.
+the Dockerfiles' development targets. PostgreSQL 18 stores application data,
+the backend runs `ts-node-dev`, and the frontend exposes Vite.
 
 `docker-compose.prod.yml` is the production deployment baseline. Multi-stage
 images compile the backend and frontend, production Node runs emitted backend
 JavaScript, and non-root Nginx serves static assets and proxies `/api` to the
-non-root backend. Pinned Node, Nginx, and MongoDB image versions, startup
+non-root backend. Pinned Node, Nginx, and PostgreSQL image versions, startup
 configuration validation, liveness/readiness checks, immutable image-tag
 deployment and rollback guidance, TLS/trusted-proxy rules, and an isolated CI
 smoke lane are documented in [the production guide](production-deployment.md).
@@ -368,8 +374,8 @@ and production database operations before hosting real data.
 ## 14. Operational behavior
 
 - `GET /health` reports process liveness with `{ status: "ok" }`.
-- `GET /ready` reports 200 only when Mongoose is connected and otherwise
-  reports 503 with MongoDB status.
+- `GET /ready` reports 200 only when PostgreSQL is connected and otherwise
+  reports 503 with PostgreSQL status.
 - Global tenant resolution runs before both probes, so strict tenant-header mode
   requires the header on probe requests.
 - Request context accepts an incoming `X-Request-Id` or generates a UUID,
@@ -378,7 +384,7 @@ and production database operations before hosting real data.
 - Helmet supplies default security headers, CORS checks configured origins, and
   login/registration have in-memory rate limits.
 - `SIGINT` and `SIGTERM` stop accepting connections, close the HTTP server,
-  close Mongoose, and exit. There is no explicit shutdown deadline or forced
+  close the PostgreSQL pool, and exit. There is no explicit shutdown deadline or forced
   fallback.
 
 Operational gaps include unstructured application/error logging outside the

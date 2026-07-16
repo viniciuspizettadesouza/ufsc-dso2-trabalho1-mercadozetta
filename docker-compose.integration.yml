@@ -1,18 +1,18 @@
 services:
-  mongo-integration:
-    image: mongo:7.0.37-jammy
-    command: ['mongod', '--replSet', 'rs0', '--bind_ip_all']
+  postgres-integration:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: mercadozetta_integration
+      POSTGRES_USER: mercadozetta
+      POSTGRES_PASSWORD: integration-only
     healthcheck:
       test:
-        [
-          'CMD-SHELL',
-          'mongosh --quiet --eval "try { rs.status().ok } catch (error) { rs.initiate({_id: ''rs0'', members: [{_id: 0, host: ''mongo-integration:27017''}]}).ok }"',
-        ]
+        ['CMD-SHELL', 'pg_isready -U mercadozetta -d mercadozetta_integration']
       interval: 1s
       timeout: 5s
       retries: 30
     tmpfs:
-      - /data/db
+      - /var/lib/postgresql
 
   integration-tests:
     build:
@@ -26,8 +26,8 @@ services:
       REFRESH_TOKEN_HASH_ACTIVE_VERSION: current
       CSRF_SECRETS: '{"current":"integration-csrf-current","previous":"integration-csrf-previous"}'
       CSRF_ACTIVE_VERSION: current
-      MONGODB_URI: mongodb://mongo-integration:27017/mercadozetta_integration?replicaSet=rs0
+      POSTGRESQL_URL: postgresql://mercadozetta:integration-only@postgres-integration:5432/mercadozetta_integration
     depends_on:
-      mongo-integration:
+      postgres-integration:
         condition: service_healthy
-    command: ['npm', 'run', 'test:integration']
+    command: ['sh', '-c', 'npm run db:migrate && npm run test:integration']

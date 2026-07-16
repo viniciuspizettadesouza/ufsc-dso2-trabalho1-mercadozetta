@@ -1,11 +1,12 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import type { RequestHandler } from 'express';
 import { describe, expect, it } from 'vitest';
 import {
   createOpenApiDocument,
   serializeOpenApiDocument,
 } from '@/openapi/document';
-import routes from '@/routes';
+import { createRoutes, type RouteDependencies } from '@/routes';
 
 type OpenApiDocument = {
   openapi: string;
@@ -15,6 +16,20 @@ type OpenApiDocument = {
 const documentPath = path.resolve(__dirname, '../../docs/openapi.json');
 const checkedInDocument = fs.readFileSync(documentPath, 'utf8');
 const document = createOpenApiDocument() as unknown as OpenApiDocument;
+const handler = () => undefined;
+const controller = new Proxy({}, { get: () => handler });
+const authMiddleware: RequestHandler = (_req, _res, next) => next();
+const routes = createRoutes({
+  authController: controller,
+  userController: controller,
+  productController: controller,
+  commerceController: controller,
+  authMiddleware,
+  readiness: async () => ({
+    ready: false,
+    checks: { postgresql: 'disconnected' },
+  }),
+} as unknown as RouteDependencies);
 
 function normalizeExpressPath(routePath: string) {
   return routePath.replace(/:([^/]+)/g, '{$1}');

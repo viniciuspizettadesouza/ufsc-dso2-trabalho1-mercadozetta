@@ -1,13 +1,15 @@
 import { randomUUID } from 'crypto';
 import jwt from 'jsonwebtoken';
-import { Types } from 'mongoose';
 import {
   getJwtSigningKeyRing,
   getSessionSecurityConfig,
 } from '@/config/security';
 import AppError from '@/errors/AppError';
-import Session, { type SessionRecord } from '@/model/session';
-import User from '@/model/user';
+import type {
+  SessionRecord,
+  SessionRepository,
+} from '@/repositories/sessionRepository';
+import type { UserRepository } from '@/repositories/userRepository';
 import {
   createCsrfToken,
   createRefreshToken,
@@ -21,14 +23,6 @@ import {
 
 const ACCESS_TOKEN_ISSUER = 'mercadozetta';
 const ACCESS_TOKEN_AUDIENCE = 'mercadozetta-api';
-
-type SessionDocument = SessionRecord & {
-  refreshTokenHash: string;
-  refreshTokenSecretVersion?: string;
-  previousRefreshTokenHash?: string;
-  previousRefreshTokenSecretVersion?: string;
-  toObject(): SessionRecord;
-};
 
 type SessionSummarySource = Pick<
   SessionRecord,
@@ -88,16 +82,7 @@ function getSafeUserAgentLabel(userAgent?: string) {
   return label ? label.slice(0, 120) : undefined;
 }
 
-async function loadRefreshSession(sessionId: string, tenantId: string) {
-  return Session.findOne({ _id: sessionId, tenantId }).select(
-    '+refreshTokenHash +previousRefreshTokenHash',
-  ) as Promise<SessionDocument | null>;
-}
-
-async function createCredentials(
-  session: SessionDocument,
-  tokenVersion: number,
-) {
+async function createCredentials(session: SessionRecord, tokenVersion: number) {
   const sessionId = String(session._id);
   return {
     accessToken: createAccessToken(
@@ -110,18 +95,19 @@ async function createCredentials(
   };
 }
 
-export async function createSession(
+async function createSessionWithRepository(
+  sessions: SessionRepository,
   userId: string,
   tenantId: string,
   tokenVersion: number,
   userAgent: string | undefined,
   now: Date,
 ) {
-  const sessionId = new Types.ObjectId();
-  const refreshToken = createRefreshToken(String(sessionId));
+  const sessionId = randomUUID();
+  const refreshToken = createRefreshToken(sessionId);
   const refreshHash = hashRefreshTokenWithActiveKey(refreshToken);
   const expiry = getInitialSessionExpiry(now);
-  const session = await Session.create({
+  const session = await sessions.create({
     _id: sessionId,
     tenantId,
     userId,
@@ -133,11 +119,10 @@ export async function createSession(
     lastUsedAt: now,
     ...expiry,
     userAgentLabel: getSafeUserAgentLabel(userAgent),
+    createdAt: now,
+    updatedAt: now,
   });
-  const credentials = await createCredentials(
-    session as SessionDocument,
-    tokenVersion,
-  );
+  const credentials = await createCredentials(session, tokenVersion);
 
   return {
     ...credentials,
@@ -147,12 +132,15 @@ export async function createSession(
 }
 
 async function revokeReusedFamily(
-  session: SessionDocument,
+  sessions: SessionRepository,
+  session: SessionRecord,
   now: Date,
 ): Promise<never> {
-  await Session.updateOne(
-    { _id: session._id, tenantId: session.tenantId },
-    { $set: { revokedAt: now, revokeReason: 'refresh_reuse' } },
+  await sessions.revokeById(
+    session.tenantId,
+    session._id,
+    'refresh_reuse',
+    now,
   );
   throw new AppError(
     401,
@@ -161,7 +149,7 @@ async function revokeReusedFamily(
   );
 }
 
-function isInsideConcurrencyWindow(session: SessionDocument, now: Date) {
+function isInsideConcurrencyWindow(session: SessionRecord, now: Date) {
   /* v8 ignore else */
   if (!session.rotatedAt) return false;
   return (
@@ -171,7 +159,8 @@ function isInsideConcurrencyWindow(session: SessionDocument, now: Date) {
 }
 
 async function handlePreviousRefreshToken(
-  session: SessionDocument,
+  sessions: SessionRepository,
+  session: SessionRecord,
   refreshToken: string,
   now: Date,
 ) {
@@ -195,10 +184,12 @@ async function handlePreviousRefreshToken(
     );
   }
 
-  return revokeReusedFamily(session, now);
+  return revokeReusedFamily(sessions, session, now);
 }
 
-export async function rotateSession(
+async function rotateSessionWithRepository(
+  userRepository: UserRepository,
+  sessions: SessionRepository,
   refreshToken: string,
   tenantId: string,
   now: Date,
@@ -207,7 +198,7 @@ export async function rotateSession(
   /* v8 ignore next */
   if (!sessionId) throw invalidRefreshToken();
 
-  let session = await loadRefreshSession(sessionId, tenantId);
+  let session = await sessions.findRefreshById(tenantId, sessionId);
   /* v8 ignore next */
   if (!session) throw invalidRefreshToken();
 
@@ -215,14 +206,17 @@ export async function rotateSession(
     throw new AppError(401, 'SESSION_EXPIRED', 'Session expired');
   }
 
-  const user = await User.findOne({ _id: session.userId, tenantId }).select(
-    '+tokenVersion',
+  const tokenVersion = await userRepository.findTokenVersion(
+    tenantId,
+    String(session.userId),
   );
   /* v8 ignore else */
-  if (!user || (user.tokenVersion as number) !== session.tokenVersion) {
-    await Session.updateOne(
-      { _id: session._id, tenantId },
-      { $set: { revokedAt: now, revokeReason: 'invalid_user_session' } },
+  if (tokenVersion === null || tokenVersion !== session.tokenVersion) {
+    await sessions.revokeById(
+      tenantId,
+      session._id,
+      'invalid_user_session',
+      now,
     );
     throw invalidRefreshToken();
   }
@@ -234,47 +228,35 @@ export async function rotateSession(
       session.refreshTokenSecretVersion,
     )
   ) {
-    return handlePreviousRefreshToken(session, refreshToken, now);
+    return handlePreviousRefreshToken(sessions, session, refreshToken, now);
   }
 
   const nextRefreshToken = createRefreshToken(sessionId);
   const nextRefreshHash = hashRefreshTokenWithActiveKey(nextRefreshToken);
   const nextRefreshTokenHash = nextRefreshHash.hash;
   const expiresAt = getRotatedSessionExpiry(session.absoluteExpiresAt, now);
-  const result = await Session.updateOne(
-    {
-      _id: session._id,
-      tenantId,
-      refreshTokenHash: session.refreshTokenHash,
-      revokedAt: { $exists: false },
-      expiresAt: { $gt: now },
-      absoluteExpiresAt: { $gt: now },
-    },
-    {
-      $set: {
-        previousRefreshTokenHash: session.refreshTokenHash,
-        previousRefreshTokenSecretVersion:
-          session.refreshTokenSecretVersion || 'legacy',
-        refreshTokenHash: nextRefreshTokenHash,
-        refreshTokenSecretVersion: nextRefreshHash.version,
-        rotatedAt: now,
-        lastUsedAt: now,
-        expiresAt,
-      },
-      $inc: { rotationCounter: 1 },
-    },
-  );
+  const rotated = await sessions.rotateCurrent({
+    sessionId: session._id,
+    tenantId,
+    expectedRefreshTokenHash: session.refreshTokenHash,
+    previousRefreshTokenSecretVersion:
+      session.refreshTokenSecretVersion || 'legacy',
+    nextRefreshTokenHash,
+    nextRefreshTokenSecretVersion: nextRefreshHash.version,
+    now,
+    expiresAt,
+  });
 
   /* v8 ignore else */
-  if (result.modifiedCount !== 1) {
-    session = await loadRefreshSession(sessionId, tenantId);
+  if (!rotated) {
+    session = await sessions.findRefreshById(tenantId, sessionId);
     /* v8 ignore else */
     if (!session) throw invalidRefreshToken();
-    return handlePreviousRefreshToken(session, refreshToken, now);
+    return handlePreviousRefreshToken(sessions, session, refreshToken, now);
   }
 
   const rotatedSession = {
-    ...session.toObject(),
+    ...session,
     refreshTokenHash: nextRefreshTokenHash,
     previousRefreshTokenHash: session.refreshTokenHash,
     previousRefreshTokenSecretVersion:
@@ -284,7 +266,7 @@ export async function rotateSession(
     rotatedAt: now,
     lastUsedAt: now,
     expiresAt,
-  } as SessionDocument;
+  } as SessionRecord;
   const credentials = await createCredentials(
     rotatedSession,
     session.tokenVersion,
@@ -297,17 +279,71 @@ export async function rotateSession(
   };
 }
 
-export async function getSession(
+export function createSessionService(
+  userRepository: UserRepository,
+  sessions: SessionRepository,
+) {
+  return {
+    createSession: (
+      userId: string,
+      tenantId: string,
+      tokenVersion: number,
+      userAgent: string | undefined,
+      now: Date,
+    ) =>
+      createSessionWithRepository(
+        sessions,
+        userId,
+        tenantId,
+        tokenVersion,
+        userAgent,
+        now,
+      ),
+    rotateSession: (refreshToken: string, tenantId: string, now: Date) =>
+      rotateSessionWithRepository(
+        userRepository,
+        sessions,
+        refreshToken,
+        tenantId,
+        now,
+      ),
+    getSession: (
+      sessionId: string,
+      userId: string,
+      tenantId: string,
+      now: Date,
+    ) => getSessionWithRepository(sessions, sessionId, userId, tenantId, now),
+    listSessions: (userId: string, tenantId: string, now: Date) =>
+      listSessionsWithRepository(sessions, userId, tenantId, now),
+    revokeSession: (
+      sessionId: string,
+      userId: string,
+      tenantId: string,
+      reason: string,
+      now: Date,
+    ) =>
+      revokeSessionWithRepository(
+        sessions,
+        sessionId,
+        userId,
+        tenantId,
+        reason,
+        now,
+      ),
+    revokeAllSessions: (userId: string, tenantId: string, now: Date) =>
+      sessions.revokeAll(tenantId, userId, 'all_sessions_logout', now),
+    deleteExpiredSessions: (now: Date) => sessions.deleteExpired(now),
+  };
+}
+
+async function getSessionWithRepository(
+  sessions: SessionRepository,
   sessionId: string,
   userId: string,
   tenantId: string,
   now: Date,
 ) {
-  const session = await Session.findOne({
-    _id: sessionId,
-    userId,
-    tenantId,
-  });
+  const session = await sessions.findOwned(tenantId, userId, sessionId);
 
   /* v8 ignore next */
   if (!session || !isSessionActive(session, now)) {
@@ -321,52 +357,42 @@ export async function getSession(
   return toSessionSummary(session);
 }
 
-export async function listSessions(
+async function listSessionsWithRepository(
+  sessions: SessionRepository,
   userId: string,
   tenantId: string,
   now: Date,
 ) {
-  const sessions = await Session.find({
-    userId,
-    tenantId,
-    revokedAt: { $exists: false },
-    expiresAt: { $gt: now },
-    absoluteExpiresAt: { $gt: now },
-  }).sort({ createdAt: -1 });
-
-  return sessions.map(toSessionSummary);
+  return (await sessions.listActive(tenantId, userId, now)).map(
+    toSessionSummary,
+  );
 }
 
-export async function revokeSession(
+async function revokeSessionWithRepository(
+  sessions: SessionRepository,
   sessionId: string,
   userId: string,
   tenantId: string,
   reason: string,
   now: Date,
 ) {
-  const result = await Session.updateOne(
-    { _id: sessionId, userId, tenantId, revokedAt: { $exists: false } },
-    { $set: { revokedAt: now, revokeReason: reason } },
+  const revoked = await sessions.revokeOwned(
+    tenantId,
+    userId,
+    sessionId,
+    reason,
+    now,
   );
 
   /* v8 ignore else */
-  if (result.matchedCount !== 1) {
+  if (!revoked) {
     throw new AppError(404, 'SESSION_NOT_FOUND', 'Session not found');
   }
-}
-
-export async function revokeAllSessions(
-  userId: string,
-  tenantId: string,
-  now: Date,
-) {
-  await Session.updateMany(
-    { userId, tenantId, revokedAt: { $exists: false } },
-    { $set: { revokedAt: now, revokeReason: 'all_sessions_logout' } },
-  );
 }
 
 export const accessTokenContract = {
   issuer: ACCESS_TOKEN_ISSUER,
   audience: ACCESS_TOKEN_AUDIENCE,
 } as const;
+
+export type SessionService = ReturnType<typeof createSessionService>;

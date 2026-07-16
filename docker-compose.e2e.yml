@@ -1,18 +1,17 @@
 services:
-  mongo-e2e:
-    image: mongo:7.0.37-jammy
-    command: ['mongod', '--replSet', 'rs0', '--bind_ip_all']
+  postgres-e2e:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: mercadozetta_e2e
+      POSTGRES_USER: mercadozetta
+      POSTGRES_PASSWORD: e2e-only
     healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'mongosh --quiet --eval "try { rs.status().ok } catch (error) { rs.initiate({_id: ''rs0'', members: [{_id: 0, host: ''mongo-e2e:27017''}]}).ok }"',
-        ]
+      test: ['CMD-SHELL', 'pg_isready -U mercadozetta -d mercadozetta_e2e']
       interval: 1s
       timeout: 5s
       retries: 30
     tmpfs:
-      - /data/db
+      - /var/lib/postgresql
 
   backend-e2e:
     build:
@@ -20,7 +19,7 @@ services:
       target: development
     environment:
       NODE_ENV: test
-      MONGODB_URI: mongodb://mongo-e2e:27017/mercadozetta_e2e?replicaSet=rs0
+      POSTGRESQL_URL: postgresql://mercadozetta:e2e-only@postgres-e2e:5432/mercadozetta_e2e
       JWT_SIGNING_KEYS: '{"current":"e2e-jwt-current","previous":"e2e-jwt-previous"}'
       JWT_ACTIVE_KID: current
       REFRESH_TOKEN_HASH_SECRETS: '{"current":"e2e-refresh-current","previous":"e2e-refresh-previous"}'
@@ -34,8 +33,9 @@ services:
     ports:
       - '4333:3333'
     depends_on:
-      mongo-e2e:
+      postgres-e2e:
         condition: service_healthy
+    command: ['sh', '-ec', 'npm run db:migrate; exec npm run dev']
     healthcheck:
       test:
         ['CMD', 'wget', '--quiet', '--spider', 'http://localhost:3333/health']

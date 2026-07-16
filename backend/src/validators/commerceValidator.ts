@@ -1,17 +1,23 @@
 import { z } from 'zod';
+import { isUuid, UUID_EXAMPLE } from '@/ids';
 import { orderStatuses } from '@/orderStatus';
 import { parseAppSchema, requestString } from '@/validators/parseSchema';
 
-const objectId = z
+export const resourceIdSchema = z
   .unknown()
-  .transform((value) => requestString(value).trim())
-  .refine((value) => /^[a-f\d]{24}$/i.test(value), {
+  .transform((value) => requestString(value).trim().toLowerCase())
+  .refine((value) => isUuid(value), {
     message: 'Invalid resource id',
     params: { appCode: 'INVALID_RESOURCE_ID', statusCode: 400 },
+  })
+  .meta({
+    id: 'ResourceId',
+    example: UUID_EXAMPLE,
+    override: { type: 'string', format: 'uuid' },
   });
 
 const cartItemSchema = z.object({
-  productId: objectId,
+  productId: resourceIdSchema,
   quantity: z.coerce.number().int().min(1).default(1),
 });
 
@@ -24,7 +30,7 @@ const statusSchema = z.object({ status: z.enum(orderStatuses) });
 const notificationReadSchema = z.object({ read: z.boolean() });
 
 export const validateResourceId = (value: unknown) =>
-  parseAppSchema(objectId, value);
+  parseAppSchema(resourceIdSchema, value);
 export const validateCartItem = (value: object) =>
   parseAppSchema(cartItemSchema, value);
 export const validateReview = (value: object) =>

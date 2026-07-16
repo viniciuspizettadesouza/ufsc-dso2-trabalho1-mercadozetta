@@ -6,8 +6,7 @@ Express API for MercadoZetta. It handles user registration, login, JWT authentic
 
 - Node.js
 - Express
-- MongoDB
-- Mongoose
+- PostgreSQL and Drizzle
 - JSON Web Token
 - bcryptjs
 - Vitest and Supertest
@@ -23,7 +22,7 @@ cp .env.example .env
 Required values:
 
 ```env
-MONGODB_URI=mongodb+srv://user:password@cluster.example.mongodb.net/mercadozetta?retryWrites=true&w=majority
+POSTGRESQL_URL=postgresql://user:password@localhost:5432/mercadozetta
 JWT_SIGNING_KEYS={"current":"replace_with_a_long_random_secret"}
 JWT_ACTIVE_KID=current
 REFRESH_TOKEN_HASH_SECRETS={"current":"replace_with_a_distinct_random_secret"}
@@ -38,9 +37,9 @@ RATE_LIMIT_REGISTER_WINDOW_MS=900000
 RATE_LIMIT_REGISTER_MAX=10
 ```
 
-`MONGODB_URI` is required when starting the server. `PORT` defaults to `3333`
-when omitted. All three versioned security key rings are required outside
-development and test.
+`POSTGRESQL_URL` is required and `/ready` reports PostgreSQL connectivity.
+`PORT` defaults to `3333` when omitted. All three
+versioned security key rings are required outside development and test.
 `CORS_ORIGIN` accepts one or more comma-separated frontend origins. The rate
 limit variables control login and account creation attempts.
 
@@ -57,6 +56,15 @@ npm run dev
 ```
 
 The API will run on `http://localhost:3333` by default.
+
+Seed PostgreSQL with repeatable demo users and products:
+
+```bash
+npm run seed:demo
+```
+
+The seed runs in one transaction, refreshes only its deterministic records for
+the two built-in tenants, and preserves unrelated data.
 
 ## Test And Audit
 
@@ -75,7 +83,7 @@ dependency trees.
 | ------ | ------------------------- | ---- | --------------------------------------------- |
 | `GET`  | `/`                       | No   | API welcome response                          |
 | `GET`  | `/health`                 | No   | Liveness check                                |
-| `GET`  | `/ready`                  | No   | MongoDB readiness check                       |
+| `GET`  | `/ready`                  | No   | Active database readiness checks              |
 | `GET`  | `/products`               | No   | List all products                             |
 | `GET`  | `/users/:userId/products` | No   | List products for one seller                  |
 | `POST` | `/users`                  | No   | Create a user                                 |

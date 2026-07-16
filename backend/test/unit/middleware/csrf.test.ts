@@ -12,7 +12,7 @@ import {
   createRefreshToken,
 } from '@/services/sessionSecurityService';
 
-const sessionId = '507f1f77bcf86cd799439011';
+const sessionId = '507f1f77-bcf8-4ecd-8994-390110000001';
 
 function createRequest(
   headers: Record<string, string> = {},
@@ -133,7 +133,7 @@ describe('CSRF and request-origin middleware', () => {
       ),
       createRequest(validHeaders, {
         mz_csrf: csrfToken,
-        mz_rt: createRefreshToken('507f1f77bcf86cd799439012'),
+        mz_rt: createRefreshToken('507f1f77-bcf8-4ecd-8994-390120000002'),
       }),
       createRequest(
         { 'X-CSRF-Token': csrfToken },

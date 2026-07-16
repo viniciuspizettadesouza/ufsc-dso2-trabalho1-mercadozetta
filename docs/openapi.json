@@ -89,7 +89,7 @@
                 "example": {
                   "status": "ready",
                   "checks": {
-                    "mongodb": "connected"
+                    "postgresql": "connected"
                   }
                 },
                 "schema": {
@@ -99,13 +99,13 @@
             }
           },
           "503": {
-            "description": "MongoDB is unavailable",
+            "description": "PostgreSQL is unavailable",
             "content": {
               "application/json": {
                 "example": {
                   "status": "not_ready",
                   "checks": {
-                    "mongodb": "disconnected"
+                    "postgresql": "disconnected"
                   }
                 },
                 "schema": {
@@ -156,14 +156,14 @@
               "application/json": {
                 "example": {
                   "user": {
-                    "_id": "507f1f77bcf86cd799439011",
+                    "_id": "507f1f77-bcf8-4ecd-8994-390110000001",
                     "tenantId": "mercadozetta",
                     "email": "seller@example.com",
                     "username": "seller",
                     "telephone": "+55 48 99999-0000"
                   },
                   "session": {
-                    "id": "507f1f77bcf86cd799439012",
+                    "id": "507f1f77-bcf8-4ecd-8994-390120000002",
                     "lastUsedAt": "2026-07-15T12:00:00.000Z",
                     "expiresAt": "2026-07-22T12:00:00.000Z",
                     "absoluteExpiresAt": "2026-08-14T12:00:00.000Z"
@@ -490,7 +490,9 @@
             "name": "sessionId",
             "schema": {
               "type": "string",
-              "example": "507f1f77bcf86cd799439011"
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "example": "507f191e-810c-4197-9de8-60ea00000001"
             },
             "required": true
           },
@@ -774,7 +776,7 @@
               "application/json": {
                 "example": {
                   "newUser": {
-                    "_id": "507f1f77bcf86cd799439011",
+                    "_id": "507f1f77-bcf8-4ecd-8994-390110000001",
                     "tenantId": "mercadozetta",
                     "email": "seller@example.com",
                     "username": "seller",
@@ -855,7 +857,7 @@
             "content": {
               "application/json": {
                 "example": {
-                  "_id": "507f1f77bcf86cd799439011",
+                  "_id": "507f1f77-bcf8-4ecd-8994-390110000001",
                   "tenantId": "mercadozetta",
                   "email": "seller@example.com",
                   "username": "seller",
@@ -1008,7 +1010,7 @@
               "application/json": {
                 "example": [
                   {
-                    "_id": "507f191e810c19729de860ea",
+                    "_id": "507f191e-810c-4197-9de8-60ea00000001",
                     "tenantId": "mercadozetta",
                     "name": "mechanical keyboard",
                     "description": "Compact keyboard",
@@ -1017,7 +1019,7 @@
                     "inventory": 5,
                     "image": "https://example.com/keyboard.jpg",
                     "status": "active",
-                    "seller": "507f1f77bcf86cd799439011"
+                    "seller": "507f1f77-bcf8-4ecd-8994-390110000001"
                   }
                 ],
                 "schema": {
@@ -1147,7 +1149,7 @@
               "application/json": {
                 "example": [
                   {
-                    "_id": "507f191e810c19729de860ea",
+                    "_id": "507f191e-810c-4197-9de8-60ea00000001",
                     "tenantId": "mercadozetta",
                     "name": "mechanical keyboard",
                     "description": "Compact keyboard",
@@ -1156,7 +1158,7 @@
                     "inventory": 5,
                     "image": "https://example.com/keyboard.jpg",
                     "status": "active",
-                    "seller": "507f1f77bcf86cd799439011"
+                    "seller": "507f1f77-bcf8-4ecd-8994-390110000001"
                   }
                 ],
                 "schema": {
@@ -1243,7 +1245,7 @@
               "application/json": {
                 "example": {
                   "newProduct": {
-                    "_id": "507f191e810c19729de860ea",
+                    "_id": "507f191e-810c-4197-9de8-60ea00000001",
                     "tenantId": "mercadozetta",
                     "name": "mechanical keyboard",
                     "description": "Compact keyboard",
@@ -1252,7 +1254,7 @@
                     "inventory": 5,
                     "image": "https://example.com/keyboard.jpg",
                     "status": "active",
-                    "seller": "507f1f77bcf86cd799439011"
+                    "seller": "507f1f77-bcf8-4ecd-8994-390110000001"
                   }
                 },
                 "schema": {
@@ -1343,7 +1345,7 @@
             "content": {
               "application/json": {
                 "example": {
-                  "_id": "507f191e810c19729de860ea",
+                  "_id": "507f191e-810c-4197-9de8-60ea00000001",
                   "tenantId": "mercadozetta",
                   "name": "mechanical keyboard",
                   "description": "Compact keyboard",
@@ -1352,7 +1354,7 @@
                   "inventory": 5,
                   "image": "https://example.com/keyboard.jpg",
                   "status": "active",
-                  "seller": "507f1f77bcf86cd799439011"
+                  "seller": "507f1f77-bcf8-4ecd-8994-390110000001"
                 },
                 "schema": {
                   "$ref": "#/components/schemas/Product"
@@ -1421,7 +1423,7 @@
               "application/json": {
                 "example": {
                   "tenantId": "mercadozetta",
-                  "buyer": "507f1f77bcf86cd799439011",
+                  "buyer": "507f1f77-bcf8-4ecd-8994-390110000001",
                   "items": []
                 },
                 "schema": {
@@ -1429,14 +1431,18 @@
                   "properties": {
                     "_id": {
                       "type": "string",
-                      "example": "507f1f77bcf86cd799439011"
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "example": "507f191e-810c-4197-9de8-60ea00000001"
                     },
                     "tenantId": {
                       "type": "string"
                     },
                     "buyer": {
                       "type": "string",
-                      "example": "507f1f77bcf86cd799439011"
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "example": "507f191e-810c-4197-9de8-60ea00000001"
                     },
                     "items": {
                       "type": "array",
@@ -1447,7 +1453,9 @@
                             "anyOf": [
                               {
                                 "type": "string",
-                                "example": "507f1f77bcf86cd799439011"
+                                "format": "uuid",
+                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                                "example": "507f191e-810c-4197-9de8-60ea00000001"
                               },
                               {
                                 "$ref": "#/components/schemas/Product"
@@ -1534,7 +1542,7 @@
           "content": {
             "application/json": {
               "example": {
-                "productId": "507f191e810c19729de860ea",
+                "productId": "507f191e-810c-4197-9de8-60ea00000001",
                 "quantity": 1
               },
               "schema": {
@@ -1542,7 +1550,9 @@
                 "properties": {
                   "productId": {
                     "type": "string",
-                    "example": "507f1f77bcf86cd799439011"
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                    "example": "507f191e-810c-4197-9de8-60ea00000001"
                   },
                   "quantity": {
                     "type": "integer",
@@ -1565,7 +1575,7 @@
               "application/json": {
                 "example": {
                   "tenantId": "mercadozetta",
-                  "buyer": "507f1f77bcf86cd799439011",
+                  "buyer": "507f1f77-bcf8-4ecd-8994-390110000001",
                   "items": []
                 },
                 "schema": {
@@ -1573,14 +1583,18 @@
                   "properties": {
                     "_id": {
                       "type": "string",
-                      "example": "507f1f77bcf86cd799439011"
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "example": "507f191e-810c-4197-9de8-60ea00000001"
                     },
                     "tenantId": {
                       "type": "string"
                     },
                     "buyer": {
                       "type": "string",
-                      "example": "507f1f77bcf86cd799439011"
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "example": "507f191e-810c-4197-9de8-60ea00000001"
                     },
                     "items": {
                       "type": "array",
@@ -1591,7 +1605,9 @@
                             "anyOf": [
                               {
                                 "type": "string",
-                                "example": "507f1f77bcf86cd799439011"
+                                "format": "uuid",
+                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                                "example": "507f191e-810c-4197-9de8-60ea00000001"
                               },
                               {
                                 "$ref": "#/components/schemas/Product"
@@ -1680,7 +1696,9 @@
             "name": "productId",
             "schema": {
               "type": "string",
-              "example": "507f1f77bcf86cd799439011"
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "example": "507f191e-810c-4197-9de8-60ea00000001"
             },
             "required": true
           },
@@ -1713,7 +1731,7 @@
               "application/json": {
                 "example": {
                   "tenantId": "mercadozetta",
-                  "buyer": "507f1f77bcf86cd799439011",
+                  "buyer": "507f1f77-bcf8-4ecd-8994-390110000001",
                   "items": []
                 },
                 "schema": {
@@ -1721,14 +1739,18 @@
                   "properties": {
                     "_id": {
                       "type": "string",
-                      "example": "507f1f77bcf86cd799439011"
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "example": "507f191e-810c-4197-9de8-60ea00000001"
                     },
                     "tenantId": {
                       "type": "string"
                     },
                     "buyer": {
                       "type": "string",
-                      "example": "507f1f77bcf86cd799439011"
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "example": "507f191e-810c-4197-9de8-60ea00000001"
                     },
                     "items": {
                       "type": "array",
@@ -1739,7 +1761,9 @@
                             "anyOf": [
                               {
                                 "type": "string",
-                                "example": "507f1f77bcf86cd799439011"
+                                "format": "uuid",
+                                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                                "example": "507f191e-810c-4197-9de8-60ea00000001"
                               },
                               {
                                 "$ref": "#/components/schemas/Product"
@@ -1833,20 +1857,26 @@
                     "properties": {
                       "_id": {
                         "type": "string",
-                        "example": "507f1f77bcf86cd799439011"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "example": "507f191e-810c-4197-9de8-60ea00000001"
                       },
                       "tenantId": {
                         "type": "string"
                       },
                       "user": {
                         "type": "string",
-                        "example": "507f1f77bcf86cd799439011"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "example": "507f191e-810c-4197-9de8-60ea00000001"
                       },
                       "product": {
                         "anyOf": [
                           {
                             "type": "string",
-                            "example": "507f1f77bcf86cd799439011"
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "example": "507f191e-810c-4197-9de8-60ea00000001"
                           },
                           {
                             "$ref": "#/components/schemas/Product"
@@ -1900,7 +1930,9 @@
             "name": "productId",
             "schema": {
               "type": "string",
-              "example": "507f1f77bcf86cd799439011"
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "example": "507f191e-810c-4197-9de8-60ea00000001"
             },
             "required": true
           },
@@ -1932,30 +1964,36 @@
             "content": {
               "application/json": {
                 "example": {
-                  "_id": "507f191e810c19729de860ea",
+                  "_id": "507f191e-810c-4197-9de8-60ea00000001",
                   "tenantId": "mercadozetta",
-                  "user": "507f1f77bcf86cd799439011",
-                  "product": "507f191e810c19729de860ea"
+                  "user": "507f1f77-bcf8-4ecd-8994-390110000001",
+                  "product": "507f191e-810c-4197-9de8-60ea00000001"
                 },
                 "schema": {
                   "type": "object",
                   "properties": {
                     "_id": {
                       "type": "string",
-                      "example": "507f1f77bcf86cd799439011"
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "example": "507f191e-810c-4197-9de8-60ea00000001"
                     },
                     "tenantId": {
                       "type": "string"
                     },
                     "user": {
                       "type": "string",
-                      "example": "507f1f77bcf86cd799439011"
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "example": "507f191e-810c-4197-9de8-60ea00000001"
                     },
                     "product": {
                       "anyOf": [
                         {
                           "type": "string",
-                          "example": "507f1f77bcf86cd799439011"
+                          "format": "uuid",
+                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                          "example": "507f191e-810c-4197-9de8-60ea00000001"
                         },
                         {
                           "$ref": "#/components/schemas/Product"
@@ -2016,7 +2054,9 @@
             "name": "productId",
             "schema": {
               "type": "string",
-              "example": "507f1f77bcf86cd799439011"
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "example": "507f191e-810c-4197-9de8-60ea00000001"
             },
             "required": true
           },
@@ -2109,14 +2149,18 @@
                     "properties": {
                       "_id": {
                         "type": "string",
-                        "example": "507f1f77bcf86cd799439011"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "example": "507f191e-810c-4197-9de8-60ea00000001"
                       },
                       "tenantId": {
                         "type": "string"
                       },
                       "buyer": {
                         "type": "string",
-                        "example": "507f1f77bcf86cd799439011"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "example": "507f191e-810c-4197-9de8-60ea00000001"
                       },
                       "status": {
                         "type": "string",
@@ -2145,7 +2189,9 @@
                             },
                             "actor": {
                               "type": "string",
-                              "example": "507f1f77bcf86cd799439011"
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                              "example": "507f191e-810c-4197-9de8-60ea00000001"
                             },
                             "changedAt": {
                               "type": "string",
@@ -2168,14 +2214,18 @@
                           "properties": {
                             "product": {
                               "type": "string",
-                              "example": "507f1f77bcf86cd799439011"
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                              "example": "507f191e-810c-4197-9de8-60ea00000001"
                             },
                             "productName": {
                               "type": "string"
                             },
                             "seller": {
                               "type": "string",
-                              "example": "507f1f77bcf86cd799439011"
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                              "example": "507f191e-810c-4197-9de8-60ea00000001"
                             },
                             "quantity": {
                               "type": "integer",
@@ -2262,14 +2312,14 @@
             "content": {
               "application/json": {
                 "example": {
-                  "_id": "507f191e810c19729de860ea",
+                  "_id": "507f191e-810c-4197-9de8-60ea00000001",
                   "tenantId": "mercadozetta",
-                  "buyer": "507f1f77bcf86cd799439011",
+                  "buyer": "507f1f77-bcf8-4ecd-8994-390110000001",
                   "status": "placed",
                   "statusHistory": [
                     {
                       "status": "placed",
-                      "actor": "507f1f77bcf86cd799439011",
+                      "actor": "507f1f77-bcf8-4ecd-8994-390110000001",
                       "changedAt": "2026-07-13T10:00:00.000Z"
                     }
                   ],
@@ -2280,14 +2330,18 @@
                   "properties": {
                     "_id": {
                       "type": "string",
-                      "example": "507f1f77bcf86cd799439011"
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "example": "507f191e-810c-4197-9de8-60ea00000001"
                     },
                     "tenantId": {
                       "type": "string"
                     },
                     "buyer": {
                       "type": "string",
-                      "example": "507f1f77bcf86cd799439011"
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "example": "507f191e-810c-4197-9de8-60ea00000001"
                     },
                     "status": {
                       "type": "string",
@@ -2316,7 +2370,9 @@
                           },
                           "actor": {
                             "type": "string",
-                            "example": "507f1f77bcf86cd799439011"
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "example": "507f191e-810c-4197-9de8-60ea00000001"
                           },
                           "changedAt": {
                             "type": "string",
@@ -2339,14 +2395,18 @@
                         "properties": {
                           "product": {
                             "type": "string",
-                            "example": "507f1f77bcf86cd799439011"
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "example": "507f191e-810c-4197-9de8-60ea00000001"
                           },
                           "productName": {
                             "type": "string"
                           },
                           "seller": {
                             "type": "string",
-                            "example": "507f1f77bcf86cd799439011"
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "example": "507f191e-810c-4197-9de8-60ea00000001"
                           },
                           "quantity": {
                             "type": "integer",
@@ -2435,7 +2495,9 @@
             "name": "orderId",
             "schema": {
               "type": "string",
-              "example": "507f1f77bcf86cd799439011"
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "example": "507f191e-810c-4197-9de8-60ea00000001"
             },
             "required": true
           },
@@ -2495,19 +2557,19 @@
             "content": {
               "application/json": {
                 "example": {
-                  "_id": "507f191e810c19729de860ea",
+                  "_id": "507f191e-810c-4197-9de8-60ea00000001",
                   "tenantId": "mercadozetta",
-                  "buyer": "507f1f77bcf86cd799439011",
+                  "buyer": "507f1f77-bcf8-4ecd-8994-390110000001",
                   "status": "shipped",
                   "statusHistory": [
                     {
                       "status": "placed",
-                      "actor": "507f1f77bcf86cd799439011",
+                      "actor": "507f1f77-bcf8-4ecd-8994-390110000001",
                       "changedAt": "2026-07-13T10:00:00.000Z"
                     },
                     {
                       "status": "shipped",
-                      "actor": "507f1f77bcf86cd799439011",
+                      "actor": "507f1f77-bcf8-4ecd-8994-390110000001",
                       "changedAt": "2026-07-13T11:00:00.000Z"
                     }
                   ],
@@ -2518,14 +2580,18 @@
                   "properties": {
                     "_id": {
                       "type": "string",
-                      "example": "507f1f77bcf86cd799439011"
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "example": "507f191e-810c-4197-9de8-60ea00000001"
                     },
                     "tenantId": {
                       "type": "string"
                     },
                     "buyer": {
                       "type": "string",
-                      "example": "507f1f77bcf86cd799439011"
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "example": "507f191e-810c-4197-9de8-60ea00000001"
                     },
                     "status": {
                       "type": "string",
@@ -2554,7 +2620,9 @@
                           },
                           "actor": {
                             "type": "string",
-                            "example": "507f1f77bcf86cd799439011"
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "example": "507f191e-810c-4197-9de8-60ea00000001"
                           },
                           "changedAt": {
                             "type": "string",
@@ -2577,14 +2645,18 @@
                         "properties": {
                           "product": {
                             "type": "string",
-                            "example": "507f1f77bcf86cd799439011"
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "example": "507f191e-810c-4197-9de8-60ea00000001"
                           },
                           "productName": {
                             "type": "string"
                           },
                           "seller": {
                             "type": "string",
-                            "example": "507f1f77bcf86cd799439011"
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                            "example": "507f191e-810c-4197-9de8-60ea00000001"
                           },
                           "quantity": {
                             "type": "integer",
@@ -2668,7 +2740,9 @@
             "name": "productId",
             "schema": {
               "type": "string",
-              "example": "507f1f77bcf86cd799439011"
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "example": "507f191e-810c-4197-9de8-60ea00000001"
             },
             "required": true
           },
@@ -2696,15 +2770,21 @@
                     "properties": {
                       "_id": {
                         "type": "string",
-                        "example": "507f1f77bcf86cd799439011"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "example": "507f191e-810c-4197-9de8-60ea00000001"
                       },
                       "product": {
                         "type": "string",
-                        "example": "507f1f77bcf86cd799439011"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "example": "507f191e-810c-4197-9de8-60ea00000001"
                       },
                       "author": {
                         "type": "string",
-                        "example": "507f1f77bcf86cd799439011"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "example": "507f191e-810c-4197-9de8-60ea00000001"
                       },
                       "rating": {
                         "type": "integer",
@@ -2746,7 +2826,9 @@
             "name": "productId",
             "schema": {
               "type": "string",
-              "example": "507f1f77bcf86cd799439011"
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "example": "507f191e-810c-4197-9de8-60ea00000001"
             },
             "required": true
           },
@@ -2806,9 +2888,9 @@
             "content": {
               "application/json": {
                 "example": {
-                  "_id": "507f191e810c19729de860ea",
-                  "product": "507f191e810c19729de860ea",
-                  "author": "507f1f77bcf86cd799439011",
+                  "_id": "507f191e-810c-4197-9de8-60ea00000001",
+                  "product": "507f191e-810c-4197-9de8-60ea00000001",
+                  "author": "507f1f77-bcf8-4ecd-8994-390110000001",
                   "rating": 5,
                   "comment": "Excellent product"
                 },
@@ -2817,15 +2899,21 @@
                   "properties": {
                     "_id": {
                       "type": "string",
-                      "example": "507f1f77bcf86cd799439011"
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "example": "507f191e-810c-4197-9de8-60ea00000001"
                     },
                     "product": {
                       "type": "string",
-                      "example": "507f1f77bcf86cd799439011"
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "example": "507f191e-810c-4197-9de8-60ea00000001"
                     },
                     "author": {
                       "type": "string",
-                      "example": "507f1f77bcf86cd799439011"
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "example": "507f191e-810c-4197-9de8-60ea00000001"
                     },
                     "rating": {
                       "type": "integer",
@@ -2911,11 +2999,15 @@
                     "properties": {
                       "_id": {
                         "type": "string",
-                        "example": "507f1f77bcf86cd799439011"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "example": "507f191e-810c-4197-9de8-60ea00000001"
                       },
                       "user": {
                         "type": "string",
-                        "example": "507f1f77bcf86cd799439011"
+                        "format": "uuid",
+                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                        "example": "507f191e-810c-4197-9de8-60ea00000001"
                       },
                       "message": {
                         "type": "string"
@@ -3035,7 +3127,9 @@
             "name": "notificationId",
             "schema": {
               "type": "string",
-              "example": "507f1f77bcf86cd799439011"
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "example": "507f191e-810c-4197-9de8-60ea00000001"
             },
             "required": true
           },
@@ -3088,8 +3182,8 @@
             "content": {
               "application/json": {
                 "example": {
-                  "_id": "507f191e810c19729de860ea",
-                  "user": "507f1f77bcf86cd799439011",
+                  "_id": "507f191e-810c-4197-9de8-60ea00000001",
+                  "user": "507f1f77-bcf8-4ecd-8994-390110000001",
                   "message": "Order created",
                   "read": true
                 },
@@ -3098,11 +3192,15 @@
                   "properties": {
                     "_id": {
                       "type": "string",
-                      "example": "507f1f77bcf86cd799439011"
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "example": "507f191e-810c-4197-9de8-60ea00000001"
                     },
                     "user": {
                       "type": "string",
-                      "example": "507f1f77bcf86cd799439011"
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                      "example": "507f191e-810c-4197-9de8-60ea00000001"
                     },
                     "message": {
                       "type": "string"
@@ -3210,8 +3308,9 @@
         ]
       },
       "SellerId": {
+        "example": "507f191e-810c-4197-9de8-60ea00000001",
         "type": "string",
-        "example": "507f1f77bcf86cd799439011"
+        "format": "uuid"
       },
       "CreateProductRequest": {
         "description": "Details required to create a product listing.",
@@ -3274,8 +3373,9 @@
         ]
       },
       "ProductId": {
-        "example": "507f191e810c19729de860ea",
-        "type": "string"
+        "example": "507f191e-810c-4197-9de8-60ea00000001",
+        "type": "string",
+        "format": "uuid"
       },
       "Welcome": {
         "type": "object",
@@ -3315,7 +3415,7 @@
           "checks": {
             "type": "object",
             "properties": {
-              "mongodb": {
+              "postgresql": {
                 "type": "string",
                 "enum": [
                   "connected",
@@ -3324,7 +3424,7 @@
               }
             },
             "required": [
-              "mongodb"
+              "postgresql"
             ],
             "additionalProperties": false
           }
@@ -3340,7 +3440,9 @@
         "properties": {
           "_id": {
             "type": "string",
-            "example": "507f1f77bcf86cd799439011"
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "example": "507f191e-810c-4197-9de8-60ea00000001"
           },
           "tenantId": {
             "type": "string"
@@ -3381,7 +3483,9 @@
         "properties": {
           "id": {
             "type": "string",
-            "example": "507f1f77bcf86cd799439011"
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "example": "507f191e-810c-4197-9de8-60ea00000001"
           },
           "createdAt": {
             "type": "string",
@@ -3437,7 +3541,9 @@
         "properties": {
           "_id": {
             "type": "string",
-            "example": "507f1f77bcf86cd799439011"
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "example": "507f191e-810c-4197-9de8-60ea00000001"
           },
           "username": {
             "type": "string"
@@ -3468,7 +3574,9 @@
         "properties": {
           "_id": {
             "type": "string",
-            "example": "507f1f77bcf86cd799439011"
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "example": "507f191e-810c-4197-9de8-60ea00000001"
           },
           "tenantId": {
             "type": "string"
@@ -3507,7 +3615,9 @@
             "anyOf": [
               {
                 "type": "string",
-                "example": "507f1f77bcf86cd799439011"
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                "example": "507f191e-810c-4197-9de8-60ea00000001"
               },
               {
                 "$ref": "#/components/schemas/SellerProfile"

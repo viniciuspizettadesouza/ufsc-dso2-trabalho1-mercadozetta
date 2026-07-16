@@ -153,7 +153,8 @@ sequenceDiagram
   `backend/src/middleware/csrf.ts`, and `backend/src/routes.ts`
 - Login controller/service: `backend/src/controller/authController.ts` and
   `backend/src/services/authService.ts`
-- Session persistence and rotation: `backend/src/model/session.ts` and
+- Session persistence and rotation: `backend/src/repositories/sessionRepository.ts`,
+  `backend/src/repositories/postgres/sessionRepository.ts`, and
   `backend/src/services/sessionService.ts`
 - Cookie and versioned key-ring configuration: `backend/src/config/security.ts` and
   `backend/src/services/authCookieService.ts`

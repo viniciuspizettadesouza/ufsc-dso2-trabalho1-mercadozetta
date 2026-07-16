@@ -1,19 +1,18 @@
 services:
-  mongo:
-    image: mongo:7.0.37-jammy
-    container_name: mercadozetta-mongo
-    command: ['mongod', '--replSet', 'rs0', '--bind_ip_all']
+  postgres:
+    image: postgres:18-alpine
+    container_name: mercadozetta-postgres
     restart: unless-stopped
+    environment:
+      POSTGRES_DB: mercadozetta
+      POSTGRES_USER: mercadozetta
+      POSTGRES_PASSWORD: local-development-only
     ports:
-      - '27017:27017'
+      - '5432:5432'
     volumes:
-      - mercadozetta-mongo-data:/data/db
+      - mercadozetta-postgres-data:/var/lib/postgresql
     healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'mongosh --quiet --eval "try { rs.status().ok } catch (error) { rs.initiate({_id: ''rs0'', members: [{_id: 0, host: ''mongo:27017''}]}).ok }"',
-        ]
+      test: ['CMD-SHELL', 'pg_isready -U mercadozetta -d mercadozetta']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,7 +23,7 @@ services:
       target: development
     restart: unless-stopped
     environment:
-      MONGODB_URI: mongodb://mongo:27017/mercadozetta?replicaSet=rs0
+      POSTGRESQL_URL: postgresql://mercadozetta:local-development-only@postgres:5432/mercadozetta
       JWT_SIGNING_KEYS: '{"current":"local_dev_secret_please_change_later"}'
       JWT_ACTIVE_KID: current
       REFRESH_TOKEN_HASH_SECRETS: '{"current":"local_dev_refresh_secret_please_change_later"}'
@@ -41,8 +40,9 @@ services:
     ports:
       - '3333:3333'
     depends_on:
-      mongo:
+      postgres:
         condition: service_healthy
+    command: ['sh', '-c', 'npm run db:migrate && exec npm run dev']
 
   frontend:
     build:
@@ -58,4 +58,4 @@ services:
       - backend
 
 volumes:
-  mercadozetta-mongo-data:
+  mercadozetta-postgres-data:

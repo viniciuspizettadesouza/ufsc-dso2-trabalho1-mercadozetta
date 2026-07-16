@@ -1,43 +1,66 @@
 import jwt from 'jsonwebtoken';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { clearModules, mockModule } from '../helpers/moduleMock';
-
-const authPath = require.resolve('@/middleware/auth');
-const securityPath = require.resolve('@/config/security');
-const sessionModelPath = require.resolve('@/model/session');
-const sessionServicePath = require.resolve('@/services/sessionService');
-const userModelPath = require.resolve('@/model/user');
+import type { NextFunction, Request, Response } from 'express';
+import { describe, expect, it, vi } from 'vitest';
+import { createAuthMiddleware } from '@/middleware/auth';
+import type { SessionRepository } from '@/repositories/sessionRepository';
+import type { UserRepository } from '@/repositories/userRepository';
 
 function loadAuthMiddleware(
   userExists = vi.fn().mockResolvedValue({ _id: 'user-1' }),
   sessionExists = vi.fn().mockResolvedValue({ _id: 'session-1' }),
   signingKeys: Record<string, string> = { current: 'current-secret' },
 ) {
-  clearModules(
-    authPath,
-    securityPath,
-    sessionModelPath,
-    sessionServicePath,
-    userModelPath,
-  );
-  mockModule(securityPath, {
-    getJwtSigningKeyRing: () => ({ activeKid: 'current', keys: signingKeys }),
-    getAuthCookieConfig: () => ({ access: { name: 'mz_at' } }),
-  });
-  mockModule(sessionModelPath, { exists: sessionExists });
-  mockModule(sessionServicePath, {
-    accessTokenContract: {
+  const userRepository: UserRepository = {
+    emailExists: vi.fn(),
+    create: vi.fn(),
+    findPublicById: vi.fn(),
+    findForAuthentication: vi.fn(),
+    findTokenVersion: vi.fn(),
+    incrementTokenVersion: vi.fn(),
+    hasTokenVersion: async (tenantId, userId, tokenVersion) =>
+      Boolean(
+        await userExists({
+          _id: userId,
+          tenantId,
+          tokenVersion,
+        }),
+      ),
+  };
+  const sessionRepository = {
+    isActive: async (
+      tenantId: string,
+      userId: string,
+      sessionId: string,
+      tokenVersion: number,
+      now: Date,
+    ) =>
+      Boolean(
+        await sessionExists({
+          _id: sessionId,
+          userId,
+          tenantId,
+          tokenVersion,
+          revokedAt: { $exists: false },
+          expiresAt: { $gt: now },
+          absoluteExpiresAt: { $gt: now },
+        }),
+      ),
+  } as SessionRepository;
+  const middleware = createAuthMiddleware(userRepository, sessionRepository, {
+    signingKeyRing: () => ({ activeKid: 'current', keys: signingKeys }),
+    authCookieName: () => 'mz_at',
+    tokenContract: {
       issuer: 'mercadozetta',
       audience: 'mercadozetta-api',
     },
   });
-  mockModule(userModelPath, { exists: userExists });
-  return require('@/middleware/auth');
+  return (request: unknown, response: unknown, next: NextFunction) =>
+    middleware(request as Request, response as Response, next);
 }
 
 const validPayload = {
   tenantId: 'mercadozetta',
-  sid: '507f1f77bcf86cd799439011',
+  sid: '507f1f77-bcf8-4ecd-8994-390110000001',
   tokenVersion: 2,
   typ: 'access',
 };
@@ -46,7 +69,7 @@ function signCookie(
   payload: object = validPayload,
   secret = 'current-secret',
   kid: string | number | undefined = 'current',
-  subject = 'user-1',
+  subject = '607f1f77-bcf8-4ecd-8994-390120000002',
 ) {
   return jwt.sign(payload, secret, {
     ...(kid === undefined ? {} : { header: { kid } as any }),
@@ -63,17 +86,6 @@ function cookieRequest(token: string, tenantId = 'mercadozetta') {
     tenant: { id: tenantId },
   };
 }
-
-afterEach(() => {
-  clearModules(
-    authPath,
-    securityPath,
-    sessionModelPath,
-    sessionServicePath,
-    userModelPath,
-  );
-  vi.restoreAllMocks();
-});
 
 describe('auth middleware', () => {
   it('requires the access cookie and does not accept Authorization headers', async () => {
@@ -102,18 +114,21 @@ describe('auth middleware', () => {
 
     await authMiddleware(req, {}, next);
 
-    expect(req.userId).toBe('user-1');
+    expect(req.userId).toBe('607f1f77-bcf8-4ecd-8994-390120000002');
     expect(req.sessionId).toBe(validPayload.sid);
     expect(sessionExists).toHaveBeenCalledWith(
       expect.objectContaining({
         _id: validPayload.sid,
-        userId: 'user-1',
+        userId: '607f1f77-bcf8-4ecd-8994-390120000002',
         tenantId: 'mercadozetta',
         tokenVersion: 2,
       }),
     );
     expect(userExists).toHaveBeenCalledWith(
-      expect.objectContaining({ _id: 'user-1', tenantId: 'mercadozetta' }),
+      expect.objectContaining({
+        _id: '607f1f77-bcf8-4ecd-8994-390120000002',
+        tenantId: 'mercadozetta',
+      }),
     );
     expect(next).toHaveBeenCalledWith();
   });
@@ -148,19 +163,20 @@ describe('auth middleware', () => {
       signCookie({ ...validPayload, typ: 'refresh' }),
       signCookie(validPayload, 'current-secret', 'current', ''),
       signCookie({ ...validPayload, sid: undefined }),
+      signCookie({ ...validPayload, sid: 'not-a-uuid' }),
       signCookie({ ...validPayload, tenantId: undefined }),
       signCookie({ ...validPayload, tokenVersion: '2' }),
       signCookie({ ...validPayload, tenantId: 'campus-market' }),
       signCookie(validPayload, 'wrong-secret'),
       jwt.sign(validPayload, 'current-secret', {
         keyid: 'current',
-        subject: 'user-1',
+        subject: '607f1f77-bcf8-4ecd-8994-390120000002',
         issuer: 'wrong-issuer',
         audience: 'mercadozetta-api',
       }),
       jwt.sign(validPayload, 'current-secret', {
         keyid: 'current',
-        subject: 'user-1',
+        subject: '607f1f77-bcf8-4ecd-8994-390120000002',
         issuer: 'mercadozetta',
         audience: 'mercadozetta-api',
         expiresIn: -1,

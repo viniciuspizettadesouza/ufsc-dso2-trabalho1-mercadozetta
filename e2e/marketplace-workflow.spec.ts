@@ -14,7 +14,7 @@ const seller = {
 };
 
 const product = {
-  id: '670000000000000000000001',
+  id: '67000000-0000-4000-8000-000000000001',
   initialInventory: 3,
   name: 'Notebook Dell Latitude',
 };

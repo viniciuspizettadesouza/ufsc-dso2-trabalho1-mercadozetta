@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import * as Commerce from '@/services/commerceService';
+import type { CommerceService } from '@/services/commerceService';
 import type { OrderStatus } from '@/orderStatus';
 
 const context = (req: Request) => ({
@@ -7,129 +7,140 @@ const context = (req: Request) => ({
   tenantId: req.tenant?.id ?? '',
 });
 
-export async function getCart(req: Request, res: Response) {
-  const { userId, tenantId } = context(req);
-  res.send(await Commerce.getCart(userId, tenantId));
-}
-export async function setCartItem(req: Request, res: Response) {
-  const { userId, tenantId } = context(req);
-  const body = req.validated?.body as { productId: string; quantity: number };
-  res.send(
-    await Commerce.setCartItem(userId, tenantId, body.productId, body.quantity),
-  );
-}
-export async function removeCartItem(req: Request, res: Response) {
-  const { userId, tenantId } = context(req);
-  res.send(
-    await Commerce.removeCartItem(
-      userId,
-      tenantId,
-      (req.validated?.params as { productId: string }).productId,
-    ),
-  );
-}
-export async function listWatchlist(req: Request, res: Response) {
-  const { userId, tenantId } = context(req);
-  res.send(await Commerce.listWatchlist(userId, tenantId));
-}
-export async function addWatchlist(req: Request, res: Response) {
-  const { userId, tenantId } = context(req);
-  res
-    .status(201)
-    .send(
-      await Commerce.addWatchlist(
+export function createCommerceController(service: CommerceService) {
+  async function getCart(req: Request, res: Response) {
+    const { userId, tenantId } = context(req);
+    res.send(await service.getCart(userId, tenantId));
+  }
+  async function setCartItem(req: Request, res: Response) {
+    const { userId, tenantId } = context(req);
+    const body = req.validated?.body as { productId: string; quantity: number };
+    res.send(
+      await service.setCartItem(
+        userId,
+        tenantId,
+        body.productId,
+        body.quantity,
+      ),
+    );
+  }
+  async function removeCartItem(req: Request, res: Response) {
+    const { userId, tenantId } = context(req);
+    res.send(
+      await service.removeCartItem(
         userId,
         tenantId,
         (req.validated?.params as { productId: string }).productId,
       ),
     );
-}
-export async function removeWatchlist(req: Request, res: Response) {
-  const { userId, tenantId } = context(req);
-  await Commerce.removeWatchlist(
-    userId,
-    tenantId,
-    (req.validated?.params as { productId: string }).productId,
-  );
-  res.status(204).send();
-}
-export async function createOrder(req: Request, res: Response) {
-  const { userId, tenantId } = context(req);
-  res.status(201).send(await Commerce.createOrder(userId, tenantId));
-}
-export async function listOrders(req: Request, res: Response) {
-  const { userId, tenantId } = context(req);
-  res.send(await Commerce.listOrders(userId, tenantId));
-}
-export async function updateOrderStatus(req: Request, res: Response) {
-  const { userId, tenantId } = context(req);
-  const { orderId } = req.validated?.params as { orderId: string };
-  const { status } = req.validated?.body as { status: OrderStatus };
-  res.send(await Commerce.updateOrderStatus(userId, tenantId, orderId, status));
-}
-export async function listReviews(req: Request, res: Response) {
-  res.send(
-    await Commerce.listReviews(
-      req.tenant?.id ?? '',
-      (req.validated?.params as { productId: string }).productId,
-    ),
-  );
-}
-export async function createReview(req: Request, res: Response) {
-  const { userId, tenantId } = context(req);
-  const { productId } = req.validated?.params as { productId: string };
-  const body = req.validated?.body as { rating: number; comment: string };
-  res
-    .status(201)
-    .send(
-      await Commerce.createReview(
-        userId,
-        tenantId,
-        productId,
-        body.rating,
-        body.comment,
-      ),
-    );
-}
-export async function listNotifications(req: Request, res: Response) {
-  const { userId, tenantId } = context(req);
-  res.send(await Commerce.listNotifications(userId, tenantId));
-}
-export async function countUnreadNotifications(req: Request, res: Response) {
-  const { userId, tenantId } = context(req);
-  res.send({
-    count: await Commerce.countUnreadNotifications(userId, tenantId),
-  });
-}
-export async function updateNotificationRead(req: Request, res: Response) {
-  const { userId, tenantId } = context(req);
-  const { notificationId } = req.validated?.params as {
-    notificationId: string;
-  };
-  const { read } = req.validated?.body as { read: boolean };
-  res.send(
-    await Commerce.updateNotificationRead(
+  }
+  async function listWatchlist(req: Request, res: Response) {
+    const { userId, tenantId } = context(req);
+    res.send(await service.listWatchlist(userId, tenantId));
+  }
+  async function addWatchlist(req: Request, res: Response) {
+    const { userId, tenantId } = context(req);
+    res
+      .status(201)
+      .send(
+        await service.addWatchlist(
+          userId,
+          tenantId,
+          (req.validated?.params as { productId: string }).productId,
+        ),
+      );
+  }
+  async function removeWatchlist(req: Request, res: Response) {
+    const { userId, tenantId } = context(req);
+    await service.removeWatchlist(
       userId,
       tenantId,
-      notificationId,
-      read,
-    ),
-  );
+      (req.validated?.params as { productId: string }).productId,
+    );
+    res.status(204).send();
+  }
+  async function createOrder(req: Request, res: Response) {
+    const { userId, tenantId } = context(req);
+    res.status(201).send(await service.createOrder(userId, tenantId));
+  }
+  async function listOrders(req: Request, res: Response) {
+    const { userId, tenantId } = context(req);
+    res.send(await service.listOrders(userId, tenantId));
+  }
+  async function updateOrderStatus(req: Request, res: Response) {
+    const { userId, tenantId } = context(req);
+    const { orderId } = req.validated?.params as { orderId: string };
+    const { status } = req.validated?.body as { status: OrderStatus };
+    res.send(
+      await service.updateOrderStatus(userId, tenantId, orderId, status),
+    );
+  }
+  async function listReviews(req: Request, res: Response) {
+    res.send(
+      await service.listReviews(
+        req.tenant?.id ?? '',
+        (req.validated?.params as { productId: string }).productId,
+      ),
+    );
+  }
+  async function createReview(req: Request, res: Response) {
+    const { userId, tenantId } = context(req);
+    const { productId } = req.validated?.params as { productId: string };
+    const body = req.validated?.body as { rating: number; comment: string };
+    res
+      .status(201)
+      .send(
+        await service.createReview(
+          userId,
+          tenantId,
+          productId,
+          body.rating,
+          body.comment,
+        ),
+      );
+  }
+  async function listNotifications(req: Request, res: Response) {
+    const { userId, tenantId } = context(req);
+    res.send(await service.listNotifications(userId, tenantId));
+  }
+  async function countUnreadNotifications(req: Request, res: Response) {
+    const { userId, tenantId } = context(req);
+    res.send({
+      count: await service.countUnreadNotifications(userId, tenantId),
+    });
+  }
+  async function updateNotificationRead(req: Request, res: Response) {
+    const { userId, tenantId } = context(req);
+    const { notificationId } = req.validated?.params as {
+      notificationId: string;
+    };
+    const { read } = req.validated?.body as { read: boolean };
+    res.send(
+      await service.updateNotificationRead(
+        userId,
+        tenantId,
+        notificationId,
+        read,
+      ),
+    );
+  }
+
+  return {
+    getCart,
+    setCartItem,
+    removeCartItem,
+    listWatchlist,
+    addWatchlist,
+    removeWatchlist,
+    createOrder,
+    listOrders,
+    updateOrderStatus,
+    listReviews,
+    createReview,
+    listNotifications,
+    countUnreadNotifications,
+    updateNotificationRead,
+  };
 }
 
-export default {
-  getCart,
-  setCartItem,
-  removeCartItem,
-  listWatchlist,
-  addWatchlist,
-  removeWatchlist,
-  createOrder,
-  listOrders,
-  updateOrderStatus,
-  listReviews,
-  createReview,
-  listNotifications,
-  countUnreadNotifications,
-  updateNotificationRead,
-};
+export type CommerceController = ReturnType<typeof createCommerceController>;

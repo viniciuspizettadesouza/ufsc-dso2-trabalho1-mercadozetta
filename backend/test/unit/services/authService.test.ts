@@ -1,93 +1,70 @@
 import bcrypt from 'bcryptjs';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-import { clearModules, mockModule } from '../helpers/moduleMock';
+import { describe, expect, it, vi } from 'vitest';
+import type { UserRepository } from '@/repositories/userRepository';
+import {
+  createAuthService,
+  type AuthSessionService,
+} from '@/services/authService';
 
-const servicePath = require.resolve('@/services/authService');
-const securityPath = require.resolve('@/config/security');
-const sessionServicePath = require.resolve('@/services/sessionService');
-const userModelPath = require.resolve('@/model/user');
+function repository(overrides: Partial<UserRepository> = {}): UserRepository {
+  return {
+    emailExists: vi.fn().mockResolvedValue(false),
+    create: vi.fn(),
+    findPublicById: vi.fn().mockResolvedValue(null),
+    findForAuthentication: vi.fn().mockResolvedValue(null),
+    findTokenVersion: vi.fn().mockResolvedValue(null),
+    hasTokenVersion: vi.fn().mockResolvedValue(false),
+    incrementTokenVersion: vi.fn().mockResolvedValue(false),
+    ...overrides,
+  };
+}
 
-function loadAuthService(
-  userModel: NodeModule['exports'],
-  _secret = 'unused',
-  sessionService: NodeModule['exports'] = {},
-) {
-  clearModules(servicePath, securityPath, sessionServicePath, userModelPath);
-  mockModule(userModelPath, userModel);
-  mockModule(securityPath, {});
-  mockModule(sessionServicePath, {
+function sessions(
+  overrides: Partial<AuthSessionService> = {},
+): AuthSessionService {
+  return {
     createSession: vi.fn().mockResolvedValue({
       accessToken: 'cookie-access-token',
       refreshToken: 'refresh-token',
       csrfToken: 'csrf-token',
       session: { id: 'session-1' },
     }),
-    getSession: vi.fn(),
+    getSession: vi.fn().mockResolvedValue({ id: 'session-1' }),
     revokeAllSessions: vi.fn().mockResolvedValue(undefined),
-    ...sessionService,
-  });
-  return require('@/services/authService');
+    ...overrides,
+  };
 }
 
-afterEach(() => {
-  clearModules(servicePath, securityPath, sessionServicePath, userModelPath);
-  vi.restoreAllMocks();
-});
-
 describe('authService', () => {
-  it('normalizes email, verifies password, creates a session, and strips passwords', async () => {
-    const user = {
+  it('normalizes credentials, creates a session, and strips secrets', async () => {
+    const findForAuthentication = vi.fn().mockResolvedValue({
       _id: 'user-1',
       email: 'seller@example.com',
-      password: await bcrypt.hash('secret123', 4),
+      passwordHash: await bcrypt.hash('secret123', 4),
       username: 'Seller',
       telephone: '123',
-      tenantId: 'mercadozetta',
+      tenantId: 'campus-market',
       tokenVersion: 2,
-      toObject() {
-        return {
-          _id: this._id,
-          email: this.email,
-          password: this.password,
-          username: this.username,
-          telephone: this.telephone,
-          tenantId: this.tenantId,
-          tokenVersion: this.tokenVersion,
-        };
-      },
-    };
-    const select = vi.fn().mockResolvedValue(user);
-    const findOne = vi.fn(() => ({ select }));
-    const createSession = vi.fn().mockResolvedValue({
-      accessToken: 'cookie-access-token',
-      refreshToken: 'refresh-token',
-      csrfToken: 'csrf-token',
-      session: { id: 'session-1' },
     });
-    const { authenticate } = loadAuthService({ findOne }, 'unit-test-secret', {
-      createSession,
-    });
+    const sessionService = sessions();
+    const { authenticate } = createAuthService(
+      repository({ findForAuthentication }),
+      sessionService,
+    );
 
     const result = await authenticate(
-      {
-        email: ' Seller@Example.com ',
-        password: 'secret123',
-      },
+      { email: ' Seller@Example.com ', password: 'secret123' },
       'campus-market',
       'test browser',
     );
 
-    expect(findOne).toHaveBeenCalledWith({
-      tenantId: 'campus-market',
-      email: 'seller@example.com',
-    });
-    expect(select).toHaveBeenCalledWith(
-      '+password +tokenVersion email username telephone tenantId',
+    expect(findForAuthentication).toHaveBeenCalledWith(
+      'campus-market',
+      'seller@example.com',
     );
-    expect(result.user.password).toBeUndefined();
-    expect(result.user.tokenVersion).toBeUndefined();
-    expect(result).not.toHaveProperty('token');
-    expect(createSession).toHaveBeenCalledWith(
+    expect(result.user).not.toHaveProperty('passwordHash');
+    expect(result.user).not.toHaveProperty('tokenVersion');
+    expect(sessionService.createSession).toHaveBeenCalledWith(
       'user-1',
       'campus-market',
       2,
@@ -97,20 +74,21 @@ describe('authService', () => {
     expect(result.refreshToken).toBe('refresh-token');
   });
 
-  it('increments the token version to revoke active sessions', async () => {
-    const updateOne = vi.fn().mockResolvedValue({ matchedCount: 1 });
-    const revokeAllSessions = vi.fn().mockResolvedValue(undefined);
-    const { logout } = loadAuthService({ updateOne }, 'unit-test-secret', {
-      revokeAllSessions,
-    });
+  it('increments tokenVersion before revoking active sessions', async () => {
+    const incrementTokenVersion = vi.fn().mockResolvedValue(true);
+    const sessionService = sessions();
+    const { logout } = createAuthService(
+      repository({ incrementTokenVersion }),
+      sessionService,
+    );
 
     await logout('user-1', 'mercadozetta');
 
-    expect(updateOne).toHaveBeenCalledWith(
-      { _id: 'user-1', tenantId: 'mercadozetta' },
-      { $inc: { tokenVersion: 1 } },
+    expect(incrementTokenVersion).toHaveBeenCalledWith(
+      'mercadozetta',
+      'user-1',
     );
-    expect(revokeAllSessions).toHaveBeenCalledWith(
+    expect(sessionService.revokeAllSessions).toHaveBeenCalledWith(
       'user-1',
       'mercadozetta',
       expect.any(Date),
@@ -118,9 +96,7 @@ describe('authService', () => {
   });
 
   it('rejects logout when the authenticated user no longer exists', async () => {
-    const { logout } = loadAuthService({
-      updateOne: vi.fn().mockResolvedValue({ matchedCount: 0 }),
-    });
+    const { logout } = createAuthService(repository(), sessions());
 
     await expect(logout('missing', 'mercadozetta')).rejects.toMatchObject({
       statusCode: 401,
@@ -128,59 +104,42 @@ describe('authService', () => {
     });
   });
 
-  it('rejects missing users and invalid passwords with the same public error', async () => {
-    let { authenticate } = loadAuthService({
-      findOne: vi.fn(() => ({ select: vi.fn().mockResolvedValue(null) })),
-    });
-
+  it('uses the same public error for missing users and invalid passwords', async () => {
+    let { authenticate } = createAuthService(repository(), sessions());
     await expect(
-      authenticate({
-        email: 'missing@example.com',
-        password: 'secret123',
-      }),
-    ).rejects.toMatchObject({
-      statusCode: 401,
-      code: 'INVALID_CREDENTIALS',
-    });
+      authenticate({ email: 'missing@example.com', password: 'secret123' }),
+    ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
 
-    const hashedPassword = await bcrypt.hash('secret123', 4);
-    ({ authenticate } = loadAuthService({
-      findOne: vi.fn(() => ({
-        select: vi.fn().mockResolvedValue({
+    ({ authenticate } = createAuthService(
+      repository({
+        findForAuthentication: vi.fn().mockResolvedValue({
           _id: 'user-1',
+          tenantId: 'mercadozetta',
           email: 'seller@example.com',
-          password: hashedPassword,
+          passwordHash: await bcrypt.hash('secret123', 4),
+          tokenVersion: 0,
         }),
-      })),
-    }));
-
+      }),
+      sessions(),
+    ));
     await expect(
       authenticate({
         email: 'seller@example.com',
         password: 'wrong-password',
       }),
-    ).rejects.toMatchObject({
-      statusCode: 401,
-      code: 'INVALID_CREDENTIALS',
-    });
+    ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
   });
 
   it('restores public user data with an owned active session', async () => {
-    const getSession = vi.fn().mockResolvedValue({ id: 'session-1' });
-    const user = {
-      toObject: () => ({
-        _id: 'user-1',
-        tenantId: 'mercadozetta',
-        email: 'seller@example.com',
-        password: 'not-selected',
-        tokenVersion: 2,
-      }),
-    };
-    const findOne = vi.fn(() => ({ select: vi.fn().mockResolvedValue(user) }));
-    const { getSessionState } = loadAuthService(
-      { findOne },
-      'unit-test-secret',
-      { getSession },
+    const findPublicById = vi.fn().mockResolvedValue({
+      _id: 'user-1',
+      tenantId: 'mercadozetta',
+      email: 'seller@example.com',
+    });
+    const sessionService = sessions();
+    const { getSessionState } = createAuthService(
+      repository({ findPublicById }),
+      sessionService,
     );
 
     await expect(
@@ -193,22 +152,11 @@ describe('authService', () => {
       },
       session: { id: 'session-1' },
     });
-    expect(getSession).toHaveBeenCalledWith(
-      'session-1',
-      'user-1',
-      'mercadozetta',
-      expect.any(Date),
-    );
+    expect(findPublicById).toHaveBeenCalledWith('mercadozetta', 'user-1');
   });
 
   it('rejects session restoration when the user no longer exists', async () => {
-    const { getSessionState } = loadAuthService(
-      {
-        findOne: vi.fn(() => ({ select: vi.fn().mockResolvedValue(null) })),
-      },
-      'unit-test-secret',
-      { getSession: vi.fn().mockResolvedValue({ id: 'session-1' }) },
-    );
+    const { getSessionState } = createAuthService(repository(), sessions());
 
     await expect(
       getSessionState('session-1', 'user-1', 'mercadozetta'),

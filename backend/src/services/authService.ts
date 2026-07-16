@@ -1,11 +1,7 @@
 import bcrypt from 'bcryptjs';
 import AppError from '@/errors/AppError';
-import User from '@/model/user';
-import {
-  createSession,
-  getSession,
-  revokeAllSessions,
-} from '@/services/sessionService';
+import type { UserRepository } from '@/repositories/userRepository';
+import type { SessionService } from '@/services/sessionService';
 import { defaultTenantId } from '@/tenants';
 import {
   type LoginCredentials,
@@ -13,94 +9,84 @@ import {
   validateLoginPayload,
 } from '@/validators/authValidator';
 
-function stripSensitiveFields<
-  T extends { password?: string; tokenVersion?: number },
->(userObject: T) {
-  const publicUser = { ...userObject };
-  delete publicUser.password;
-  delete publicUser.tokenVersion;
-  return publicUser;
-}
+export type AuthSessionService = Pick<
+  SessionService,
+  'createSession' | 'getSession' | 'revokeAllSessions'
+>;
 
-export async function authenticate(
-  body: LoginRequestBody | LoginCredentials,
-  tenantId = defaultTenantId,
-  userAgent?: string,
+export function createAuthService(
+  userRepository: UserRepository,
+  sessionService: AuthSessionService,
 ) {
-  const { email, password } = validateLoginPayload(body);
-  const user = await User.findOne({ tenantId, email }).select(
-    '+password +tokenVersion email username telephone tenantId',
-  );
+  async function authenticate(
+    body: LoginRequestBody | LoginCredentials,
+    tenantId = defaultTenantId,
+    userAgent?: string,
+  ) {
+    const { email, password } = validateLoginPayload(body);
+    const user = await userRepository.findForAuthentication(tenantId, email);
 
-  /* v8 ignore else */
-  if (!user)
-    throw new AppError(401, 'INVALID_CREDENTIALS', 'Invalid credentials');
+    /* v8 ignore else */
+    if (!user)
+      throw new AppError(401, 'INVALID_CREDENTIALS', 'Invalid credentials');
 
-  /* v8 ignore else */
-  if (!(await bcrypt.compare(password, user.password as string)))
-    throw new AppError(401, 'INVALID_CREDENTIALS', 'Invalid credentials');
+    /* v8 ignore else */
+    if (!(await bcrypt.compare(password, user.passwordHash)))
+      throw new AppError(401, 'INVALID_CREDENTIALS', 'Invalid credentials');
 
-  const sessionCredentials = await createSession(
-    String(user._id),
-    tenantId,
-    user.tokenVersion as number,
-    userAgent,
-    new Date(),
-  );
-
-  return {
-    user: stripSensitiveFields(user.toObject()),
-    ...sessionCredentials,
-  };
-}
-
-export async function logout(userId: string, tenantId: string) {
-  const result = await User.updateOne(
-    { _id: userId, tenantId },
-    { $inc: { tokenVersion: 1 } },
-  );
-
-  /* v8 ignore else */
-  if (result.matchedCount !== 1)
-    throw new AppError(
-      401,
-      'INVALID_AUTH_TOKEN',
-      'Invalid authorization token',
+    const publicUser: Partial<typeof user> = { ...user };
+    delete publicUser.passwordHash;
+    delete publicUser.tokenVersion;
+    const sessionCredentials = await sessionService.createSession(
+      user._id,
+      tenantId,
+      user.tokenVersion,
+      userAgent,
+      new Date(),
     );
 
-  await revokeAllSessions(userId, tenantId, new Date());
-}
+    return { user: publicUser, ...sessionCredentials };
+  }
 
-export async function getSessionState(
-  sessionId: string,
-  userId: string,
-  tenantId: string,
-) {
-  const [session, user] = await Promise.all([
-    getSession(sessionId, userId, tenantId, new Date()),
-    User.findOne({ _id: userId, tenantId }).select(
-      'email username telephone tenantId',
-    ),
-  ]);
-
-  /* v8 ignore next */
-  if (!user)
-    throw new AppError(
-      401,
-      'INVALID_AUTH_TOKEN',
-      'Invalid authorization token',
+  async function logout(userId: string, tenantId: string) {
+    const updated = await userRepository.incrementTokenVersion(
+      tenantId,
+      userId,
     );
 
-  return {
-    user: stripSensitiveFields(user.toObject()),
-    session,
-  };
+    /* v8 ignore else */
+    if (!updated)
+      throw new AppError(
+        401,
+        'INVALID_AUTH_TOKEN',
+        'Invalid authorization token',
+      );
+
+    await sessionService.revokeAllSessions(userId, tenantId, new Date());
+  }
+
+  async function getSessionState(
+    sessionId: string,
+    userId: string,
+    tenantId: string,
+  ) {
+    const [session, user] = await Promise.all([
+      sessionService.getSession(sessionId, userId, tenantId, new Date()),
+      userRepository.findPublicById(tenantId, userId),
+    ]);
+
+    /* v8 ignore next */
+    if (!user)
+      throw new AppError(
+        401,
+        'INVALID_AUTH_TOKEN',
+        'Invalid authorization token',
+      );
+
+    return { user, session };
+  }
+
+  return { authenticate, logout, getSessionState };
 }
 
-const AuthService = {
-  authenticate,
-  getSessionState,
-  logout,
-};
-
-export default AuthService;
+export type AuthService = ReturnType<typeof createAuthService>;

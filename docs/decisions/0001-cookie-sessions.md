@@ -9,7 +9,7 @@
 MercadoZetta currently returns a 15-minute JWT from `POST /auth/login`, stores
 it in `localStorage`, and sends it in an `Authorization` header. The JWT is
 tenant-bound and includes the user's `tokenVersion`; protected requests also
-check that version in MongoDB. `POST /auth/logout` increments `tokenVersion`,
+check that version in the database. `POST /auth/logout` increments `tokenVersion`,
 which intentionally revokes every token for that tenant/user.
 
 This is a useful demo baseline, but browser script can read and exfiltrate the
@@ -88,7 +88,7 @@ used the cookie contract.
 
 ### Refresh tokens and session records
 
-A successful login creates one MongoDB session record and returns a refresh
+A successful login creates one PostgreSQL session record and returns a refresh
 token shaped as an opaque session selector plus at least 256 bits of random
 secret. Only a keyed hash of the complete refresh token is stored. Logs and
 database records never contain the raw token.
@@ -102,11 +102,11 @@ Each session record is tenant-scoped and contains:
 - `revokedAt`, `revokeReason`, and optional safe display metadata such as a
   coarse user-agent label (never a credential or full fingerprint).
 
-Indexes include tenant/user/session lookup and a TTL index on `expiresAt`.
-Authorization checks still compare application timestamps because MongoDB TTL
-deletion is asynchronous. Every query and mutation includes `tenantId`.
+Indexes include tenant/user/session lookup and expiry cleanup support.
+Authorization checks compare application timestamps independently of scheduled
+cleanup. Every query and mutation includes `tenantId`.
 
-Refresh uses a MongoDB atomic compare-and-swap on the current hash. A successful
+Refresh uses a PostgreSQL conditional update on the current hash. A successful
 refresh rotates both tokens, moves the current hash to the previous slot, and
 updates idle expiry without extending `absoluteExpiresAt`. The access lifetime
 is 5 minutes, idle refresh lifetime is 7 days, and absolute session lifetime is
@@ -233,6 +233,11 @@ key rings. Login returns only public user/session data, protected endpoints
 accept only access cookies, and authenticated mutations have no CSRF bypass.
 The rest of the marketplace browser workflows remain tracked separately in the
 improvement plan.
+
+The PostgreSQL implementation uses canonical UUID strings for user, resource,
+and session identifiers. Refresh tokens still contain an opaque session selector plus
+the same 256-bit random secret; JWT, CSRF, rotation, replay, expiry, revocation,
+tenant, and key-ring rules in this ADR are unchanged.
 
 Each step must be deployable with a bounded compatibility window. It must not
 weaken tenant matching, backend ownership enforcement, or existing all-session

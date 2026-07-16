@@ -4,7 +4,7 @@
 
 MercadoZetta is split into a Node/Express API and a React/Vite frontend.
 
-- `backend/src/` contains the Express app, routes, controllers, middleware, and Mongoose models.
+- `backend/src/` contains the Express app, routes, controllers, middleware, repository contracts, and Drizzle adapters.
 - `backend/test/` contains backend Vitest and Supertest tests. Existing focused
   tests live both directly under `backend/test/` and in the mirrored
   `backend/test/unit/` areas; integration, contract, and workflow tests live
@@ -45,12 +45,12 @@ Common commands:
 - `npm --prefix frontend run build` type-checks and builds the frontend.
 - `npm --prefix frontend run lint` runs ESLint for TypeScript and React files.
 
-For local development, start MongoDB and set `backend/.env` with `MONGODB_URI`, the versioned JWT/refresh/CSRF key rings, and `PORT`. Set `frontend/.env` with `VITE_API_URL`.
+For local development, start PostgreSQL and set `backend/.env` with `POSTGRESQL_URL`, the versioned JWT/refresh/CSRF key rings, and `PORT`. Set `frontend/.env` with `VITE_API_URL`.
 
 ## Coding Style & Naming Conventions
 
-Backend code uses TypeScript, Express route/controller separation, and Mongoose
-models named by domain (`user.ts`, `product.ts`). Frontend code uses TypeScript,
+Backend code uses TypeScript, Express route/controller separation, and Drizzle
+PostgreSQL adapters behind repository contracts. Frontend code uses TypeScript,
 React function components, React Router, Axios services, and Tailwind CSS
 classes. Prefer clear domain names for files and functions, such as
 `AddProduct`, `authController`, and `productController`.
@@ -181,4 +181,4 @@ Use pull request titles that follow the same Conventional Commit style as commit
 
 ## Security & Configuration Tips
 
-Never commit `.env` files, JWT secrets, MongoDB credentials, or generated tokens. Keep `backend/.env.example` and `frontend/.env.example` updated when configuration changes.
+Never commit `.env` files, JWT secrets, PostgreSQL credentials, or generated tokens. Keep `backend/.env.example` and `frontend/.env.example` updated when configuration changes.

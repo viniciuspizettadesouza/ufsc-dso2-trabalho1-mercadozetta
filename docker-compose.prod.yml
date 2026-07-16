@@ -1,20 +1,36 @@
 services:
-  mongo:
-    image: mongo:7.0.37-jammy
-    command: ['mongod', '--replSet', 'rs0', '--bind_ip_all']
+  postgres:
+    image: postgres:18-alpine
     restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mercadozetta}
+      POSTGRES_USER: ${POSTGRES_USER:-mercadozetta}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
     volumes:
-      - mercadozetta-mongo-data:/data/db
+      - mercadozetta-postgres-data:/var/lib/postgresql
     healthcheck:
       test:
         [
           'CMD-SHELL',
-          'mongosh --quiet --eval "try { rs.status().ok } catch (error) { rs.initiate({_id: ''rs0'', members: [{_id: 0, host: ''mongo:27017''}]}).ok }"',
+          'pg_isready -U ${POSTGRES_USER:-mercadozetta} -d ${POSTGRES_DB:-mercadozetta}',
         ]
       interval: 10s
       timeout: 5s
       retries: 10
       start_period: 10s
+
+  migrate:
+    image: ${BACKEND_IMAGE:-mercadozetta-backend:local}
+    build:
+      context: ./backend
+      target: production
+    restart: 'no'
+    environment:
+      POSTGRESQL_URL: postgresql://${POSTGRES_USER:-mercadozetta}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-mercadozetta}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ['npm', 'run', 'db:migrate:runtime']
 
   backend:
     image: ${BACKEND_IMAGE:-mercadozetta-backend:local}
@@ -24,7 +40,7 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      MONGODB_URI: mongodb://mongo:27017/mercadozetta?replicaSet=rs0
+      POSTGRESQL_URL: postgresql://${POSTGRES_USER:-mercadozetta}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-mercadozetta}
       JWT_SIGNING_KEYS: ${JWT_SIGNING_KEYS:?Set JWT_SIGNING_KEYS}
       JWT_ACTIVE_KID: ${JWT_ACTIVE_KID:?Set JWT_ACTIVE_KID}
       REFRESH_TOKEN_HASH_SECRETS: ${REFRESH_TOKEN_HASH_SECRETS:?Set REFRESH_TOKEN_HASH_SECRETS}
@@ -41,8 +57,8 @@ services:
       RATE_LIMIT_REGISTER_WINDOW_MS: ${RATE_LIMIT_REGISTER_WINDOW_MS:-900000}
       RATE_LIMIT_REGISTER_MAX: ${RATE_LIMIT_REGISTER_MAX:-10}
     depends_on:
-      mongo:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     healthcheck:
       test:
         [
@@ -79,4 +95,4 @@ services:
       start_period: 5s
 
 volumes:
-  mercadozetta-mongo-data:
+  mercadozetta-postgres-data:

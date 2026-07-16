@@ -3,7 +3,7 @@
 MercadoZetta ships a production-oriented container baseline alongside its
 development Compose stack. The baseline compiles the Express application,
 serves the Vite bundle from Nginx, runs both application containers as non-root
-users, and keeps MongoDB and the backend off the host network.
+users, and keeps PostgreSQL and the backend off the host network.
 
 This is a deployment foundation, not a complete hosting platform. A real
 deployment must add managed secrets, authenticated and backed-up data storage,
@@ -21,9 +21,8 @@ following production stages:
 - The frontend build stage compiles the Vite bundle with `/api` as its API base.
   Nginx `1.28.3-alpine3.23` serves the static files on port 8080 as `nginx` and
   proxies `/api/` to the internal backend.
-- MongoDB uses the pinned `7.0.37-jammy` image as a single-node replica set so
-  checkout transactions work. Production operators should normally replace
-  this container with an authenticated, backed-up MongoDB replica set.
+- PostgreSQL 18 stores all application data. A one-shot migration container
+  applies the committed Drizzle migrations before the backend starts.
 
 Nginx rewrites only the refresh cookie path from `/auth` to `/api/auth`. The
 root-scoped `__Host-` access and CSRF cookies remain on `/`, preserving their
@@ -36,6 +35,7 @@ Compose:
 
 ```bash
 export CORS_ORIGIN=https://market.example.com
+export POSTGRES_PASSWORD='replace-with-a-long-random-database-password'
 export JWT_SIGNING_KEYS='{"2026-07":"replace-with-a-long-random-secret"}'
 export JWT_ACTIVE_KID=2026-07
 export REFRESH_TOKEN_HASH_SECRETS='{"2026-07":"replace-with-a-different-random-secret"}'
@@ -48,9 +48,10 @@ Do not put real values in repository files or shell history. The sample above
 shows the shape only. Retain previous key-ring versions for the overlap periods
 defined in the [cookie-session ADR](decisions/0001-cookie-sessions.md).
 
-The production backend refuses to start when MongoDB, port, trusted-proxy,
-CORS, or security-ring configuration is missing or invalid. Compose supplies
-the internal MongoDB URI, port 3333, and `TRUST_PROXY_HOPS=1`. Set `APP_PORT` to
+The production backend refuses to start when its PostgreSQL connection string,
+port, trusted-proxy, CORS, or security-ring configuration is missing or invalid.
+The current production Compose baseline supplies the internal PostgreSQL URL,
+port 3333, and `TRUST_PROXY_HOPS=1`. Set `APP_PORT` to
 change the host port and `VITE_TENANT_ID` to build the other built-in brand.
 Because Vite values are compiled into the bundle, changing the tenant requires
 rebuilding the frontend image.
@@ -92,7 +93,7 @@ The probes are:
 
 - `GET /healthz`: Nginx/static-server liveness.
 - `GET /readyz`: backend readiness through Nginx; it returns 200 only when
-  MongoDB is connected.
+  PostgreSQL is connected.
 - `GET /api/health` with `X-Tenant-Id`: proxied backend liveness.
 
 After startup, run:

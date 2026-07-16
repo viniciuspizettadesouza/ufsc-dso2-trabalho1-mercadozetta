@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { UUID_EXAMPLE } from '@/ids';
 import { createDocument } from 'zod-openapi';
 import { loginSchema } from '@/validators/authValidator';
 import {
@@ -19,7 +20,7 @@ const tenantHeader = z
     example: 'mercadozetta',
   });
 
-const objectId = z.string().meta({ example: '507f1f77bcf86cd799439011' });
+const resourceId = z.string().uuid().meta({ example: UUID_EXAMPLE });
 const timestamp = z.iso.datetime().optional();
 const productStatus = z.enum([
   'draft',
@@ -38,7 +39,7 @@ const orderStatus = z.enum([
 
 const userSchema = z
   .object({
-    _id: objectId,
+    _id: resourceId,
     tenantId: z.string(),
     email: z.email(),
     username: z.string(),
@@ -50,7 +51,7 @@ const userSchema = z
 
 const sessionSchema = z
   .object({
-    id: objectId,
+    id: resourceId,
     createdAt: z.iso.datetime().optional(),
     lastUsedAt: z.iso.datetime(),
     expiresAt: z.iso.datetime(),
@@ -68,7 +69,7 @@ const csrfHeader = z.string().meta({
 
 const sellerProfileSchema = z
   .object({
-    _id: objectId,
+    _id: resourceId,
     username: z.string(),
     telephone: z.string(),
     email: z.email(),
@@ -78,7 +79,7 @@ const sellerProfileSchema = z
 
 const productSchema = z
   .object({
-    _id: objectId,
+    _id: resourceId,
     tenantId: z.string(),
     name: z.string(),
     description: z.string().optional(),
@@ -87,7 +88,7 @@ const productSchema = z
     inventory: z.int().min(0),
     image: z.string(),
     status: productStatus,
-    seller: z.union([objectId, sellerProfileSchema]),
+    seller: z.union([resourceId, sellerProfileSchema]),
     createdAt: timestamp,
     updatedAt: timestamp,
   })
@@ -108,56 +109,58 @@ const healthSchema = z
 const readinessSchema = z
   .object({
     status: z.enum(['ready', 'not_ready']),
-    checks: z.object({ mongodb: z.enum(['connected', 'disconnected']) }),
+    checks: z.object({
+      postgresql: z.enum(['connected', 'disconnected']),
+    }),
   })
   .meta({ id: 'Readiness' });
 const cartSchema = z.object({
-  _id: objectId.optional(),
+  _id: resourceId.optional(),
   tenantId: z.string(),
-  buyer: objectId,
+  buyer: resourceId,
   items: z.array(
     z.object({
-      product: z.union([objectId, productSchema]),
+      product: z.union([resourceId, productSchema]),
       quantity: z.int(),
     }),
   ),
 });
 const watchlistSchema = z.object({
-  _id: objectId,
+  _id: resourceId,
   tenantId: z.string(),
-  user: objectId,
-  product: z.union([objectId, productSchema]),
+  user: resourceId,
+  product: z.union([resourceId, productSchema]),
 });
 const orderItemSchema = z.object({
-  product: objectId,
+  product: resourceId,
   productName: z.string(),
-  seller: objectId,
+  seller: resourceId,
   quantity: z.int(),
 });
 const orderSchema = z.object({
-  _id: objectId,
+  _id: resourceId,
   tenantId: z.string(),
-  buyer: objectId,
+  buyer: resourceId,
   status: orderStatus,
   statusHistory: z.array(
     z.object({
       status: orderStatus,
-      actor: objectId,
+      actor: resourceId,
       changedAt: z.iso.datetime(),
     }),
   ),
   items: z.array(orderItemSchema),
 });
 const reviewSchema = z.object({
-  _id: objectId,
-  product: objectId,
-  author: objectId,
+  _id: resourceId,
+  product: resourceId,
+  author: resourceId,
   rating: z.int().min(1).max(5),
   comment: z.string(),
 });
 const notificationSchema = z.object({
-  _id: objectId,
-  user: objectId,
+  _id: resourceId,
+  user: resourceId,
   message: z.string(),
   read: z.boolean(),
 });
@@ -165,7 +168,7 @@ const unreadCountSchema = z.object({ count: z.int().min(0) });
 const notificationReadRequest = z.object({ read: z.boolean() });
 
 const productExample = {
-  _id: '507f191e810c19729de860ea',
+  _id: '507f191e-810c-4197-9de8-60ea00000001',
   tenantId: 'mercadozetta',
   name: 'mechanical keyboard',
   description: 'Compact keyboard',
@@ -174,11 +177,11 @@ const productExample = {
   inventory: 5,
   image: 'https://example.com/keyboard.jpg',
   status: 'active',
-  seller: '507f1f77bcf86cd799439011',
+  seller: '507f1f77-bcf8-4ecd-8994-390110000001',
 };
 
 const userExample = {
-  _id: '507f1f77bcf86cd799439011',
+  _id: '507f1f77-bcf8-4ecd-8994-390110000001',
   tenantId: 'mercadozetta',
   email: 'seller@example.com',
   username: 'seller',
@@ -265,14 +268,14 @@ export function createOpenApiDocument() {
               description: 'The API is ready',
               content: json(readinessSchema, {
                 status: 'ready',
-                checks: { mongodb: 'connected' },
+                checks: { postgresql: 'connected' },
               }),
             },
             503: {
-              description: 'MongoDB is unavailable',
+              description: 'PostgreSQL is unavailable',
               content: json(readinessSchema, {
                 status: 'not_ready',
-                checks: { mongodb: 'disconnected' },
+                checks: { postgresql: 'disconnected' },
               }),
             },
           },
@@ -302,7 +305,7 @@ export function createOpenApiDocument() {
                 {
                   user: userExample,
                   session: {
-                    id: '507f1f77bcf86cd799439012',
+                    id: '507f1f77-bcf8-4ecd-8994-390120000002',
                     lastUsedAt: '2026-07-15T12:00:00.000Z',
                     expiresAt: '2026-07-22T12:00:00.000Z',
                     absoluteExpiresAt: '2026-08-14T12:00:00.000Z',
@@ -380,7 +383,7 @@ export function createOpenApiDocument() {
           summary: 'Revoke one owned session',
           security: [{ cookieAuth: [] }],
           parameters: [tenantHeader, csrfHeader],
-          requestParams: { path: z.object({ sessionId: objectId }) },
+          requestParams: { path: z.object({ sessionId: resourceId }) },
           responses: {
             204: { description: 'Session revoked' },
             400: badRequest,
@@ -584,7 +587,7 @@ export function createOpenApiDocument() {
           requestBody: {
             required: true,
             content: json(
-              z.object({ productId: objectId, quantity: z.int().min(1) }),
+              z.object({ productId: resourceId, quantity: z.int().min(1) }),
               { productId: productExample._id, quantity: 1 },
             ),
           },
@@ -612,7 +615,7 @@ export function createOpenApiDocument() {
           summary: 'Remove a cart item',
           security: [{ cookieAuth: [] }],
           parameters: [tenantHeader, csrfHeader],
-          requestParams: { path: z.object({ productId: objectId }) },
+          requestParams: { path: z.object({ productId: resourceId }) },
           responses: {
             200: {
               description: 'Updated cart',
@@ -651,7 +654,7 @@ export function createOpenApiDocument() {
           summary: 'Watch a product',
           security: [{ cookieAuth: [] }],
           parameters: [tenantHeader, csrfHeader],
-          requestParams: { path: z.object({ productId: objectId }) },
+          requestParams: { path: z.object({ productId: resourceId }) },
           responses: {
             201: {
               description: 'Watchlist entry',
@@ -674,7 +677,7 @@ export function createOpenApiDocument() {
           summary: 'Stop watching a product',
           security: [{ cookieAuth: [] }],
           parameters: [tenantHeader, csrfHeader],
-          requestParams: { path: z.object({ productId: objectId }) },
+          requestParams: { path: z.object({ productId: resourceId }) },
           responses: {
             204: { description: 'Watchlist entry removed' },
             401: unauthorized,
@@ -737,7 +740,7 @@ export function createOpenApiDocument() {
           summary: 'Update an order lifecycle status',
           security: [{ cookieAuth: [] }],
           parameters: [tenantHeader, csrfHeader],
-          requestParams: { path: z.object({ orderId: objectId }) },
+          requestParams: { path: z.object({ orderId: resourceId }) },
           requestBody: {
             required: true,
             content: json(z.object({ status: orderStatus }), {
@@ -787,7 +790,7 @@ export function createOpenApiDocument() {
           tags: ['Commerce'],
           summary: 'List product reviews',
           parameters: [tenantHeader],
-          requestParams: { path: z.object({ productId: objectId }) },
+          requestParams: { path: z.object({ productId: resourceId }) },
           responses: {
             200: {
               description: 'Reviews',
@@ -800,7 +803,7 @@ export function createOpenApiDocument() {
           summary: 'Create or update a verified-buyer review',
           security: [{ cookieAuth: [] }],
           parameters: [tenantHeader, csrfHeader],
-          requestParams: { path: z.object({ productId: objectId }) },
+          requestParams: { path: z.object({ productId: resourceId }) },
           requestBody: {
             required: true,
             content: json(
@@ -864,7 +867,7 @@ export function createOpenApiDocument() {
           security: [{ cookieAuth: [] }],
           parameters: [tenantHeader, csrfHeader],
           requestParams: {
-            path: z.object({ notificationId: objectId }),
+            path: z.object({ notificationId: resourceId }),
           },
           requestBody: {
             required: true,

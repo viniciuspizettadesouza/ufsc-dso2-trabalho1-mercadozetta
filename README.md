@@ -3,7 +3,7 @@
 MercadoZetta is an educational white-label marketplace built for INE5612 —
 Desenvolvimento de Sistemas Orientados a Objetos II. One React application and
 one Express API serve the built-in MercadoZetta and CampusMarket tenants while
-tenant-owned MongoDB records are isolated by `tenantId`.
+tenant-owned PostgreSQL records are isolated by `tenantId`.
 
 The implemented application includes a public catalog and seller profiles,
 account registration and JWT login, product creation, persistent carts and
@@ -23,11 +23,8 @@ belong only in the [improvement plan](PROJECT_IMPROVEMENT_PLAN.md).
 - Node.js 24.18.0 or newer (the repository includes `.nvmrc`)
 - npm
 - Git
-- Docker with Compose for the recommended MongoDB replica set, the complete
-  demo stack, or database-backed integration tests
-
-Checkout uses MongoDB transactions. A standalone MongoDB process is not enough;
-use a replica set such as the one configured by this repository.
+- Docker with Compose for PostgreSQL, the complete demo stack, or
+  database-backed integration tests
 
 ## Quick start
 
@@ -43,7 +40,7 @@ cp frontend/.env.example frontend/.env
 npm run dev:local
 ```
 
-`dev:local` starts the Dockerized MongoDB replica set and then runs both
+`dev:local` starts Dockerized PostgreSQL and then runs both
 development servers. The API listens on `http://localhost:3333`; Vite normally
 prints `http://localhost:5173` for the frontend.
 
@@ -53,8 +50,8 @@ Seed deterministic data in another terminal:
 npm run seed:demo
 ```
 
-The seed refreshes its own records for both built-in tenants and leaves
-unrelated local records intact.
+The seed refreshes its own PostgreSQL records for both built-in tenants in one
+transaction and leaves unrelated local records intact.
 
 ## Installation
 
@@ -80,22 +77,25 @@ cp frontend/.env.example frontend/.env
 
 ### Backend variables
 
-| Variable                                                           | Purpose                                        | Local example/default behavior                                |
-| ------------------------------------------------------------------ | ---------------------------------------------- | ------------------------------------------------------------- |
-| `MONGODB_URI`                                                      | MongoDB connection string; required at startup | The example targets the local replica set                     |
-| `JWT_SIGNING_KEYS` / `JWT_ACTIVE_KID`                              | JSON JWT verification ring and active signer   | Retain old keys only through the bounded access-token overlap |
-| `REFRESH_TOKEN_HASH_SECRETS` / `REFRESH_TOKEN_HASH_ACTIVE_VERSION` | JSON refresh-hash ring and active version      | Keep a version until sessions using it expire or are revoked  |
-| `CSRF_SECRETS` / `CSRF_ACTIVE_VERSION`                             | JSON CSRF signing ring and active version      | Keep old versions through their cookie/session overlap        |
-| `SESSION_ACCESS_TOKEN_TTL_MS`                                      | Cookie access-token lifetime                   | `300000` (5 minutes)                                          |
-| `SESSION_REFRESH_IDLE_TTL_MS`                                      | Rotating refresh idle lifetime                 | `604800000` (7 days)                                          |
-| `SESSION_ABSOLUTE_TTL_MS`                                          | Maximum session-family lifetime                | `2592000000` (30 days)                                        |
-| `SESSION_REFRESH_CONCURRENCY_WINDOW_MS`                            | Grace window for a parallel refresh loser      | `5000`                                                        |
-| `TENANT_HEADER_REQUIRED`                                           | Reject requests without `X-Tenant-Id`          | `false` locally; defaults to `true` outside development/test  |
-| `PORT`                                                             | API listen port                                | `3333`                                                        |
-| `TRUST_PROXY_HOPS`                                                 | Exact number of trusted reverse-proxy hops     | `0` locally; production Compose uses `1`                      |
-| `CORS_ORIGIN`                                                      | Comma-separated allowed browser origins        | `http://localhost:5173` locally                               |
-| `RATE_LIMIT_AUTH_WINDOW_MS` / `RATE_LIMIT_AUTH_MAX`                | Login rate-limit window and maximum            | `900000` / `5`                                                |
-| `RATE_LIMIT_REGISTER_WINDOW_MS` / `RATE_LIMIT_REGISTER_MAX`        | Registration rate-limit window and maximum     | `900000` / `10`                                               |
+| Variable                                                                 | Purpose                                      | Local example/default behavior                                |
+| ------------------------------------------------------------------------ | -------------------------------------------- | ------------------------------------------------------------- |
+| `POSTGRESQL_URL`                                                         | PostgreSQL connection string                 | Required                                                      |
+| `POSTGRES_POOL_MAX`                                                      | Maximum PostgreSQL pool connections          | `10`; accepted range is 1 through 50                          |
+| `POSTGRES_CONNECTION_TIMEOUT_MS` / `POSTGRES_IDLE_TIMEOUT_MS`            | Pool acquisition and idle timeouts           | `5000` / `30000`                                              |
+| `POSTGRES_STATEMENT_TIMEOUT_MS` / `POSTGRES_IDLE_TRANSACTION_TIMEOUT_MS` | Query and idle-transaction limits            | `10000` / `10000`                                             |
+| `JWT_SIGNING_KEYS` / `JWT_ACTIVE_KID`                                    | JSON JWT verification ring and active signer | Retain old keys only through the bounded access-token overlap |
+| `REFRESH_TOKEN_HASH_SECRETS` / `REFRESH_TOKEN_HASH_ACTIVE_VERSION`       | JSON refresh-hash ring and active version    | Keep a version until sessions using it expire or are revoked  |
+| `CSRF_SECRETS` / `CSRF_ACTIVE_VERSION`                                   | JSON CSRF signing ring and active version    | Keep old versions through their cookie/session overlap        |
+| `SESSION_ACCESS_TOKEN_TTL_MS`                                            | Cookie access-token lifetime                 | `300000` (5 minutes)                                          |
+| `SESSION_REFRESH_IDLE_TTL_MS`                                            | Rotating refresh idle lifetime               | `604800000` (7 days)                                          |
+| `SESSION_ABSOLUTE_TTL_MS`                                                | Maximum session-family lifetime              | `2592000000` (30 days)                                        |
+| `SESSION_REFRESH_CONCURRENCY_WINDOW_MS`                                  | Grace window for a parallel refresh loser    | `5000`                                                        |
+| `TENANT_HEADER_REQUIRED`                                                 | Reject requests without `X-Tenant-Id`        | `false` locally; defaults to `true` outside development/test  |
+| `PORT`                                                                   | API listen port                              | `3333`                                                        |
+| `TRUST_PROXY_HOPS`                                                       | Exact number of trusted reverse-proxy hops   | `0` locally; production Compose uses `1`                      |
+| `CORS_ORIGIN`                                                            | Comma-separated allowed browser origins      | `http://localhost:5173` locally                               |
+| `RATE_LIMIT_AUTH_WINDOW_MS` / `RATE_LIMIT_AUTH_MAX`                      | Login rate-limit window and maximum          | `900000` / `5`                                                |
+| `RATE_LIMIT_REGISTER_WINDOW_MS` / `RATE_LIMIT_REGISTER_MAX`              | Registration rate-limit window and maximum   | `900000` / `10`                                               |
 
 When strict tenant-header mode is enabled, the global tenant middleware also
 requires `X-Tenant-Id` on `/`, `/health`, and `/ready`.
@@ -113,7 +113,7 @@ tenant.
 
 ## Running the project
 
-### Host development servers with Dockerized MongoDB
+### Host development servers with Dockerized PostgreSQL
 
 ```bash
 npm run dev:local
@@ -130,7 +130,7 @@ npm run dev:backend
 npm run dev:frontend
 ```
 
-`npm run dev` starts both applications but does not start MongoDB.
+`npm run dev` starts both applications but does not start PostgreSQL.
 
 ### Complete Docker Compose demo
 
@@ -170,8 +170,8 @@ trusted-proxy, deployment, smoke-test, and rollback requirements.
 ## Demo data and smoke test
 
 Run either `npm run seed:demo` for the host-side backend or
-`npm run compose:seed` for the Compose stack. The built-in seller credentials
-are:
+`npm run compose:seed` for the default PostgreSQL Compose stack.
+The built-in seller credentials are:
 
 | Tenant       | Email                         | Password          |
 | ------------ | ----------------------------- | ----------------- |
@@ -194,19 +194,23 @@ The frontend also exposes `/products/new` for authenticated product creation.
 
 Run these from the repository root unless noted otherwise.
 
-| Command                           | Purpose                                                                          |
-| --------------------------------- | -------------------------------------------------------------------------------- |
-| `npm test`                        | Backend type-check, backend focused/contract tests, and frontend tests           |
-| `npm run test:integration`        | Database-backed tests against an ephemeral MongoDB replica set; requires Docker  |
-| `npm run test:production`         | Build and smoke-test the isolated production container topology; requires Docker |
-| `npm run test:coverage`           | Backend and frontend coverage suites with configured thresholds                  |
-| `npm run typecheck`               | Backend TypeScript check without emitting                                        |
-| `npm run lint`                    | Backend and frontend ESLint checks                                               |
-| `npm run format:check`            | Check Prettier formatting without rewriting files                                |
-| `npm run format`                  | Format supported repository files                                                |
-| `npm --prefix frontend run build` | Type-check and create the frontend production bundle                             |
-| `npm run generate:openapi`        | Regenerate `docs/openapi.json` from validators and route metadata                |
-| `npm run seed:demo`               | Refresh repeatable demo data                                                     |
+| Command                                | Purpose                                                                          |
+| -------------------------------------- | -------------------------------------------------------------------------------- |
+| `npm test`                             | Backend type-check, backend focused/contract tests, and frontend tests           |
+| `npm run test:integration`             | PostgreSQL database-backed integration tests; requires Docker                    |
+| `npm run test:e2e`                     | Chromium workflows against an isolated PostgreSQL stack; requires Docker         |
+| `npm run test:production`              | Build and smoke-test the isolated production container topology; requires Docker |
+| `npm run test:coverage`                | Backend and frontend coverage suites with configured thresholds                  |
+| `npm run typecheck`                    | Backend TypeScript check without emitting                                        |
+| `npm run lint`                         | Backend and frontend ESLint checks                                               |
+| `npm run format:check`                 | Check Prettier formatting without rewriting files                                |
+| `npm run format`                       | Format supported repository files                                                |
+| `npm --prefix frontend run build`      | Type-check and create the frontend production bundle                             |
+| `npm run generate:openapi`             | Regenerate `docs/openapi.json` from validators and route metadata                |
+| `npm --prefix backend run db:generate` | Generate a reviewable Drizzle SQL migration from the PostgreSQL schema           |
+| `npm --prefix backend run db:check`    | Check the consistency of the Drizzle migration history                           |
+| `npm --prefix backend run db:migrate`  | Apply committed PostgreSQL migrations using `POSTGRESQL_URL`                     |
+| `npm run seed:demo`                    | Refresh repeatable demo data                                                     |
 
 Dependency audits are run separately because there is no root aggregate script:
 
@@ -254,18 +258,19 @@ parity, implemented/documented route parity, and required examples.
 
 ## Troubleshooting
 
-### Checkout reports that transactions are unsupported
+### PostgreSQL migrations have not been applied
 
-The API is connected to a standalone MongoDB process or the URI omitted the
-replica-set options. Start the repository database with `npm run db:up` and use
-the exact `MONGODB_URI` from `backend/.env.example`.
+Start the repository database with `npm run db:up`, apply the schema with
+`npm --prefix backend run db:migrate`, and use the `POSTGRESQL_URL` from
+`backend/.env.example`. The complete Compose stacks apply migrations before
+starting the backend.
 
 ### The API exits during startup
 
-Confirm that `backend/.env` exists and contains a reachable `MONGODB_URI`.
-Outside development and test, configure each active versioned security key ring. Check MongoDB with
-`npm run db:logs` and call `/ready` with the tenant header if strict tenant mode
-is enabled.
+Confirm that `backend/.env` contains a reachable `POSTGRESQL_URL`. Outside
+development and test, configure each active versioned security key ring. Check
+PostgreSQL and call `/ready` with the tenant header if strict tenant mode is
+enabled.
 
 ### Requests return `TENANT_HEADER_REQUIRED` or `INVALID_TENANT`
 
