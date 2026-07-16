@@ -70,8 +70,20 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - The root `npm run test:e2e` lane builds an isolated, deterministically seeded
   MongoDB/backend/frontend stack and runs Chromium through protected-route
   return, login, exact cookie flags, access renewal, no persistent browser auth,
-  and logout. Its containers, network, and database are cleaned up on exit, and
-  Playwright artifacts are ignored.
+  logout, tenant-scoped registration, buyer checkout with inventory decrement,
+  seller fulfillment through delivery, and buyer notification read state. Its
+  two tests use isolated browser contexts where required; containers, network,
+  and database are cleaned up on exit, and Playwright artifacts are ignored.
+- Axe checks run within those deterministic workflows against protected login,
+  registration, checkout, seller orders, and buyer notifications. The forms use
+  main landmarks, level-one headings, explicit labels, and autocomplete hints,
+  and the default action color meets the detected WCAG AA contrast requirement.
+  CI installs only Chromium and runs the complete browser lane before the
+  production smoke lane.
+- The non-root backend and frontend development images own their application
+  directories and Vite optimizer caches, allowing Vitest and the browser stack
+  to bundle temporary configuration and optimize dependencies without granting
+  write access to the full dependency trees.
 - JWT access cookies now carry a configured `kid`; signing and verification use
   a bounded local key ring. Refresh hashes persist their secret version and CSRF
   proofs encode theirs, allowing retained old versions during rotation. Startup
@@ -95,11 +107,10 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   behavior, versioned-image deployment, rollback, and smoke procedures are
   documented in `docs/production-deployment.md`; CI runs the production smoke
   lane.
-- Next action: expand `e2e/` from the completed authentication checks into the
-  remaining browser workflow item. Start with deterministic tenant-scoped
-  registration, then cover buyer checkout and inventory changes followed by
-  seller fulfillment and buyer notification verification in the same isolated
-  stack.
+- Next action: begin phase 4 by writing the database decision record under
+  `docs/decisions/`. Compare MongoDB and PostgreSQL against the marketplace's
+  integrity, transaction, tenant-isolation, query, operations, migration, and
+  rollback requirements before selecting data-access or migration tooling.
 
 ## Recommended Order
 
@@ -147,16 +158,16 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - [x] Add a CI smoke check proving that production images build and start and
       that health, readiness, frontend loading, and one API request work together.
 
-### 3. Add browser-level workflow coverage (current priority)
+### 3. Add browser-level workflow coverage (completed)
 
 - [x] Add `@playwright/test` and a root end-to-end test command, initially using
       Chromium in CI to control runtime and browser downloads.
-- [ ] Cover registration and login with protected-route return, session renewal
+- [x] Cover registration and login with protected-route return, session renewal
       and logout, buyer checkout with inventory changes, and seller fulfillment
       with buyer notifications.
 - [x] Keep browser state and generated authentication artifacts out of version
       control, and make test data deterministic, isolated, and tenant-scoped.
-- [ ] Add automated accessibility checks to important browser workflows and
+- [x] Add automated accessibility checks to important browser workflows and
       expand to Firefox, WebKit, or mobile projects only when compatibility
       requirements justify the additional CI cost.
 

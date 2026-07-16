@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { expectPageToBeAccessible } from './accessibility';
 
 test('returns to a protected route, renews cookies, and logs out', async ({
   context,
@@ -10,6 +11,7 @@ test('returns to a protected route, renews cookies, and logs out', async ({
   await expect(page.getByRole('status')).toHaveText(
     'Entre para acessar o checkout.',
   );
+  await expectPageToBeAccessible(page);
 
   await page.getByPlaceholder('Email').fill('vinicius@mercadozetta.test');
   await page.getByPlaceholder('Password').fill('mercadozetta123');
@@ -17,6 +19,7 @@ test('returns to a protected route, renews cookies, and logs out', async ({
 
   await expect(page).toHaveURL('/checkout');
   await expect(page.getByRole('heading', { name: 'Checkout' })).toBeVisible();
+  await expectPageToBeAccessible(page);
   expect(
     await page.evaluate(() => ({
       token: localStorage.getItem('token'),

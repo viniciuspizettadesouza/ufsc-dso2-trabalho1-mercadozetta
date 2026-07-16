@@ -45,24 +45,35 @@ export default function Login() {
   return (
     <div>
       <Header hideLoginAction />
-      <div className="flex h-full items-center justify-center">
+      <main className="flex h-full items-center justify-center">
         <form
           className="flex w-full max-w-[300px] flex-col"
           onSubmit={handleSubmit}
         >
+          <h1 className="mt-5 text-center text-2xl font-bold">Entrar</h1>
           {routeState?.prompt && (
             <p className="mt-5 text-center" role="status">
               {routeState.prompt}
             </p>
           )}
+          <label className="sr-only" htmlFor="login-email">
+            Email
+          </label>
           <input
+            id="login-email"
+            autoComplete="email"
             className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
             type="email"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
+          <label className="sr-only" htmlFor="login-password">
+            Password
+          </label>
           <input
+            id="login-password"
+            autoComplete="current-password"
             className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
             type="password"
             placeholder="Password"
@@ -77,7 +88,7 @@ export default function Login() {
             {brand.copy.forms.loginAction}
           </button>
         </form>
-      </div>
+      </main>
     </div>
   );
 }

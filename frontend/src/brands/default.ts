@@ -8,7 +8,7 @@ export const defaultBrand: BrandConfig = {
   logo,
   favicon: logo,
   primaryColor: '#fff159',
-  secondaryColor: '#3483fa',
+  secondaryColor: '#1d4ed8',
   accentColor: '#00a650',
   surfaceColor: '#ffffff',
   textColor: '#333333',

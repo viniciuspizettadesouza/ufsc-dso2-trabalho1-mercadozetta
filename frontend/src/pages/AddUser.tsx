@@ -44,33 +44,54 @@ export default function AddUser() {
   return (
     <div>
       <Header />
-      <div className="flex h-full items-center justify-center">
+      <main className="flex h-full items-center justify-center">
         <form
           className="flex w-full max-w-[300px] flex-col"
           onSubmit={handleSubmit}
         >
+          <h1 className="mt-5 text-center text-2xl font-bold">Criar conta</h1>
+          <label className="sr-only" htmlFor="register-name">
+            Name
+          </label>
           <input
+            id="register-name"
+            autoComplete="name"
             className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
             type="text"
             placeholder="Name"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
+          <label className="sr-only" htmlFor="register-phone">
+            Phone
+          </label>
           <input
+            id="register-phone"
+            autoComplete="tel"
             className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
             type="text"
             placeholder="Phone"
             value={telephone}
             onChange={(e) => setTelephone(e.target.value)}
           />
+          <label className="sr-only" htmlFor="register-email">
+            Email
+          </label>
           <input
+            id="register-email"
+            autoComplete="email"
             className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
             type="email"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
+          <label className="sr-only" htmlFor="register-password">
+            Password
+          </label>
           <input
+            id="register-password"
+            autoComplete="new-password"
             className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
             type="password"
             placeholder="Password"
@@ -89,7 +110,7 @@ export default function AddUser() {
             {brand.copy.forms.createAccountAction}
           </button>
         </form>
-      </div>
+      </main>
     </div>
   );
 }

@@ -8,6 +8,9 @@ RUN npm ci
 FROM dependencies AS development
 
 COPY --chown=node:node . .
+RUN chown node:node /app && \
+    mkdir -p /app/node_modules/.vite && \
+    chown -R node:node /app/node_modules/.vite
 USER node
 
 EXPOSE 3333

@@ -62,13 +62,13 @@ describe('AddUser', () => {
 
     renderAddUser();
 
-    await userEvent.type(screen.getByPlaceholderText('Name'), 'Smoke User');
-    await userEvent.type(screen.getByPlaceholderText('Phone'), '48999999999');
-    await userEvent.type(
-      screen.getByPlaceholderText('Email'),
-      'smoke@example.com',
-    );
-    await userEvent.type(screen.getByPlaceholderText('Password'), 'secret123');
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Criar conta' }),
+    ).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Name'), 'Smoke User');
+    await userEvent.type(screen.getByLabelText('Phone'), '48999999999');
+    await userEvent.type(screen.getByLabelText('Email'), 'smoke@example.com');
+    await userEvent.type(screen.getByLabelText('Password'), 'secret123');
     await userEvent.click(screen.getByRole('button', { name: 'Criar conta' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(

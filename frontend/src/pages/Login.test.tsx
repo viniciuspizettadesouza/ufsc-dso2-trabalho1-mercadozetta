@@ -61,11 +61,11 @@ describe('Login', () => {
 
     renderLogin(undefined, establishSession);
 
-    await userEvent.type(
-      screen.getByPlaceholderText('Email'),
-      'seller@example.com',
-    );
-    await userEvent.type(screen.getByPlaceholderText('Password'), 'secret123');
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Entrar' }),
+    ).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText('Email'), 'seller@example.com');
+    await userEvent.type(screen.getByLabelText('Password'), 'secret123');
     await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
 
     await waitFor(() => {
