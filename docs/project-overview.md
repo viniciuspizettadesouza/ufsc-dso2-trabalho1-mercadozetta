@@ -53,10 +53,10 @@ priorities, and session handoff belong only in the
   time.
 - Receive notifications for new orders and reviews.
 
-The `/admin` frontend route is also authenticated, but it displays tenant
-catalog totals and the current user's notifications. There is no administrator
-role or privileged backend API, and its product-derived “audit log” is not an
-audit trail. The route name must not be interpreted as an authorization claim.
+The `/notifications` frontend route is authenticated and displays only the
+current user's tenant-scoped notifications. MercadoZetta has no administrator
+role or privileged administration API; seller ownership and order scopes are
+enforced by backend services instead.
 
 ### Engineering workflows
 
@@ -309,8 +309,7 @@ flags must not be treated as an authoritative capability registry.
 
 The current frontend route surface includes the catalog, seller product and
 profile pages, product detail, login, registration, product creation and
-management, checkout, seller orders, and the ambiguously named authenticated
-`/admin` dashboard.
+management, checkout, seller orders, and authenticated notifications.
 
 ## 10. API contract and validation
 
@@ -416,8 +415,8 @@ or data-retention process.
 - Checkout lacks an idempotency key or equivalent duplicate-request protection.
 - Review eligibility means “has an order item,” not “has a delivered,
   non-cancelled purchase.”
-- The `/admin` route has no role or permission boundary and its displayed log
-  is derived UI, not immutable audit data.
+- The product does not define privileged administrator roles or a privileged
+  administration surface.
 - Notifications have no preferences, external delivery, retention, or cleanup.
 - Brand capability flags are stale relative to implemented commerce UI.
 - Product images support safe relative paths or HTTPS URLs whose exact host is

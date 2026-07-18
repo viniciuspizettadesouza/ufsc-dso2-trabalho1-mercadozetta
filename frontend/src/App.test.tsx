@@ -96,7 +96,7 @@ describe('App', () => {
     ['/products/new', 'Entre para criar um anúncio.'],
     ['/products/product-1/edit', 'Entre para gerenciar o anúncio.'],
     ['/checkout', 'Entre para acessar o checkout.'],
-    ['/admin', 'Entre para acessar o painel administrativo.'],
+    ['/notifications', 'Entre para acessar suas notificações.'],
     ['/seller/orders', 'Entre para acessar os pedidos de vendedor.'],
   ])('requires authentication for %s', async (path, prompt) => {
     await renderAppAt(path);
@@ -167,14 +167,16 @@ describe('App', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders the admin dashboard for authenticated users', async () => {
+  it('renders notifications for authenticated users', async () => {
     authenticate();
 
-    await renderAppAt('/admin');
+    await renderAppAt('/notifications');
 
     expect(
-      await screen.findByRole('heading', { name: 'Admin dashboard' }),
+      await screen.findByRole('heading', { name: 'Notifications' }),
     ).toBeInTheDocument();
-    await waitFor(() => expect(apiGet).toHaveBeenCalledWith('/products'));
+    await waitFor(() =>
+      expect(apiGet).toHaveBeenCalledWith('/notifications?limit=20&offset=0'),
+    );
   });
 });

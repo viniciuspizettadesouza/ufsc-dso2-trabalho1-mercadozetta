@@ -77,7 +77,7 @@ const Header = ({ hideLoginAction = false }: HeaderProps) => {
           <Link className="font-bold" to={appRoutes.sellerOrders}>
             Seller orders
           </Link>
-          <Link className="font-bold" to={appRoutes.admin}>
+          <Link className="font-bold" to={appRoutes.notifications}>
             Notifications
             {unreadCount > 0 && (
               <span aria-label={`${unreadCount} unread notifications`}>

@@ -152,7 +152,7 @@ describe('Header', () => {
 
     expect(screen.getByRole('link', { name: 'Notifications' })).toHaveAttribute(
       'href',
-      '/admin',
+      '/notifications',
     );
   });
 

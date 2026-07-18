@@ -37,12 +37,25 @@ npm --prefix backend install
 npm --prefix frontend install
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
+```
+
+For the repository PostgreSQL container, set the copied `backend/.env`
+connection URL to:
+
+```env
+POSTGRESQL_URL=postgresql://mercadozetta:local-development-only@localhost:5432/mercadozetta
+```
+
+Then start PostgreSQL, apply the committed migrations, and run both development
+servers:
+
+```bash
 npm run dev:local
 ```
 
 `dev:local` starts Dockerized PostgreSQL and then runs both
 development servers. The API listens on `http://localhost:3333`; Vite normally
-prints `http://localhost:5173` for the frontend.
+prints `http://localhost:5173` for the frontend. It does not insert demo data.
 
 Seed deterministic data in another terminal:
 
@@ -77,26 +90,26 @@ cp frontend/.env.example frontend/.env
 
 ### Backend variables
 
-| Variable                                                                 | Purpose                                                | Local example/default behavior                                |
-| ------------------------------------------------------------------------ | ------------------------------------------------------ | ------------------------------------------------------------- |
-| `POSTGRESQL_URL`                                                         | PostgreSQL connection string                           | Required                                                      |
-| `POSTGRES_POOL_MAX`                                                      | Maximum PostgreSQL pool connections                    | `10`; accepted range is 1 through 50                          |
-| `POSTGRES_CONNECTION_TIMEOUT_MS` / `POSTGRES_IDLE_TIMEOUT_MS`            | Pool acquisition and idle timeouts                     | `5000` / `30000`                                              |
-| `POSTGRES_STATEMENT_TIMEOUT_MS` / `POSTGRES_IDLE_TRANSACTION_TIMEOUT_MS` | Query and idle-transaction limits                      | `10000` / `10000`                                             |
-| `JWT_SIGNING_KEYS` / `JWT_ACTIVE_KID`                                    | JSON JWT verification ring and active signer           | Retain old keys only through the bounded access-token overlap |
-| `REFRESH_TOKEN_HASH_SECRETS` / `REFRESH_TOKEN_HASH_ACTIVE_VERSION`       | JSON refresh-hash ring and active version              | Keep a version until sessions using it expire or are revoked  |
-| `CSRF_SECRETS` / `CSRF_ACTIVE_VERSION`                                   | JSON CSRF signing ring and active version              | Keep old versions through their cookie/session overlap        |
-| `SESSION_ACCESS_TOKEN_TTL_MS`                                            | Cookie access-token lifetime                           | `300000` (5 minutes)                                          |
-| `SESSION_REFRESH_IDLE_TTL_MS`                                            | Rotating refresh idle lifetime                         | `604800000` (7 days)                                          |
-| `SESSION_ABSOLUTE_TTL_MS`                                                | Maximum session-family lifetime                        | `2592000000` (30 days)                                        |
-| `SESSION_REFRESH_CONCURRENCY_WINDOW_MS`                                  | Grace window for a parallel refresh loser              | `5000`                                                        |
-| `TENANT_HEADER_REQUIRED`                                                 | Reject requests without `X-Tenant-Id`                  | `false` locally; defaults to `true` outside development/test  |
-| `PORT`                                                                   | API listen port                                        | `3333`                                                        |
-| `TRUST_PROXY_HOPS`                                                       | Exact number of trusted reverse-proxy hops             | `0` locally; production Compose uses `1`                      |
-| `CORS_ORIGIN`                                                            | Comma-separated allowed browser origins                | `http://localhost:5173` locally                               |
-| `PRODUCT_IMAGE_HOSTS`                                                    | Comma-separated hosts allowed for HTTPS product images | `example.com,images.unsplash.com`                             |
-| `RATE_LIMIT_AUTH_WINDOW_MS` / `RATE_LIMIT_AUTH_MAX`                      | Login rate-limit window and maximum                    | `900000` / `5`                                                |
-| `RATE_LIMIT_REGISTER_WINDOW_MS` / `RATE_LIMIT_REGISTER_MAX`              | Registration rate-limit window and maximum             | `900000` / `10`                                               |
+| Variable                                                                 | Purpose                                                | Local example/default behavior                                                                     |
+| ------------------------------------------------------------------------ | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
+| `POSTGRESQL_URL`                                                         | PostgreSQL connection string                           | `postgresql://mercadozetta:local-development-only@localhost:5432/mercadozetta` for `npm run db:up` |
+| `POSTGRES_POOL_MAX`                                                      | Maximum PostgreSQL pool connections                    | `10`; accepted range is 1 through 50                                                               |
+| `POSTGRES_CONNECTION_TIMEOUT_MS` / `POSTGRES_IDLE_TIMEOUT_MS`            | Pool acquisition and idle timeouts                     | `5000` / `30000`                                                                                   |
+| `POSTGRES_STATEMENT_TIMEOUT_MS` / `POSTGRES_IDLE_TRANSACTION_TIMEOUT_MS` | Query and idle-transaction limits                      | `10000` / `10000`                                                                                  |
+| `JWT_SIGNING_KEYS` / `JWT_ACTIVE_KID`                                    | JSON JWT verification ring and active signer           | Retain old keys only through the bounded access-token overlap                                      |
+| `REFRESH_TOKEN_HASH_SECRETS` / `REFRESH_TOKEN_HASH_ACTIVE_VERSION`       | JSON refresh-hash ring and active version              | Keep a version until sessions using it expire or are revoked                                       |
+| `CSRF_SECRETS` / `CSRF_ACTIVE_VERSION`                                   | JSON CSRF signing ring and active version              | Keep old versions through their cookie/session overlap                                             |
+| `SESSION_ACCESS_TOKEN_TTL_MS`                                            | Cookie access-token lifetime                           | `300000` (5 minutes)                                                                               |
+| `SESSION_REFRESH_IDLE_TTL_MS`                                            | Rotating refresh idle lifetime                         | `604800000` (7 days)                                                                               |
+| `SESSION_ABSOLUTE_TTL_MS`                                                | Maximum session-family lifetime                        | `2592000000` (30 days)                                                                             |
+| `SESSION_REFRESH_CONCURRENCY_WINDOW_MS`                                  | Grace window for a parallel refresh loser              | `5000`                                                                                             |
+| `TENANT_HEADER_REQUIRED`                                                 | Reject requests without `X-Tenant-Id`                  | `false` locally; defaults to `true` outside development/test                                       |
+| `PORT`                                                                   | API listen port                                        | `3333`                                                                                             |
+| `TRUST_PROXY_HOPS`                                                       | Exact number of trusted reverse-proxy hops             | `0` locally; production Compose uses `1`                                                           |
+| `CORS_ORIGIN`                                                            | Comma-separated allowed browser origins                | `http://localhost:5173` locally                                                                    |
+| `PRODUCT_IMAGE_HOSTS`                                                    | Comma-separated hosts allowed for HTTPS product images | `example.com,images.unsplash.com`                                                                  |
+| `RATE_LIMIT_AUTH_WINDOW_MS` / `RATE_LIMIT_AUTH_MAX`                      | Login rate-limit window and maximum                    | `900000` / `5`                                                                                     |
+| `RATE_LIMIT_REGISTER_WINDOW_MS` / `RATE_LIMIT_REGISTER_MAX`              | Registration rate-limit window and maximum             | `900000` / `10`                                                                                    |
 
 When strict tenant-header mode is enabled, the global tenant middleware also
 requires `X-Tenant-Id` on `/`, `/health`, and `/ready`.
@@ -270,9 +283,10 @@ parity, implemented/documented route parity, and required examples.
 ### PostgreSQL migrations have not been applied
 
 Start the repository database with `npm run db:up`, apply the schema with
-`npm --prefix backend run db:migrate`, and use the `POSTGRESQL_URL` from
-`backend/.env.example`. The complete Compose stacks apply migrations before
-starting the backend.
+`npm --prefix backend run db:migrate`, and set `POSTGRESQL_URL` to
+`postgresql://mercadozetta:local-development-only@localhost:5432/mercadozetta`
+when using the repository PostgreSQL container. The complete Compose stacks
+apply migrations before starting the backend.
 
 ### The API exits during startup
 
@@ -300,7 +314,7 @@ Make sure the frontend origin, including its port, is present in
 `CORS_ORIGIN`. Multiple origins are comma-separated. Restart the backend after
 changing the value.
 
-### Ports 3333, 5173, or 27017 are already in use
+### Ports 3333, 5173, or 5432 are already in use
 
 Stop the conflicting process or existing Compose stack. Use
 `docker compose ps` to identify repository containers and

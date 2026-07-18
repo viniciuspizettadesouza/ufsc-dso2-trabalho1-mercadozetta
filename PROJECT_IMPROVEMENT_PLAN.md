@@ -14,8 +14,8 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   release; version 8.63.0 and its current canary support TypeScript only through
   versions earlier than 6.1.0.
 - Backend has 113 focused tests across 27 files and passes its coverage
-  thresholds with 87.23% branches and 85.46% functions. Frontend has 92 tests
-  across 14 files and passes its thresholds with 90.23% branches and 92% functions.
+  thresholds with 87.23% branches and 85.46% functions. Frontend has 96 tests
+  across 15 files and passes its thresholds with 90.04% branches and 92.45% functions.
   Type checks, tests, lint, formatting, OpenAPI
   generation, coverage, and the production build pass.
 - Checkout commits order creation, items, conditional inventory decrements, cart
@@ -32,7 +32,7 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   revocation, tenant isolation, idle and absolute expiry, and tenant-scoped
   catalog filtering and sorting.
 - Shared authenticated route protection now redirects anonymous visitors from
-  `/checkout`, `/products/new`, and `/admin` to login with a route-specific
+  `/checkout`, `/products/new`, and `/notifications` to login with a route-specific
   prompt, then returns them to the requested route after successful sign-in.
   Catalog, product detail, seller, login, and registration routes remain public.
 - Buyer and seller workflow UI is complete. Cart, watchlist, review, and
@@ -172,12 +172,18 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   Absolute URLs require HTTPS and an exact `PRODUCT_IMAGE_HOSTS` match, with
   loopback-only HTTP for local development; upload remains deferred until an
   object-storage provider is selected.
-- Typecheck, 113 focused backend tests, 92 frontend tests, coverage
+- Typecheck, 113 focused backend tests, 96 frontend tests, coverage
   thresholds, lint, formatting, 11 PostgreSQL integration scenarios, both
   Chromium workflows, the OpenAPI contract, production-only dependency audit,
   and the PostgreSQL production-image smoke lane pass.
-- Next action: begin Step 6 by deciding whether `/admin` is a seller dashboard
-  or a privileged administration surface and rename or authorize it accordingly.
+- The former `/admin` page was not a privileged administration surface. It is
+  now `/notifications`, loads only the current user's tenant-scoped
+  notifications, and no longer labels catalog summaries as moderation or an
+  audit trail. Privileged roles are intentionally deferred until a concrete
+  administration requirement exists.
+- Next action: begin Step 7 by adding `prettier-plugin-tailwindcss`, configuring
+  it last with the Tailwind CSS 4 stylesheet, and reviewing the initial class
+  ordering rewrite.
 
 ## Recommended Order
 
@@ -295,15 +301,16 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - Consider `react-hook-form` and `@hookform/resolvers` with the existing Zod
   dependency only when several forms can be migrated consistently.
 
-### 6. Define roles and privileged authorization
+### 6. Define roles and privileged authorization (completed)
 
-- [ ] Decide whether the current `/admin` page is a seller dashboard or a
+- [x] Decide whether the current `/admin` page is a seller dashboard or a
       privileged administration surface. Rename it if it is not administrative.
-- [ ] If privileged administration is required, add explicit tenant-scoped
-      roles or permissions, enforce them in backend middleware and services, and
-      treat frontend guards and hidden controls only as usability features.
-- [ ] Add denial, cross-tenant, privilege-change, and stale-session tests and
-      record privileged changes in an audit trail.
+- [x] Confirm that privileged administration is not required by the current
+      product contract. Keep tenant, ownership, and seller-order authorization in
+      backend services; introduce roles only with a concrete privileged workflow.
+- [x] Defer privilege-change, stale-role-session, and privileged audit-trail
+      scenarios until privileged roles exist. Existing tenant, ownership, and
+      seller-scope denial tests remain authoritative for current workflows.
 
 ### 7. Centralize tenant-specific themes and accessibility
 

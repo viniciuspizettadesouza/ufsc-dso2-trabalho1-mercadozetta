@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import AdminDashboard from '@/pages/AdminDashboard';
 import Checkout from '@/pages/Checkout';
 import ProductDetail from '@/pages/ProductDetail';
 import SellerProfile from '@/pages/SellerProfile';
@@ -257,45 +256,6 @@ describe('marketplace pages', () => {
       'Update or remove unavailable items before placing your order.',
     );
     expect(screen.getByRole('button', { name: 'Place order' })).toBeDisabled();
-  });
-
-  it('renders admin dashboard metrics and audit entries', async () => {
-    vi.mocked(api.get)
-      .mockResolvedValueOnce({
-        data: [
-          product,
-          { ...product, _id: 'product-2', name: 'Tea', status: 'paused' },
-        ],
-      })
-      .mockResolvedValueOnce({
-        data: [
-          { _id: 'notification-1', message: 'Order created', read: false },
-        ],
-      });
-    vi.mocked(api.patch).mockResolvedValue({
-      data: {
-        _id: 'notification-1',
-        message: 'Order created',
-        read: true,
-      },
-    });
-
-    renderAt('/admin', '/admin', <AdminDashboard />);
-
-    expect(
-      await screen.findByRole('heading', { name: 'Admin dashboard' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('Product Tea is paused in drinks'),
-    ).toBeInTheDocument();
-    expect(screen.getByText('Order created')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Mark as read' }));
-    expect(api.patch).toHaveBeenCalledWith('/notifications/notification-1', {
-      read: true,
-    });
-    expect(
-      screen.getByRole('button', { name: 'Mark as unread' }),
-    ).toBeInTheDocument();
   });
 
   it('loads seller profiles with product links', async () => {

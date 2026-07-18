@@ -11,7 +11,7 @@ import AddUser from '@/pages/AddUser';
 import Login from '@/pages/Login';
 import Index from '@/pages/Index';
 import Checkout from '@/pages/Checkout';
-import AdminDashboard from '@/pages/AdminDashboard';
+import Notifications from '@/pages/Notifications';
 import ProductDetail from '@/pages/ProductDetail';
 import SellerProfile from '@/pages/SellerProfile';
 import SellerOrders from '@/pages/SellerOrders';
@@ -97,10 +97,10 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: routePatterns.admin,
+    path: routePatterns.notifications,
     element: (
-      <AuthenticatedRoute prompt="Entre para acessar o painel administrativo.">
-        <AdminDashboard />
+      <AuthenticatedRoute prompt="Entre para acessar suas notificações.">
+        <Notifications />
       </AuthenticatedRoute>
     ),
   },
