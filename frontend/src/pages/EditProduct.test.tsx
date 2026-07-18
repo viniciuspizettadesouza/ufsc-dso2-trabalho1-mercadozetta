@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import EditProduct from '@/pages/EditProduct';
 import api from '@/services/api';
 import { AuthTestProvider } from '@/test/AuthTestProvider';
+import { ServerStateProvider } from '@/serverState/queryClient';
 
 vi.mock('@/services/api', () => ({
   default: { get: vi.fn(), patch: vi.fn() },
@@ -23,13 +24,15 @@ const product = {
 
 function renderPage() {
   return render(
-    <AuthTestProvider user={{ _id: 'seller-1' }}>
-      <MemoryRouter initialEntries={['/products/product-1/edit']}>
-        <Routes>
-          <Route path="/products/:productId/edit" element={<EditProduct />} />
-        </Routes>
-      </MemoryRouter>
-    </AuthTestProvider>,
+    <ServerStateProvider>
+      <AuthTestProvider user={{ _id: 'seller-1' }}>
+        <MemoryRouter initialEntries={['/products/product-1/edit']}>
+          <Routes>
+            <Route path="/products/:productId/edit" element={<EditProduct />} />
+          </Routes>
+        </MemoryRouter>
+      </AuthTestProvider>
+    </ServerStateProvider>,
   );
 }
 

@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 
 import { useBrand } from '@/brands/brandContext';
-import { apiRoutes, appRoutes } from '@/routes';
-import api from '@/services/api';
+import { appRoutes } from '@/routes';
 import { useAuth } from '@/auth/AuthContext';
 import { Button } from '@/components/Button';
+import { useLogout } from '@/serverState/auth';
+import { useUnreadNotificationCount } from '@/serverState/notifications';
 
 type HeaderProps = {
   hideLoginAction?: boolean;
@@ -16,7 +17,7 @@ const Header = ({ hideLoginAction = false }: HeaderProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, clearSession } = useAuth();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const logout = useLogout();
   const clearSessionAfterLogout = Boolean(
     (location.state as { clearSessionAfterLogout?: boolean } | null)
       ?.clearSessionAfterLogout,
@@ -29,26 +30,14 @@ const Header = ({ hideLoginAction = false }: HeaderProps) => {
     navigate(appRoutes.home, { replace: true, state: null });
   }, [clearSession, clearSessionAfterLogout, navigate]);
 
-  useEffect(() => {
-    if (!user) return;
-
-    let active = true;
-    api
-      .get(apiRoutes.unreadNotificationCount)
-      .then(({ data }) => {
-        if (active) setUnreadCount(data.count);
-      })
-      .catch(() => {
-        // A badge failure must not disrupt the shared navigation.
-      });
-    return () => {
-      active = false;
-    };
-  }, [user]);
+  const { data: unreadCount = 0 } = useUnreadNotificationCount(
+    user?._id ?? 'anonymous',
+    Boolean(user),
+  );
 
   async function handleLogout() {
     try {
-      await api.post(apiRoutes.logout);
+      await logout.mutateAsync();
     } catch {
       // Local logout must still succeed when the API is unavailable.
     } finally {
@@ -95,7 +84,9 @@ const Header = ({ hideLoginAction = false }: HeaderProps) => {
             {user.telephone && <span>{user.telephone}</span>}
           </div>
           <Button
+            aria-busy={logout.isPending}
             className="h-10 px-4 text-sm"
+            disabled={logout.isPending}
             variant="primary"
             type="button"
             onClick={handleLogout}

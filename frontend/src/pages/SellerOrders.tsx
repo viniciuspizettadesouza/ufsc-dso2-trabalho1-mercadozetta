@@ -1,31 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import Header from '@/pages/header';
-import { apiRoutes } from '@/routes';
-import api from '@/services/api';
 import { useAuth } from '@/auth/AuthContext';
 import PaginationControls from '@/components/PaginationControls';
 import { Button } from '@/components/Button';
-import { firstPage, pageInfo, pageItems, withPage } from '@/pagination';
-
-type OrderStatus =
-  'placed' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
-type OrderItem = {
-  productName: string;
-  quantity: number;
-  seller: string;
-};
-type StatusHistoryEntry = {
-  status: OrderStatus;
-  actor: string;
-  changedAt: string;
-};
-type Order = {
-  _id: string;
-  status: OrderStatus;
-  items: OrderItem[];
-  statusHistory: StatusHistoryEntry[];
-};
+import { firstPage } from '@/pagination';
+import { type OrderListRequest } from '@/serverState/queryKeys';
+import {
+  type Order,
+  type OrderStatus,
+  useAdvanceOrder,
+  useOrderList,
+} from '@/serverState/orders';
 
 const nextStatus: Partial<Record<OrderStatus, OrderStatus>> = {
   placed: 'confirmed',
@@ -35,55 +21,36 @@ const nextStatus: Partial<Record<OrderStatus, OrderStatus>> = {
 
 export default function SellerOrders() {
   const { user } = useAuth();
-  const sellerId = user?._id ?? '';
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const sellerId = user?._id ?? 'anonymous';
+
+  return <SellerOrdersPage key={sellerId} sellerId={sellerId} />;
+}
+
+function SellerOrdersPage({ sellerId }: { sellerId: string }) {
   const [pendingOrder, setPendingOrder] = useState('');
   const [feedback, setFeedback] = useState<{
     type: 'success' | 'error';
     message: string;
   } | null>(null);
-  const [page, setPage] = useState(firstPage);
+  const [orderRequest, setOrderRequest] = useState<OrderListRequest>(() => ({
+    userId: sellerId,
+    scope: 'seller',
+    limit: null,
+    offset: null,
+  }));
+  const orderQuery = useOrderList(orderRequest);
+  const updateOrder = useAdvanceOrder(orderRequest);
+  const orders = orderQuery.data?.items ?? [];
+  const page = orderQuery.data?.page ?? firstPage;
 
   async function loadOrders(offset: number) {
-    const response = await api.get(
-      withPage(`${apiRoutes.orders}?scope=seller`, offset),
-    );
-    setOrders(
-      pageItems<Order>(response.data)
-        .map((order) => ({
-          ...order,
-          items: order.items.filter((item) => item.seller === sellerId),
-        }))
-        .filter((order) => order.items.length > 0),
-    );
-    setPage(pageInfo<Order>(response.data));
+    setOrderRequest({
+      userId: sellerId,
+      scope: 'seller',
+      limit: page.limit,
+      offset,
+    });
   }
-
-  useEffect(() => {
-    async function loadOrders() {
-      try {
-        const response = await api.get(`${apiRoutes.orders}?scope=seller`);
-        setOrders(
-          pageItems<Order>(response.data)
-            .map((order: Order) => ({
-              ...order,
-              items: order.items.filter((item) => item.seller === sellerId),
-            }))
-            .filter((order: Order) => order.items.length > 0),
-        );
-        setPage(pageInfo<Order>(response.data));
-      } catch {
-        setFeedback({
-          type: 'error',
-          message: 'Unable to load seller orders.',
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadOrders();
-  }, [sellerId]);
 
   async function advanceOrder(order: Order) {
     const status = nextStatus[order.status];
@@ -92,21 +59,10 @@ export default function SellerOrders() {
     try {
       setPendingOrder(order._id);
       setFeedback(null);
-      const response = await api.patch(apiRoutes.orderStatus(order._id), {
+      await updateOrder.mutateAsync({
+        orderId: order._id,
         status,
       });
-      setOrders((current) =>
-        current.map((entry) =>
-          entry._id === order._id
-            ? {
-                ...entry,
-                status,
-                statusHistory:
-                  response.data.statusHistory ?? entry.statusHistory,
-              }
-            : entry,
-        ),
-      );
       setFeedback({
         type: 'success',
         message: `Order ${order._id} updated to ${status}.`,
@@ -131,8 +87,12 @@ export default function SellerOrders() {
             {feedback.message}
           </p>
         )}
-        {isLoading ? (
+        {orderQuery.isPending ? (
           <p role="status">Loading seller orders...</p>
+        ) : orderQuery.isError &&
+          orderQuery.data === undefined &&
+          orderRequest.offset === null ? (
+          <p role="alert">Unable to load seller orders.</p>
         ) : orders.length ? (
           <ul>
             {orders.map((order) => {

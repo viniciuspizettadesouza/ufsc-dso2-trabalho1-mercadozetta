@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Login from '@/pages/Login';
 import api from '@/services/api';
 import { AuthTestProvider } from '@/test/AuthTestProvider';
+import { ServerStateProvider } from '@/serverState/queryClient';
 
 const navigate = vi.fn();
 
@@ -30,11 +31,13 @@ function renderLogin(
   establishSession = vi.fn(),
 ) {
   return render(
-    <AuthTestProvider establishSession={establishSession}>
-      <MemoryRouter initialEntries={[{ pathname: '/login', state }]}>
-        <Login />
-      </MemoryRouter>
-    </AuthTestProvider>,
+    <ServerStateProvider>
+      <AuthTestProvider establishSession={establishSession}>
+        <MemoryRouter initialEntries={[{ pathname: '/login', state }]}>
+          <Login />
+        </MemoryRouter>
+      </AuthTestProvider>
+    </ServerStateProvider>,
   );
 }
 
@@ -104,6 +107,32 @@ describe('Login', () => {
       'true',
     );
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('prevents conflicting submissions while login is pending', async () => {
+    let resolveRequest: ((value: unknown) => void) | undefined;
+    vi.mocked(api.post).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveRequest = resolve;
+        }) as never,
+    );
+
+    renderLogin();
+    await userEvent.type(screen.getByLabelText('Email'), 'seller@example.com');
+    await userEvent.type(screen.getByLabelText('Password'), 'secret123');
+    const submit = screen.getByRole('button', { name: 'Entrar' });
+    await userEvent.click(submit);
+
+    expect(submit).toBeDisabled();
+    expect(submit).toHaveAttribute('aria-busy', 'true');
+    await userEvent.click(submit);
+    expect(api.post).toHaveBeenCalledTimes(1);
+
+    resolveRequest?.({ data: { user: { _id: 'user-1' } } });
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith('/sellers/user-1'),
+    );
   });
 
   it('shows the auth prompt and returns to the protected route after login', async () => {

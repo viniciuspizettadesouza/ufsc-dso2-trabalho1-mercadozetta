@@ -217,10 +217,132 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   and Tailwind alias bridge, semantic utility rules, existing-theme and new-brand
   workflows, backend tenant boundary, WCAG contrast test, and required automated
   and manual verification. Step 7 is complete.
-- Next action: begin Step 8 with the notification-count migration. Establish the
-  React Query provider and query-key conventions, then replace the local
-  `useEffect`/`useState` request in `frontend/src/pages/header/index.tsx` while
-  preserving its non-disruptive error behavior and focused header tests.
+- React Query 5.101.2 now has an application-scoped provider, centralized client
+  defaults, and hierarchical query keys. Queries are fresh for 30 seconds, do
+  not retry or refetch on window focus by default, and continue to delegate
+  authentication failures to the Axios renewal workflow. The header unread
+  notification count is the first migrated query: it is disabled anonymously,
+  keyed by user identity, and keeps badge failures out of shared navigation.
+  Direct page-test renders use isolated providers.
+- Catalog and seller-product reads now use a hierarchical list key containing
+  seller scope, normalized search, category, availability, sort, limit, and
+  offset. Editable filters remain separate from the applied request, repeated
+  submissions explicitly refetch, route-scope changes reset through a keyed
+  catalog boundary, and paginated transitions retain the previous page until
+  the next response. Initial loading, load errors, empty results, local search
+  preview, and the later-phase cart/watchlist behavior remain intact.
+- Product-detail records now use a hierarchical key containing the product ID.
+  The query runs independently from a guarded companion loader for initial
+  reviews and authenticated cart/watchlist state, while the page still withholds
+  product content until both sides succeed and preserves its existing whole-page
+  load error. Route product-ID changes reset local companion and mutation state
+  through a keyed detail boundary.
+- Catalog and product-detail cart/watchlist state now shares one normalized
+  product-ID cache per collection and user. Mutations cancel active reads, apply
+  an optimistic add/removal, restore the exact prior cache on failure, and
+  invalidate authenticated state after success. Anonymous reads remain disabled
+  while their existing action controls still work against a separate anonymous
+  cache. Initial collection failures preserve the product-detail load error, but
+  failed background revalidation does not replace usable cached content.
+- Product reviews now use keys containing product ID, limit, and offset, retain
+  the prior page during pagination, and preserve the product page's initial
+  loading/error boundary. Review creation changes cached data only after API
+  success, deduplicates the returned review in the visible page, and invalidates
+  inactive pages for that product without clearing form or review state on
+  failure.
+- Buyer and seller order lists now share normalized query data keyed by user,
+  scope, limit, and offset, retaining prior pages during transitions. Checkout
+  creation adds the returned order only after success, clears the user's cached
+  cart IDs, and invalidates inactive buyer/seller order caches. Seller progression
+  updates status/history only after success and likewise invalidates cross-scope
+  caches; failures retain the prior lifecycle state. The checkout combined-load
+  error and seller line-item scoping remain intact.
+- Checkout cart items now use a user-scoped detailed cache coordinated with the
+  existing cart product-ID projection. Quantity and removal mutations cancel and
+  snapshot both representations, apply optimistic changes, restore both exactly
+  on failure, and invalidate inactive copies after success. Catalog/detail cart
+  removal also updates detailed cached items, additions invalidate them, and
+  successful checkout clears and invalidates both representations. The combined
+  cart/order load error, unavailable-item protection, and mutation copy remain
+  intact. All 122 frontend tests, coverage thresholds (92.77% branches and
+  96.05% functions), formatting, lint, typecheck, and the production build pass.
+- The accepted Step 8 frontend boundary is a small domain hook layer under
+  `frontend/src/serverState/`, following the existing cart, collection, and order
+  modules. Domain modules should expose reusable query-option factories where
+  prefetching or imperative cache access is useful, plus thin `use...` query and
+  mutation hooks that own request normalization, query keys, cache updates,
+  invalidation, optimistic behavior, and rollback. Components should retain only
+  UI/form state and rendering decisions. Avoid a generic URL-based query hook;
+  keep endpoint paths in `frontend/src/routes.ts`, and defer domain API service
+  extraction to Step 9. Extract remaining direct component queries incrementally
+  rather than rewriting completed flows at once.
+- The notification domain module now exposes reusable list and unread-count
+  query options plus list, count, and read-state hooks. Notification pages are
+  keyed by user, limit, and offset and retain prior data during transitions;
+  successful read changes update the visible page and unread-count cache before
+  invalidating inactive copies, while failures preserve both. The page and header
+  no longer construct notification queries directly.
+- Product and review domain modules now expose reusable query-option factories
+  and thin hooks for catalog/seller lists, product details, paginated reviews,
+  and review creation. `Products.tsx` and `ProductDetail.tsx` retain request and
+  form state but no longer construct React Query queries, mutations, paths,
+  normalization, or cache invalidation directly. Existing keys, previous-page
+  behavior, review success-only updates, loading/errors, and form state remain
+  unchanged. All 124 frontend tests, coverage thresholds (93.02% branches and
+  96.01% functions), formatting, lint, typecheck, and the production build pass.
+- The order domain module now exposes an order-list query-option factory plus
+  checkout-creation and seller-progression hooks. `Checkout.tsx` and
+  `SellerOrders.tsx` retain UI request and feedback state but no longer own API
+  calls, TanStack Query mutations, cache writes, or invalidation. Checkout still
+  clears both cart representations after success, and seller lifecycle updates
+  still preserve cached status/history on failure. No page under
+  `frontend/src/pages/` constructs TanStack Query hooks or options directly. All
+  124 frontend tests, coverage thresholds (92.77% branches and 95.7% functions),
+  formatting, lint, typecheck, and the production build pass.
+- Product management now uses the shared product-detail query and explicit
+  detail, inventory, and lifecycle mutation hooks. Successful mutations replace
+  the detail cache with the server-confirmed product and invalidate product
+  lists; failures leave the edited form and previous cache intact. A keyed form
+  boundary initializes fields from the loaded record without allowing background
+  cache activity to overwrite in-progress edits. `EditProduct.tsx` no longer
+  owns API paths or Axios calls. All 124 frontend tests, coverage thresholds
+  (91.25% branches and 95.85% functions), formatting, lint, typecheck, and the
+  production build pass.
+- Seller profiles now use a seller-ID query key, reusable option factory, and
+  thin domain hook, while their product links reuse the normalized seller-scoped
+  product-list query. `SellerProfile.tsx` no longer owns an effect, Axios calls,
+  response normalization, or request state; it retains the combined initial
+  loading/error boundary and only presents content when both records are usable.
+  All 125 frontend tests, coverage thresholds (91.28% branches and 95.93%
+  functions), formatting, lint, typecheck, and the production build pass.
+- Product creation now uses an explicit product-domain mutation hook. The hook
+  owns the endpoint and invalidates product lists after success, while
+  `AddProduct.tsx` retains authentication validation, tenant copy, Axios error
+  interpretation, form state, and seller-route navigation. The submit control
+  exposes an accessible pending state and prevents duplicate requests. All 126
+  frontend tests, coverage thresholds (91.28% branches and 95.98% functions),
+  formatting, lint, typecheck, and the production build pass.
+- Account registration now uses an explicit user-domain mutation hook.
+  `AddUser.tsx` retains field state, tenant-specific and API-provided error
+  messages, and successful home navigation, while its submit control exposes an
+  accessible pending state and prevents duplicate requests. All 127 frontend
+  tests, coverage thresholds (91.28% branches and 96.01% functions), formatting,
+  lint, typecheck, and the production build pass.
+- Login and logout now use focused authentication-domain mutation hooks. Session
+  establishment/clearing and route decisions remain in `Login.tsx`, the header,
+  and `AuthContext`; logout still completes locally when the API is unavailable.
+  Both controls expose accessible pending state and block duplicate requests.
+  The page-source audit finds no direct Axios calls, API paths, or TanStack Query
+  construction under `frontend/src/pages/`. All 129 frontend tests, coverage
+  thresholds (91.28% branches and 96.07% functions), formatting, lint,
+  typecheck, and the production build pass. Step 8 is complete.
+- Next action: begin Step 9 with a contract audit of the product endpoints.
+  Compare their implemented success/error/list responses with the Zod schemas
+  and response metadata in `backend/src/validators/` and
+  `backend/src/openapi/document.ts`, plus the handwritten product types in
+  `frontend/src/serverState/products.ts`. Record concrete schema or example gaps
+  before changing frontend types, and regenerate `docs/openapi.json` after any
+  backend contract metadata change.
 
 ## Recommended Order
 
@@ -371,16 +493,26 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - [x] Document how to add or modify a tenant theme. Continue using Tailwind and
       CSS variables unless a redesign establishes a need for a component library.
 
-### 8. Centralize frontend server state
+### 8. Centralize frontend server state (completed)
 
-- [ ] Introduce `@tanstack/react-query` incrementally after paginated response
+- [x] Introduce `@tanstack/react-query` incrementally after paginated response
       contracts are stable rather than rewriting all pages at once.
-- [ ] Migrate notification counts first, then catalog and product details, cart
-      and watchlist, and finally orders and reviews.
-- [ ] Define query keys, pagination behavior, stale times, retries,
+- [x] Migrate notification counts first.
+- [x] Migrate catalog and seller-product lists.
+- [x] Migrate product-detail records.
+- [x] Migrate catalog and product-detail cart/watchlist state.
+- [x] Migrate product reviews.
+- [x] Migrate buyer and seller orders.
+- [x] Migrate detailed checkout cart state.
+- [x] Standardize server-state access behind small domain query-option factories
+      and hooks; migrate remaining direct component calls incrementally without
+      introducing a generic URL-based abstraction.
+- [x] Migrate notification lists and read state through the notification domain
+      hooks.
+- [x] Define query keys, pagination behavior, stale times, retries,
       invalidation, optimistic updates, rollback, and authentication-failure
       handling explicitly.
-- [ ] Preserve existing pending, success, API-error, and previous-state behavior
+- [x] Preserve existing pending, success, API-error, and previous-state behavior
       while removing duplicated request state from pages.
 
 ### 9. Improve API consistency and frontend contract safety

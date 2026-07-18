@@ -8,6 +8,7 @@ import AddProduct from '@/pages/AddProduct';
 import api from '@/services/api';
 import { AuthTestProvider } from '@/test/AuthTestProvider';
 import type { AuthUser } from '@/auth/AuthContext';
+import { ServerStateProvider } from '@/serverState/queryClient';
 
 const navigate = vi.fn();
 
@@ -30,11 +31,13 @@ vi.mock('react-router', async () => {
 
 function renderAddProduct(user: AuthUser | null = null) {
   return render(
-    <AuthTestProvider user={user}>
-      <MemoryRouter>
-        <AddProduct />
-      </MemoryRouter>
-    </AuthTestProvider>,
+    <ServerStateProvider>
+      <AuthTestProvider user={user}>
+        <MemoryRouter>
+          <AddProduct />
+        </MemoryRouter>
+      </AuthTestProvider>
+    </ServerStateProvider>,
   );
 }
 
@@ -129,6 +132,31 @@ describe('AddProduct', () => {
         }),
       );
     });
+  });
+
+  it('prevents conflicting submissions while creation is pending', async () => {
+    let resolveRequest: ((value: unknown) => void) | undefined;
+    vi.mocked(api.post).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveRequest = resolve;
+        }) as never,
+    );
+
+    renderAddProduct({ _id: 'user-1' });
+    await fillProductForm();
+    const submit = screen.getByRole('button', { name: 'Criar anúncio' });
+    await userEvent.click(submit);
+
+    expect(submit).toBeDisabled();
+    expect(submit).toHaveAttribute('aria-busy', 'true');
+    await userEvent.click(submit);
+    expect(api.post).toHaveBeenCalledTimes(1);
+
+    resolveRequest?.({ data: { newProduct: { _id: 'product-1' } } });
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith('/sellers/user-1'),
+    );
   });
 
   it('shows a generic error when product creation fails without an API message', async () => {

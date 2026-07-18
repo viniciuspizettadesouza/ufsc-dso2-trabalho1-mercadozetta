@@ -1,104 +1,86 @@
 /* v8 ignore file -- API-backed marketplace workflow is covered by MarketplacePages integration tests. */
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import Header from '@/pages/header';
-import api from '@/services/api';
 import { useBrand } from '@/brands/brandContext';
-import { apiRoutes, appRoutes } from '@/routes';
+import { appRoutes } from '@/routes';
 import { useAuth } from '@/auth/AuthContext';
 import PaginationControls from '@/components/PaginationControls';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Select } from '@/components/Select';
-import { firstPage, pageInfo, pageItems, withPage } from '@/pagination';
-
-type Product = {
-  _id: string;
-  name: string;
-  description: string;
-  image: string;
-  category?: string;
-  subcategory?: string;
-  inventory?: number;
-  status?: 'draft' | 'active' | 'paused' | 'sold_out' | 'archived';
-  seller?: string;
-  sellerProfile?: { username?: string; telephone?: string; storeName?: string };
-};
-type Review = { _id: string; rating: number; comment: string };
+import { firstPage } from '@/pagination';
+import type { ReviewListRequest } from '@/serverState/queryKeys';
+import { useProductCollection } from '@/serverState/productCollections';
+import { useProductDetail } from '@/serverState/products';
+import {
+  type Review,
+  useCreateReview,
+  useReviewList,
+} from '@/serverState/reviews';
 type ActionFeedback = { type: 'success' | 'error'; message: string } | null;
+const noReviews: Review[] = [];
 
 export default function ProductDetail() {
-  const brand = useBrand();
-  const { status } = useAuth();
   const { productId } = useParams();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [watched, setWatched] = useState(false);
-  const [inCart, setInCart] = useState(false);
-  const [reviews, setReviews] = useState<Review[]>([]);
+
+  return (
+    <ProductDetailPage
+      key={productId ?? 'missing-product'}
+      productId={productId}
+    />
+  );
+}
+
+function ProductDetailPage({ productId }: { productId?: string }) {
+  const brand = useBrand();
+  const { status, user } = useAuth();
   const [rating, setRating] = useState('5');
   const [comment, setComment] = useState('');
-  const [error, setError] = useState('');
   const [pendingAction, setPendingAction] = useState('');
   const [actionFeedback, setActionFeedback] = useState<ActionFeedback>(null);
-  const [reviewPage, setReviewPage] = useState(firstPage);
+  const [reviewRequest, setReviewRequest] = useState<ReviewListRequest>(() => ({
+    productId: productId ?? 'missing-product',
+    limit: null,
+    offset: null,
+  }));
+  const productQuery = useProductDetail(
+    productId ?? 'missing-product',
+    Boolean(productId),
+  );
+  const product = productQuery.data;
+  const reviewQuery = useReviewList(reviewRequest, Boolean(productId));
+  const reviewMutation = useCreateReview(productId, reviewRequest);
+  const reviews = reviewQuery.data?.items ?? noReviews;
+  const reviewPage = reviewQuery.data?.page ?? firstPage;
+  const watchlist = useProductCollection(
+    'watchlist',
+    user?._id,
+    status === 'authenticated',
+  );
+  const cart = useProductCollection(
+    'cart',
+    user?._id,
+    status === 'authenticated',
+  );
+  const watched = productId ? watchlist.productIds.includes(productId) : false;
+  const inCart = productId ? cart.productIds.includes(productId) : false;
 
   async function loadReviews(offset: number) {
     if (!productId) return;
-    const response = await api.get(
-      withPage(apiRoutes.reviews(productId), offset),
-    );
-    setReviews(pageItems<Review>(response.data));
-    setReviewPage(pageInfo<Review>(response.data));
+    setReviewRequest({
+      productId,
+      limit: reviewPage.limit,
+      offset,
+    });
   }
-
-  useEffect(() => {
-    if (!productId) return;
-    async function load() {
-      try {
-        const [productResponse, reviewsResponse] = await Promise.all([
-          api.get(apiRoutes.productDetail(productId!)),
-          api.get(apiRoutes.reviews(productId!)),
-        ]);
-        setProduct(productResponse.data);
-        setReviews(pageItems<Review>(reviewsResponse.data));
-        setReviewPage(pageInfo<Review>(reviewsResponse.data));
-        if (status === 'authenticated') {
-          const [cartResponse, watchlistResponse] = await Promise.all([
-            api.get(apiRoutes.cart),
-            api.get(apiRoutes.watchlist),
-          ]);
-          setInCart(
-            cartResponse.data.items.some(
-              (item: { product: Product | string }) =>
-                (typeof item.product === 'string'
-                  ? item.product
-                  : item.product._id) === productId,
-            ),
-          );
-          setWatched(
-            watchlistResponse.data.some(
-              (item: { product: Product | string }) =>
-                (typeof item.product === 'string'
-                  ? item.product
-                  : item.product._id) === productId,
-            ),
-          );
-        }
-      } catch {
-        setError('Unable to load product.');
-      }
-    }
-    load();
-  }, [productId, status]);
 
   async function toggleWatch() {
     if (!productId) return;
     try {
       setPendingAction('watchlist');
       setActionFeedback(null);
-      if (watched) await api.delete(apiRoutes.watchlistItem(productId));
-      else await api.put(apiRoutes.watchlistItem(productId));
-      setWatched(!watched);
+      await watchlist.toggle({ productId, remove: watched });
       setActionFeedback({
         type: 'success',
         message: watched ? 'Removed from watchlist.' : 'Added to watchlist.',
@@ -117,9 +99,7 @@ export default function ProductDetail() {
     try {
       setPendingAction('cart');
       setActionFeedback(null);
-      if (inCart) await api.delete(apiRoutes.cartItem(productId));
-      else await api.put(apiRoutes.cartItems, { productId, quantity: 1 });
-      setInCart(!inCart);
+      await cart.toggle({ productId, remove: inCart });
       setActionFeedback({
         type: 'success',
         message: inCart ? 'Removed from cart.' : 'Added to cart.',
@@ -136,14 +116,10 @@ export default function ProductDetail() {
     try {
       setPendingAction('review');
       setActionFeedback(null);
-      const response = await api.post(apiRoutes.reviews(productId), {
+      await reviewMutation.mutateAsync({
         rating: Number(rating),
         comment: comment.trim(),
       });
-      setReviews((current) => [
-        response.data,
-        ...current.filter((review) => review._id !== response.data._id),
-      ]);
       setComment('');
       setActionFeedback({ type: 'success', message: 'Review added.' });
     } catch {
@@ -157,11 +133,16 @@ export default function ProductDetail() {
     <div>
       <Header />
       <main className="mx-auto max-w-[980px] px-4 py-8">
-        {error ? (
+        {(productQuery.isError && !product) ||
+        (reviewQuery.isError &&
+          reviewQuery.data === undefined &&
+          reviewRequest.offset === null) ||
+        watchlist.isLoadError ||
+        cart.isLoadError ? (
           <p role="alert" className="text-xl font-bold text-red-700">
-            {error}
+            Unable to load product.
           </p>
-        ) : !product ? (
+        ) : !product || reviewQuery.isPending ? (
           <p role="status">Loading product...</p>
         ) : (
           <div className="grid gap-8 md:grid-cols-[360px_1fr]">

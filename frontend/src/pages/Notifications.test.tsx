@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Notifications from '@/pages/Notifications';
 import api from '@/services/api';
 import { AuthTestProvider } from '@/test/AuthTestProvider';
+import { ServerStateProvider } from '@/serverState/queryClient';
+import type { AuthUser } from '@/auth/AuthContext';
 
 vi.mock('@/services/api', () => ({
   default: {
@@ -15,13 +17,15 @@ vi.mock('@/services/api', () => ({
   },
 }));
 
-function renderNotifications() {
+function renderNotifications(user: AuthUser | null = null) {
   return render(
-    <AuthTestProvider>
-      <MemoryRouter>
-        <Notifications />
-      </MemoryRouter>
-    </AuthTestProvider>,
+    <ServerStateProvider>
+      <AuthTestProvider user={user}>
+        <MemoryRouter>
+          <Notifications />
+        </MemoryRouter>
+      </AuthTestProvider>
+    </ServerStateProvider>,
   );
 }
 
@@ -86,6 +90,34 @@ describe('Notifications', () => {
     );
     expect(
       screen.getByRole('button', { name: 'Mark as read' }),
+    ).toBeInTheDocument();
+  });
+
+  it('synchronizes successful read changes with the header count', async () => {
+    vi.mocked(api.get).mockImplementation(async (url) => {
+      if (url === '/notifications/unread-count') return { data: { count: 2 } };
+      return {
+        data: [
+          { _id: 'notification-1', message: 'Order created', read: false },
+        ],
+      };
+    });
+    vi.mocked(api.patch).mockResolvedValueOnce({
+      data: { _id: 'notification-1', message: 'Order created', read: true },
+    });
+
+    renderNotifications({ _id: 'user-1', username: 'Buyer' });
+
+    expect(
+      await screen.findByLabelText('2 unread notifications'),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Mark as read' }));
+
+    expect(
+      await screen.findByLabelText('1 unread notifications'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Mark as unread' }),
     ).toBeInTheDocument();
   });
 

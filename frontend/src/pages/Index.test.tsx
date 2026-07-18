@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Index from '@/pages/Index';
 import api from '@/services/api';
+import { ServerStateProvider } from '@/serverState/queryClient';
 
 const navigate = vi.fn();
 
@@ -25,9 +26,11 @@ vi.mock('react-router', async () => {
 
 function renderIndex() {
   return render(
-    <MemoryRouter>
-      <Index />
-    </MemoryRouter>,
+    <ServerStateProvider>
+      <MemoryRouter>
+        <Index />
+      </MemoryRouter>
+    </ServerStateProvider>,
   );
 }
 

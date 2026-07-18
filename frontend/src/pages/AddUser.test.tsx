@@ -6,6 +6,7 @@ import { AxiosError, AxiosHeaders } from 'axios';
 
 import AddUser from '@/pages/AddUser';
 import api from '@/services/api';
+import { ServerStateProvider } from '@/serverState/queryClient';
 
 const navigate = vi.fn();
 
@@ -27,10 +28,19 @@ vi.mock('react-router', async () => {
 
 function renderAddUser() {
   return render(
-    <MemoryRouter>
-      <AddUser />
-    </MemoryRouter>,
+    <ServerStateProvider>
+      <MemoryRouter>
+        <AddUser />
+      </MemoryRouter>
+    </ServerStateProvider>,
   );
+}
+
+async function fillRegistrationForm() {
+  await userEvent.type(screen.getByLabelText('Name'), 'Smoke User');
+  await userEvent.type(screen.getByLabelText('Phone'), '48999999999');
+  await userEvent.type(screen.getByLabelText('Email'), 'smoke@example.com');
+  await userEvent.type(screen.getByLabelText('Password'), 'secret123');
 }
 
 describe('AddUser', () => {
@@ -65,10 +75,7 @@ describe('AddUser', () => {
     expect(
       screen.getByRole('heading', { level: 1, name: 'Criar conta' }),
     ).toBeInTheDocument();
-    await userEvent.type(screen.getByLabelText('Name'), 'Smoke User');
-    await userEvent.type(screen.getByLabelText('Phone'), '48999999999');
-    await userEvent.type(screen.getByLabelText('Email'), 'smoke@example.com');
-    await userEvent.type(screen.getByLabelText('Password'), 'secret123');
+    await fillRegistrationForm();
     await userEvent.click(screen.getByRole('button', { name: 'Criar conta' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -84,5 +91,28 @@ describe('AddUser', () => {
         password: 'secret123',
       });
     });
+  });
+
+  it('prevents conflicting submissions while registration is pending', async () => {
+    let resolveRequest: ((value: unknown) => void) | undefined;
+    vi.mocked(api.post).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveRequest = resolve;
+        }) as never,
+    );
+
+    renderAddUser();
+    await fillRegistrationForm();
+    const submit = screen.getByRole('button', { name: 'Criar conta' });
+    await userEvent.click(submit);
+
+    expect(submit).toBeDisabled();
+    expect(submit).toHaveAttribute('aria-busy', 'true');
+    await userEvent.click(submit);
+    expect(api.post).toHaveBeenCalledTimes(1);
+
+    resolveRequest?.({ data: {} });
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/'));
   });
 });

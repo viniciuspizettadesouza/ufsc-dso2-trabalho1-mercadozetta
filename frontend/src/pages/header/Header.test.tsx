@@ -9,6 +9,7 @@ import { campusMarketBrand, type BrandConfig } from '@/brands';
 import api from '@/services/api';
 import { AuthTestProvider } from '@/test/AuthTestProvider';
 import type { AuthUser } from '@/auth/AuthContext';
+import { ServerStateProvider } from '@/serverState/queryClient';
 
 const navigate = vi.fn();
 
@@ -35,11 +36,13 @@ function renderHeader(
 ) {
   return render(
     <BrandProvider brand={brand}>
-      <AuthTestProvider user={user} clearSession={clearSession}>
-        <MemoryRouter initialEntries={[route]}>
-          <Header hideLoginAction={hideLoginAction} />
-        </MemoryRouter>
-      </AuthTestProvider>
+      <ServerStateProvider>
+        <AuthTestProvider user={user} clearSession={clearSession}>
+          <MemoryRouter initialEntries={[route]}>
+            <Header hideLoginAction={hideLoginAction} />
+          </MemoryRouter>
+        </AuthTestProvider>
+      </ServerStateProvider>
     </BrandProvider>,
   );
 }
@@ -142,6 +145,35 @@ describe('Header', () => {
     expect(api.get).toHaveBeenCalledWith('/notifications/unread-count');
   });
 
+  it('prevents conflicting logout requests while logout is pending', async () => {
+    let resolveRequest: ((value: unknown) => void) | undefined;
+    vi.mocked(api.post).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveRequest = resolve;
+        }) as never,
+    );
+    renderHeader('/', false, undefined, {
+      _id: 'seller-1',
+      username: 'Seller',
+    });
+    const logout = screen.getByRole('button', { name: 'Sair' });
+    await userEvent.click(logout);
+
+    expect(logout).toBeDisabled();
+    expect(logout).toHaveAttribute('aria-busy', 'true');
+    await userEvent.click(logout);
+    expect(api.post).toHaveBeenCalledTimes(1);
+
+    resolveRequest?.({});
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith('/', {
+        replace: true,
+        state: { clearSessionAfterLogout: true },
+      }),
+    );
+  });
+
   it('keeps navigation usable when the unread count request fails', async () => {
     vi.mocked(api.get).mockRejectedValue(new Error('network error'));
 
@@ -201,6 +233,7 @@ describe('Header', () => {
     renderHeader();
 
     expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument();
+    expect(api.get).not.toHaveBeenCalled();
   });
 
   it('clears auth after logout navigation reaches the public route', async () => {

@@ -20,6 +20,7 @@ import { BrandProvider } from '@/brands/BrandProvider';
 import { AuthProvider } from '@/auth/AuthProvider';
 import { useAuth } from '@/auth/AuthContext';
 import { routePatterns } from '@/routes';
+import { ServerStateProvider } from '@/serverState/queryClient';
 
 type AuthenticatedRouteProps = {
   children: ReactNode;
@@ -117,9 +118,11 @@ const router = createBrowserRouter([
 export default function App() {
   return (
     <BrandProvider>
-      <AuthProvider>
-        <RouterProvider router={router} />
-      </AuthProvider>
+      <ServerStateProvider>
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>
+      </ServerStateProvider>
     </BrandProvider>
   );
 }

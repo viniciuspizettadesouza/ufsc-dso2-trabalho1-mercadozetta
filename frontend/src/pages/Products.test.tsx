@@ -7,6 +7,7 @@ import Products from '@/pages/Products';
 import api from '@/services/api';
 import { AuthTestProvider } from '@/test/AuthTestProvider';
 import type { AuthUser } from '@/auth/AuthContext';
+import { ServerStateProvider } from '@/serverState/queryClient';
 
 vi.mock('@/services/api', () => ({
   default: {
@@ -39,13 +40,15 @@ const products = [
 
 function renderProducts(route = '/', path = '/', user: AuthUser | null = null) {
   return render(
-    <AuthTestProvider user={user}>
-      <MemoryRouter initialEntries={[route]}>
-        <Routes>
-          <Route path={path} element={<Products />} />
-        </Routes>
-      </MemoryRouter>
-    </AuthTestProvider>,
+    <ServerStateProvider>
+      <AuthTestProvider user={user}>
+        <MemoryRouter initialEntries={[route]}>
+          <Routes>
+            <Route path={path} element={<Products />} />
+          </Routes>
+        </MemoryRouter>
+      </AuthTestProvider>
+    </ServerStateProvider>,
   );
 }
 
@@ -264,5 +267,42 @@ describe('Products', () => {
     expect(api.get).toHaveBeenCalledWith(
       '/products?sort=created_desc&limit=20&offset=20',
     );
+  });
+
+  it('keeps the previous catalog page visible while the next page loads', async () => {
+    let resolveNextPage!: (value: unknown) => void;
+    vi.mocked(api.get).mockImplementation((path) => {
+      if (path === '/products') {
+        return Promise.resolve({
+          data: {
+            items: [products[0]],
+            page: { limit: 20, offset: 0, total: 21, hasMore: true },
+          },
+        });
+      }
+
+      return new Promise((resolve) => {
+        resolveNextPage = resolve;
+      }) as never;
+    });
+
+    renderProducts();
+
+    expect(await screen.findByText('Coffee')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+
+    expect(screen.getByText('Coffee')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', { name: 'Carregando produtos...' }),
+    ).not.toBeInTheDocument();
+
+    resolveNextPage({
+      data: {
+        items: [products[1]],
+        page: { limit: 20, offset: 20, total: 21, hasMore: false },
+      },
+    });
+
+    expect(await screen.findByText('Tea')).toBeInTheDocument();
   });
 });

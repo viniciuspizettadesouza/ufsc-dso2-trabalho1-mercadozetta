@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,6 +7,7 @@ import SellerOrders from '@/pages/SellerOrders';
 import api from '@/services/api';
 import { AuthTestProvider } from '@/test/AuthTestProvider';
 import type { AuthUser } from '@/auth/AuthContext';
+import { ServerStateProvider } from '@/serverState/queryClient';
 
 vi.mock('@/services/api', () => ({
   default: {
@@ -20,11 +21,13 @@ function renderSellerOrders(
   user: AuthUser | null = { _id: 'seller-1', username: 'Seller' },
 ) {
   return render(
-    <AuthTestProvider user={user}>
-      <MemoryRouter>
-        <SellerOrders />
-      </MemoryRouter>
-    </AuthTestProvider>,
+    <ServerStateProvider>
+      <AuthTestProvider user={user}>
+        <MemoryRouter>
+          <SellerOrders />
+        </MemoryRouter>
+      </AuthTestProvider>
+    </ServerStateProvider>,
   );
 }
 
@@ -118,6 +121,88 @@ describe('SellerOrders', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Unable to load seller orders.',
+    );
+  });
+
+  it('preserves seller order state when progression fails', async () => {
+    mockOrders([
+      {
+        _id: 'order-1',
+        status: 'placed',
+        statusHistory: [],
+        items: [{ productName: 'Coffee', quantity: 1, seller: 'seller-1' }],
+      },
+    ]);
+    vi.mocked(api.patch).mockRejectedValue(new Error('network error'));
+
+    renderSellerOrders();
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Mark as confirmed' }),
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Unable to update order order-1.',
+    );
+    expect(screen.getByText('Status: placed')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Mark as confirmed' }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the previous seller page visible while the next page loads', async () => {
+    let resolveNextPage!: (value: unknown) => void;
+    vi.mocked(api.get).mockImplementation((url) => {
+      if (url === '/notifications/unread-count') {
+        return Promise.resolve({ data: { count: 0 } });
+      }
+      if (url === '/orders?scope=seller') {
+        return Promise.resolve({
+          data: {
+            items: [
+              {
+                _id: 'order-1',
+                status: 'placed',
+                statusHistory: [],
+                items: [
+                  { productName: 'Coffee', quantity: 1, seller: 'seller-1' },
+                ],
+              },
+            ],
+            page: { limit: 20, offset: 0, total: 21, hasMore: true },
+          },
+        });
+      }
+      return new Promise((resolve) => {
+        resolveNextPage = resolve;
+      }) as never;
+    });
+
+    renderSellerOrders();
+
+    expect(await screen.findByText('Coffee × 1')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByText('Coffee × 1')).toBeInTheDocument();
+
+    resolveNextPage({
+      data: {
+        items: [
+          {
+            _id: 'order-21',
+            status: 'confirmed',
+            statusHistory: [],
+            items: [{ productName: 'Tea', quantity: 1, seller: 'seller-1' }],
+          },
+        ],
+        page: { limit: 20, offset: 20, total: 21, hasMore: false },
+      },
+    });
+
+    expect(await screen.findByText('Tea × 1')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(api.get).toHaveBeenCalledWith(
+        '/orders?scope=seller&limit=20&offset=20',
+      ),
     );
   });
 

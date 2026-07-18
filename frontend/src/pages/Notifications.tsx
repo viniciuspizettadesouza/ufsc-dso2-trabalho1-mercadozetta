@@ -1,70 +1,44 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import PaginationControls from '@/components/PaginationControls';
 import Header from '@/pages/header';
-import { firstPage, pageInfo, pageItems, withPage } from '@/pagination';
-import { apiRoutes } from '@/routes';
-import api from '@/services/api';
+import { firstPage } from '@/pagination';
 import { Button } from '@/components/Button';
-
-type Notification = {
-  _id: string;
-  message: string;
-  read: boolean;
-};
+import { useAuth } from '@/auth/AuthContext';
+import type { NotificationListRequest } from '@/serverState/queryKeys';
+import {
+  type Notification,
+  useNotificationList,
+  useNotificationReadMutation,
+} from '@/serverState/notifications';
 
 export default function Notifications() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [page, setPage] = useState(firstPage);
-  const [offset, setOffset] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
+  const { user } = useAuth();
+  const userId = user?._id ?? 'anonymous';
+  const [request, setRequest] = useState<NotificationListRequest>(() => ({
+    userId,
+    limit: firstPage.limit,
+    offset: firstPage.offset,
+  }));
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [mutationMessage, setMutationMessage] = useState('');
   const [mutationError, setMutationError] = useState('');
-
-  useEffect(() => {
-    let active = true;
-
-    async function loadNotifications() {
-      setLoading(true);
-      setLoadError('');
-      try {
-        const response = await api.get(
-          withPage(apiRoutes.notifications, offset),
-        );
-        if (!active) return;
-        setNotifications(pageItems<Notification>(response.data));
-        setPage(pageInfo<Notification>(response.data));
-      } catch {
-        if (active) {
-          setLoadError('Unable to load notifications.');
-        }
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
-    void loadNotifications();
-    return () => {
-      active = false;
-    };
-  }, [offset]);
+  const notificationsQuery = useNotificationList(request);
+  const readMutation = useNotificationReadMutation(userId, request);
+  const notifications = notificationsQuery.data?.items ?? [];
+  const page = notificationsQuery.data?.page ?? firstPage;
+  const loading = notificationsQuery.isPending;
+  const loadError = notificationsQuery.isError;
 
   async function setNotificationRead(notification: Notification) {
     setPendingId(notification._id);
     setMutationMessage('');
     setMutationError('');
     try {
-      const response = await api.patch(
-        apiRoutes.notification(notification._id),
-        { read: !notification.read },
-      );
-      setNotifications((current) =>
-        current.map((item) =>
-          item._id === notification._id ? response.data : item,
-        ),
-      );
+      await readMutation.mutateAsync({
+        notification,
+        read: !notification.read,
+      });
       setMutationMessage('Notification updated.');
     } catch {
       setMutationError('Unable to update the notification.');
@@ -81,7 +55,7 @@ export default function Notifications() {
         <p className="mt-2">Updates for your marketplace activity.</p>
 
         {loading && <p role="status">Loading notifications...</p>}
-        {loadError && <p role="alert">{loadError}</p>}
+        {loadError && <p role="alert">Unable to load notifications.</p>}
         {mutationMessage && <p role="status">{mutationMessage}</p>}
         {mutationError && <p role="alert">{mutationError}</p>}
 
@@ -115,7 +89,7 @@ export default function Notifications() {
         <PaginationControls
           label="Notification pages"
           page={page}
-          onPage={setOffset}
+          onPage={(offset) => setRequest({ userId, limit: page.limit, offset })}
         />
       </main>
     </div>

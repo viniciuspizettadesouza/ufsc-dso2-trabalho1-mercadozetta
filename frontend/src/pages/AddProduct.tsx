@@ -3,15 +3,13 @@ import { useNavigate } from 'react-router';
 import { isAxiosError } from 'axios';
 
 import Header from '@/pages/header';
-import api from '@/services/api';
 import { useBrand } from '@/brands/brandContext';
-import { apiRoutes, appRoutes } from '@/routes';
+import { appRoutes } from '@/routes';
 import { useAuth } from '@/auth/AuthContext';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Select } from '@/components/Select';
-
-type ProductStatus = 'draft' | 'active' | 'paused' | 'sold_out' | 'archived';
+import { type ProductStatus, useCreateProduct } from '@/serverState/products';
 
 const productStatusOptions: ProductStatus[] = [
   'draft',
@@ -24,6 +22,7 @@ export default function AddProduct() {
   const brand = useBrand();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const createProduct = useCreateProduct();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -45,7 +44,7 @@ export default function AddProduct() {
     try {
       setError('');
 
-      await api.post(apiRoutes.products, {
+      await createProduct.mutateAsync({
         name,
         description,
         category,
@@ -175,7 +174,9 @@ export default function AddProduct() {
             </p>
           )}
           <Button
+            aria-busy={createProduct.isPending}
             className="mt-2.5 h-12 text-base"
+            disabled={createProduct.isPending}
             variant="primary"
             type="submit"
           >

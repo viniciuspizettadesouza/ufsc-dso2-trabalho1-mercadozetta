@@ -1,28 +1,17 @@
-import { ChangeEvent, useEffect, useState, useCallback } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router';
 
-import api from '@/services/api';
 import { useBrand } from '@/brands/brandContext';
-import { apiRoutes, appRoutes } from '@/routes';
+import { appRoutes } from '@/routes';
 import { useAuth } from '@/auth/AuthContext';
 import PaginationControls from '@/components/PaginationControls';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Select } from '@/components/Select';
-import { firstPage, pageInfo, pageItems } from '@/pagination';
-
-type Product = {
-  _id: string;
-  name: string;
-  description: string;
-  image: string;
-  category?: string;
-  subcategory?: string;
-  inventory?: number;
-  status?: 'draft' | 'active' | 'paused' | 'sold_out' | 'archived';
-  seller?: string;
-  createdAt?: string;
-};
+import { firstPage } from '@/pagination';
+import type { ProductListRequest } from '@/serverState/queryKeys';
+import { useProductCollection } from '@/serverState/productCollections';
+import { type Product, useProductList } from '@/serverState/products';
 
 type ActionFeedback = { type: 'success' | 'error'; message: string } | null;
 
@@ -32,130 +21,81 @@ const productSkeletons = [
   'skeleton-3',
   'skeleton-4',
 ];
+const noProducts: Product[] = [];
 
 export default function Products() {
+  const { sellerId } = useParams();
+
+  return (
+    <ProductCatalog key={sellerId ?? 'all-products'} sellerId={sellerId} />
+  );
+}
+
+function ProductCatalog({ sellerId }: { sellerId?: string }) {
   const brand = useBrand();
   const { status, user } = useAuth();
-  const { sellerId } = useParams();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [newProducts, setNewProducts] = useState<Product[]>([]);
   const [produto, setProduto] = useState('');
   const [category, setCategory] = useState('');
   const [availability, setAvailability] = useState('');
   const [sort, setSort] = useState('created_desc');
-  const [favorites, setFavorites] = useState<string[]>([]);
-  const [cart, setCart] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
   const [pendingAction, setPendingAction] = useState('');
   const [actionFeedback, setActionFeedback] = useState<ActionFeedback>(null);
-  const [page, setPage] = useState(firstPage);
+  const [productRequest, setProductRequest] = useState<ProductListRequest>(() =>
+    initialProductRequest(sellerId),
+  );
 
-  async function loadProducts(offset = 0) {
-    try {
-      setIsLoading(true);
-      setError('');
+  const productQuery = useProductList(productRequest);
+  const watchlist = useProductCollection(
+    'watchlist',
+    user?._id,
+    status === 'authenticated',
+  );
+  const cart = useProductCollection(
+    'cart',
+    user?._id,
+    status === 'authenticated',
+  );
 
-      const params = new URLSearchParams();
+  const products = productQuery.data?.items ?? noProducts;
+  const page = productQuery.data?.page ?? firstPage;
+  const normalizedSearch = produto.toLowerCase();
+  const visibleProducts = useMemo(
+    () =>
+      produto.length > 1 && produto.trim() !== productRequest.q
+        ? products.filter(
+            (product) =>
+              product.name.toLowerCase().includes(normalizedSearch) ||
+              product.description.toLowerCase().includes(normalizedSearch),
+          )
+        : products,
+    [normalizedSearch, productRequest.q, products, produto],
+  );
 
-      if (produto.trim().length > 1) {
-        params.set('q', produto.trim());
-      }
+  function loadProducts(offset = 0) {
+    const nextRequest: ProductListRequest = {
+      sellerId: sellerId ?? null,
+      q: produto.trim().length > 1 ? produto.trim() : '',
+      category,
+      availability,
+      sort,
+      limit: page.limit,
+      offset,
+    };
 
-      if (category) {
-        params.set('category', category);
-      }
-
-      if (availability) {
-        params.set('availability', availability);
-      }
-
-      if (sort) {
-        params.set('sort', sort);
-      }
-      params.set('limit', String(page.limit));
-      params.set('offset', String(offset));
-
-      const basePath = sellerId
-        ? apiRoutes.sellerProducts(sellerId)
-        : apiRoutes.products;
-      const path = params.toString()
-        ? `${basePath}?${params.toString()}`
-        : basePath;
-      const response = await api.get(path);
-
-      const items = pageItems<Product>(response.data);
-      setProducts(items);
-      setNewProducts(items);
-      setPage(pageInfo<Product>(response.data));
-    } catch {
-      setProducts([]);
-      setNewProducts([]);
-      setError(brand.copy.catalog.loadError);
-    } finally {
-      setIsLoading(false);
+    if (sameProductRequest(productRequest, nextRequest)) {
+      void productQuery.refetch();
+    } else {
+      setProductRequest(nextRequest);
     }
   }
 
-  useEffect(() => {
-    async function loadInitialProducts() {
-      try {
-        setIsLoading(true);
-        setError('');
-        const path = sellerId
-          ? apiRoutes.sellerProducts(sellerId)
-          : apiRoutes.products;
-        const response = await api.get(path);
-        const items = pageItems<Product>(response.data);
-        setProducts(items);
-        setNewProducts(items);
-        setPage(pageInfo<Product>(response.data));
-      } catch {
-        setProducts([]);
-        setNewProducts([]);
-        setError(brand.copy.catalog.loadError);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadInitialProducts();
-  }, [brand.copy.catalog.loadError, sellerId]);
-
-  useEffect(() => {
-    if (status !== 'authenticated') return;
-    Promise.all([api.get(apiRoutes.watchlist), api.get(apiRoutes.cart)]).then(
-      ([watchlistResponse, cartResponse]) => {
-        setFavorites(
-          watchlistResponse.data.map((entry: { product: Product | string }) =>
-            typeof entry.product === 'string'
-              ? entry.product
-              : entry.product._id,
-          ),
-        );
-        setCart(
-          cartResponse.data.items.map((entry: { product: Product | string }) =>
-            typeof entry.product === 'string'
-              ? entry.product
-              : entry.product._id,
-          ),
-        );
-      },
-    );
-  }, [status]);
-
   async function toggleFavorite(productId: string) {
     const action = `watchlist-${productId}`;
-    const isRemoving = favorites.includes(productId);
+    const isRemoving = watchlist.productIds.includes(productId);
     try {
       setPendingAction(action);
       setActionFeedback(null);
-      if (isRemoving) {
-        await api.delete(apiRoutes.watchlistItem(productId));
-        setFavorites((current) => current.filter((id) => id !== productId));
-      } else {
-        await api.put(apiRoutes.watchlistItem(productId));
-        setFavorites((current) => [...current, productId]);
-      }
+      await watchlist.toggle({ productId, remove: isRemoving });
       setActionFeedback({
         type: 'success',
         message: isRemoving
@@ -174,17 +114,11 @@ export default function Products() {
 
   async function toggleCart(productId: string) {
     const action = `cart-${productId}`;
-    const isRemoving = cart.includes(productId);
+    const isRemoving = cart.productIds.includes(productId);
     try {
       setPendingAction(action);
       setActionFeedback(null);
-      if (isRemoving) {
-        await api.delete(apiRoutes.cartItem(productId));
-        setCart((current) => current.filter((id) => id !== productId));
-      } else {
-        await api.put(apiRoutes.cartItems, { productId, quantity: 1 });
-        setCart((current) => [...current, productId]);
-      }
+      await cart.toggle({ productId, remove: isRemoving });
       setActionFeedback({
         type: 'success',
         message: isRemoving
@@ -200,27 +134,6 @@ export default function Products() {
       setPendingAction('');
     }
   }
-
-  const procure = useCallback(
-    (event: ChangeEvent<HTMLInputElement>) => {
-      const value = event.currentTarget.value;
-      const normalizedValue = value.toLowerCase();
-
-      setProduto(value);
-      if (value.length > 1) {
-        setNewProducts(
-          products.filter(
-            (p) =>
-              p.name.toLowerCase().includes(normalizedValue) ||
-              p.description.toLowerCase().includes(normalizedValue),
-          ),
-        );
-      } else {
-        setNewProducts(products);
-      }
-    },
-    [products],
-  );
 
   return (
     <section className="mx-auto max-w-[1180px] px-5 py-8">
@@ -238,7 +151,7 @@ export default function Products() {
             type="text"
             placeholder={brand.copy.catalog.searchPlaceholder}
             value={produto}
-            onChange={procure}
+            onChange={(event) => setProduto(event.currentTarget.value)}
           />
         </label>
         <label className="flex flex-col gap-1 text-sm font-bold text-content">
@@ -312,7 +225,7 @@ export default function Products() {
       )}
 
       <div className="py-8">
-        {isLoading ? (
+        {productQuery.isPending ? (
           <div role="status" aria-label={brand.copy.catalog.loading}>
             <p className="sr-only">{brand.copy.catalog.loading}</p>
             <ul className="grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-4">
@@ -332,16 +245,16 @@ export default function Products() {
               ))}
             </ul>
           </div>
-        ) : error ? (
+        ) : productQuery.isError ? (
           <div
             role="alert"
             className="rounded-surface border border-solid border-red-200 bg-red-50 p-5 text-base font-bold text-red-700"
           >
-            {error}
+            {brand.copy.catalog.loadError}
           </div>
-        ) : newProducts.length > 0 ? (
+        ) : visibleProducts.length > 0 ? (
           <ul className="grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-4">
-            {newProducts.map((product) => (
+            {visibleProducts.map((product) => (
               <li
                 className="flex min-h-full flex-col overflow-hidden rounded-surface border border-solid border-theme-border bg-surface shadow-surface"
                 key={product._id}
@@ -451,7 +364,7 @@ export default function Products() {
                     >
                       {pendingAction === `watchlist-${product._id}`
                         ? 'Atualizando...'
-                        : favorites.includes(product._id)
+                        : watchlist.productIds.includes(product._id)
                           ? brand.copy.catalog.watchingAction
                           : brand.copy.catalog.watchAction}
                     </Button>
@@ -463,7 +376,7 @@ export default function Products() {
                     >
                       {pendingAction === `cart-${product._id}`
                         ? 'Atualizando...'
-                        : cart.includes(product._id)
+                        : cart.productIds.includes(product._id)
                           ? brand.copy.catalog.inCartAction
                           : brand.copy.catalog.cartAction}
                     </Button>
@@ -486,5 +399,32 @@ export default function Products() {
         onPage={loadProducts}
       />
     </section>
+  );
+}
+
+function initialProductRequest(sellerId?: string): ProductListRequest {
+  return {
+    sellerId: sellerId ?? null,
+    q: '',
+    category: '',
+    availability: '',
+    sort: '',
+    limit: null,
+    offset: null,
+  };
+}
+
+function sameProductRequest(
+  current: ProductListRequest,
+  next: ProductListRequest,
+) {
+  return (
+    current.sellerId === next.sellerId &&
+    current.q === next.q &&
+    current.category === next.category &&
+    current.availability === next.availability &&
+    current.sort === next.sort &&
+    current.limit === next.limit &&
+    current.offset === next.offset
   );
 }

@@ -1,84 +1,69 @@
 /* v8 ignore file -- API-backed checkout workflow is covered by MarketplacePages integration tests. */
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router';
 import Header from '@/pages/header';
-import api from '@/services/api';
-import { apiRoutes, appRoutes } from '@/routes';
+import { appRoutes } from '@/routes';
 import PaginationControls from '@/components/PaginationControls';
 import { Button } from '@/components/Button';
 import { Select } from '@/components/Select';
-import { firstPage, pageInfo, pageItems, withPage } from '@/pagination';
-
-type Product = {
-  _id: string;
-  name: string;
-  inventory?: number;
-  status?: string;
-};
-type CartItem = { product: Product; quantity: number };
-type Order = {
-  _id: string;
-  status: string;
-  items: Array<{ productName: string; quantity: number }>;
-  statusHistory: Array<{
-    status: string;
-    actor: string;
-    changedAt: string;
-  }>;
-};
+import { firstPage } from '@/pagination';
+import { useAuth } from '@/auth/AuthContext';
+import { type OrderListRequest } from '@/serverState/queryKeys';
+import { useCreateOrder, useOrderList } from '@/serverState/orders';
+import { useDetailedCart } from '@/serverState/cart';
 
 export default function Checkout() {
-  const [items, setItems] = useState<CartItem[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const { user } = useAuth();
+  const userId = user?._id ?? 'anonymous';
   const [pendingItem, setPendingItem] = useState('');
   const [feedback, setFeedback] = useState<{
     type: 'success' | 'error';
     message: string;
   } | null>(null);
-  const [orderPage, setOrderPage] = useState(firstPage);
-  async function loadOrders(offset: number) {
-    const history = await api.get(
-      withPage(`${apiRoutes.orders}?scope=buyer`, offset),
-    );
-    setOrders(pageItems<Order>(history.data));
-    setOrderPage(pageInfo<Order>(history.data));
-  }
-  useEffect(() => {
-    async function loadCheckout() {
-      try {
-        const [cart, history] = await Promise.all([
-          api.get(apiRoutes.cart),
-          api.get(`${apiRoutes.orders}?scope=buyer`),
-        ]);
-        setItems(cart.data.items);
-        setOrders(pageItems<Order>(history.data));
-        setOrderPage(pageInfo<Order>(history.data));
-      } catch {
-        setFeedback({
-          type: 'error',
-          message: 'Unable to load cart and order history.',
-        });
-      } finally {
-        setIsLoading(false);
+  const [orderRequest, setOrderRequest] = useState<OrderListRequest>(() => ({
+    userId,
+    scope: 'buyer',
+    limit: null,
+    offset: null,
+  }));
+  const cart = useDetailedCart(userId);
+  const orderQuery = useOrderList(orderRequest);
+  const createOrder = useCreateOrder(userId, orderRequest);
+  const loadError =
+    cart.isLoadError ||
+    (orderQuery.isError &&
+      orderQuery.data === undefined &&
+      orderRequest.offset === null);
+  const isLoading = cart.isPending || orderQuery.isPending;
+  const items = loadError ? [] : cart.items;
+  const orders = loadError ? [] : (orderQuery.data?.items ?? []);
+  const orderPage = loadError
+    ? firstPage
+    : (orderQuery.data?.page ?? firstPage);
+  const displayedFeedback = loadError
+    ? {
+        type: 'error' as const,
+        message: 'Unable to load cart and order history.',
       }
-    }
-    loadCheckout();
-  }, []);
+    : feedback;
+
+  async function loadOrders(offset: number) {
+    setOrderRequest({
+      userId,
+      scope: 'buyer',
+      limit: orderPage.limit,
+      offset,
+    });
+  }
+
   async function placeOrder() {
     if (!items.length) return;
     try {
-      setIsPlacingOrder(true);
       setFeedback(null);
-      const response = await api.post(apiRoutes.orders);
-      setOrders((current) => [response.data, ...current]);
-      setItems([]);
+      await createOrder.mutateAsync();
       setFeedback({ type: 'success', message: 'Order placed successfully.' });
     } catch {
       setFeedback({ type: 'error', message: 'Unable to place order.' });
-    } finally {
-      setIsPlacingOrder(false);
     }
   }
 
@@ -86,12 +71,7 @@ export default function Checkout() {
     try {
       setPendingItem(productId);
       setFeedback(null);
-      await api.put(apiRoutes.cartItems, { productId, quantity });
-      setItems((current) =>
-        current.map((item) =>
-          item.product._id === productId ? { ...item, quantity } : item,
-        ),
-      );
+      await cart.updateQuantity({ productId, quantity });
       setFeedback({ type: 'success', message: 'Cart quantity updated.' });
     } catch {
       setFeedback({
@@ -107,10 +87,7 @@ export default function Checkout() {
     try {
       setPendingItem(productId);
       setFeedback(null);
-      await api.delete(apiRoutes.cartItem(productId));
-      setItems((current) =>
-        current.filter((item) => item.product._id !== productId),
-      );
+      await cart.removeItem(productId);
       setFeedback({ type: 'success', message: 'Item removed from cart.' });
     } catch {
       setFeedback({ type: 'error', message: 'Unable to remove cart item.' });
@@ -129,23 +106,23 @@ export default function Checkout() {
       <Header />
       <main className="mx-auto max-w-[900px] px-4 py-8">
         <h1 className="text-3xl font-bold">Checkout</h1>
-        {feedback && (
+        {displayedFeedback && (
           <p
             className={
-              feedback.type === 'error'
+              displayedFeedback.type === 'error'
                 ? 'mt-4 font-bold text-red-700'
                 : 'mt-4 font-bold text-green-700'
             }
-            role={feedback.type === 'error' ? 'alert' : 'status'}
+            role={displayedFeedback.type === 'error' ? 'alert' : 'status'}
           >
-            {feedback.message}
+            {displayedFeedback.message}
           </p>
         )}
         <section className="mt-6">
           <h2 className="text-xl font-bold">Cart</h2>
           {isLoading ? (
             <p role="status">Loading cart and order history...</p>
-          ) : items.length ? (
+          ) : !loadError && items.length ? (
             <ul>
               {items.map((item) => (
                 <li key={item.product._id}>
@@ -204,14 +181,15 @@ export default function Checkout() {
             type="button"
             disabled={
               isLoading ||
-              isPlacingOrder ||
+              loadError ||
+              createOrder.isPending ||
               Boolean(pendingItem) ||
               !items.length ||
               hasUnavailableItems
             }
             onClick={placeOrder}
           >
-            {isPlacingOrder ? 'Placing order...' : 'Place order'}
+            {createOrder.isPending ? 'Placing order...' : 'Place order'}
           </Button>
         </section>
         <section className="mt-8">

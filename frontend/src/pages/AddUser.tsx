@@ -3,15 +3,16 @@ import { useNavigate } from 'react-router';
 import { isAxiosError } from 'axios';
 
 import Header from '@/pages/header';
-import api from '@/services/api';
 import { useBrand } from '@/brands/brandContext';
-import { apiRoutes, appRoutes } from '@/routes';
+import { appRoutes } from '@/routes';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
+import { useCreateUser } from '@/serverState/users';
 
 export default function AddUser() {
   const brand = useBrand();
   const navigate = useNavigate();
+  const createUser = useCreateUser();
 
   const [username, setUsername] = useState('');
   const [telephone, setTelephone] = useState('');
@@ -25,7 +26,7 @@ export default function AddUser() {
     try {
       setError('');
 
-      await api.post(apiRoutes.users, {
+      await createUser.mutateAsync({
         username,
         telephone,
         email,
@@ -111,7 +112,9 @@ export default function AddUser() {
             </p>
           )}
           <Button
+            aria-busy={createUser.isPending}
             className="mt-2.5 h-12 text-base"
+            disabled={createUser.isPending}
             variant="primary"
             type="submit"
           >

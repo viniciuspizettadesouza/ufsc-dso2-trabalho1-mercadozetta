@@ -1,62 +1,49 @@
 /* v8 ignore file -- demo-local seller profile page is covered by integration smoke tests. */
-import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 
 import Header from '@/pages/header';
-import api from '@/services/api';
-import { apiRoutes, appRoutes } from '@/routes';
-import { pageItems } from '@/pagination';
-
-type Seller = {
-  _id: string;
-  username?: string;
-  telephone?: string;
-  email?: string;
-  storeName?: string;
-};
-
-type Product = {
-  _id: string;
-  name: string;
-};
+import { appRoutes } from '@/routes';
+import { useProductList } from '@/serverState/products';
+import { useSellerProfile } from '@/serverState/sellers';
 
 export default function SellerProfile() {
   const { sellerId } = useParams();
-  const [seller, setSeller] = useState<Seller | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [error, setError] = useState('');
 
-  useEffect(() => {
-    async function loadSeller() {
-      if (!sellerId) {
-        return;
-      }
+  return (
+    <SellerProfilePage key={sellerId ?? 'missing-seller'} sellerId={sellerId} />
+  );
+}
 
-      try {
-        const [sellerResponse, productsResponse] = await Promise.all([
-          api.get(apiRoutes.sellerProfile(sellerId)),
-          api.get(apiRoutes.sellerProducts(sellerId)),
-        ]);
-
-        setSeller(sellerResponse.data);
-        setProducts(pageItems<Product>(productsResponse.data));
-      } catch {
-        setError('Unable to load seller profile.');
-      }
-    }
-
-    loadSeller();
-  }, [sellerId]);
+function SellerProfilePage({ sellerId }: { sellerId?: string }) {
+  const enabled = Boolean(sellerId);
+  const sellerQuery = useSellerProfile(sellerId ?? 'missing-seller', enabled);
+  const productsQuery = useProductList(
+    {
+      sellerId: sellerId ?? 'missing-seller',
+      q: '',
+      category: '',
+      availability: '',
+      sort: '',
+      limit: null,
+      offset: null,
+    },
+    enabled,
+  );
+  const loadError =
+    (sellerQuery.isError && sellerQuery.data === undefined) ||
+    (productsQuery.isError && productsQuery.data === undefined);
+  const seller = sellerQuery.data;
+  const products = productsQuery.data?.items ?? [];
 
   return (
     <div>
       <Header />
       <main className="mx-auto max-w-[900px] px-4 py-8">
-        {error ? (
+        {loadError ? (
           <p role="alert" className="text-xl font-bold text-red-700">
-            {error}
+            Unable to load seller profile.
           </p>
-        ) : !seller ? (
+        ) : !seller || productsQuery.data === undefined ? (
           <p role="status" className="text-xl font-bold text-muted">
             Loading seller...
           </p>

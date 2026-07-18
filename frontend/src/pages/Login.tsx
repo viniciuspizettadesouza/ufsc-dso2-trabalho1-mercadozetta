@@ -2,18 +2,19 @@ import { FormEvent, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 
 import Header from '@/pages/header';
-import api from '@/services/api';
 import { useBrand } from '@/brands/brandContext';
-import { apiRoutes, appRoutes } from '@/routes';
+import { appRoutes } from '@/routes';
 import { useAuth } from '@/auth/AuthContext';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
+import { useLogin } from '@/serverState/auth';
 
 export default function Login() {
   const brand = useBrand();
   const location = useLocation();
   const navigate = useNavigate();
   const { establishSession } = useAuth();
+  const login = useLogin();
   const routeState = location.state as
     { from?: string; prompt?: string } | undefined;
 
@@ -27,17 +28,17 @@ export default function Login() {
     try {
       setError('');
 
-      const response = await api.post(apiRoutes.login, {
+      const user = await login.mutateAsync({
         email,
         password,
       });
 
-      establishSession(response.data.user);
+      establishSession(user);
 
       if (routeState?.from) {
         navigate(routeState.from, { replace: true });
       } else {
-        navigate(appRoutes.sellerProducts(response.data.user._id));
+        navigate(appRoutes.sellerProducts(user._id));
       }
     } catch {
       setError(brand.copy.validation.invalidCredentials);
@@ -95,7 +96,9 @@ export default function Login() {
             </p>
           )}
           <Button
+            aria-busy={login.isPending}
             className="mt-2.5 h-12 text-base"
+            disabled={login.isPending}
             variant="primary"
             type="submit"
           >
