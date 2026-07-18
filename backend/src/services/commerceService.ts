@@ -5,6 +5,7 @@ import {
   sellerOrderTransitions,
 } from '@/orderStatus';
 import type { CheckoutTransactionCoordinator } from '@/repositories/checkoutTransaction';
+import type { AuditEventRepository } from '@/repositories/auditEventRepository';
 import type { CartRepository } from '@/repositories/cartRepository';
 import type { NotificationRepository } from '@/repositories/notificationRepository';
 import type { OrderItemRepository } from '@/repositories/orderItemRepository';
@@ -136,6 +137,35 @@ async function createOrderWithRepository(
         );
     }
 
+    await repositories.audits.appendMany([
+      {
+        tenantId,
+        eventType: 'order.placed',
+        actorId: userId,
+        resourceType: 'order',
+        resourceId: order._id,
+        metadata: { itemCount: items.length },
+        occurredAt: now,
+      },
+      ...items.map((item) => {
+        const product = productMap.get(String(item.product))!;
+        return {
+          tenantId,
+          eventType: 'inventory.decremented' as const,
+          actorId: userId,
+          resourceType: 'product' as const,
+          resourceId: String(item.product),
+          metadata: {
+            orderId: order._id,
+            quantity: item.quantity,
+            previousInventory: product.inventory,
+            nextInventory: product.inventory - item.quantity,
+          },
+          occurredAt: now,
+        };
+      }),
+    ]);
+
     await repositories.carts.clear(tenantId, cart.id);
     await repositories.notifications.create(
       {
@@ -188,6 +218,7 @@ async function updateOrderStatusWithRepositories(
   orderRepository: OrderRepository,
   orderItems: OrderItemRepository,
   notifications: NotificationRepository,
+  audits: AuditEventRepository,
   userId: string,
   tenantId: string,
   orderId: string,
@@ -236,6 +267,15 @@ async function updateOrderStatusWithRepositories(
     },
     now,
   );
+  await audits.append({
+    tenantId,
+    eventType: 'order.status_changed',
+    actorId: userId,
+    resourceType: 'order',
+    resourceId: orderId,
+    metadata: { previousStatus: order.status, nextStatus: status },
+    occurredAt: now,
+  });
   const items = await orderItems.listByOrderIds(tenantId, [orderId]);
   return {
     ...updated,
@@ -389,6 +429,7 @@ export function createOrderCommerceService(
   orders: OrderRepository,
   orderItems: OrderItemRepository,
   notifications: NotificationRepository,
+  transactions: CheckoutTransactionCoordinator,
 ) {
   return {
     listOrders: (userId: string, tenantId: string, pagination: OrderListData) =>
@@ -405,14 +446,17 @@ export function createOrderCommerceService(
       orderId: string,
       status: OrderStatus,
     ) =>
-      updateOrderStatusWithRepositories(
-        orders,
-        orderItems,
-        notifications,
-        userId,
-        tenantId,
-        orderId,
-        status,
+      transactions.run((repositories) =>
+        updateOrderStatusWithRepositories(
+          repositories.orders,
+          repositories.orderItems,
+          repositories.notifications,
+          repositories.audits,
+          userId,
+          tenantId,
+          orderId,
+          status,
+        ),
       ),
   };
 }

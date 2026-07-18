@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ProductRepository } from '@/repositories/productRepository';
+import type { CheckoutTransactionCoordinator } from '@/repositories/checkoutTransaction';
 import { createProductService } from '@/services/productService';
 
 function repository(
@@ -67,9 +68,21 @@ const products = [
 ];
 
 function service(productRepository: ProductRepository, profile = vi.fn()) {
-  return createProductService(productRepository, {
-    getPublicSellerProfile: profile,
-  });
+  const audits = { append: vi.fn(), appendMany: vi.fn() };
+  const transactions = {
+    run: (work) =>
+      work({ products: productRepository, audits } as unknown as Parameters<
+        Parameters<CheckoutTransactionCoordinator['run']>[0]
+      >[0]),
+  } satisfies CheckoutTransactionCoordinator;
+  return {
+    ...createProductService(
+      productRepository,
+      { getPublicSellerProfile: profile },
+      transactions,
+    ),
+    auditRepository: audits,
+  };
 }
 
 describe('productService', () => {
@@ -351,6 +364,19 @@ describe('productService', () => {
       productId,
       sellerId,
       { inventory: 0, status: 'sold_out' },
+    );
+    expect(productService.auditRepository.append).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: 'mercadozetta',
+        eventType: 'inventory.set',
+        actorId: sellerId,
+        resourceType: 'product',
+        resourceId: productId,
+        metadata: expect.objectContaining({
+          previousInventory: 5,
+          nextInventory: 0,
+        }),
+      }),
     );
   });
 });

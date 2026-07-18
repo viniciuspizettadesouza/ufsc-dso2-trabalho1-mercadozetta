@@ -1,4 +1,5 @@
 import type { ProductRepository } from '@/repositories/productRepository';
+import type { CheckoutTransactionCoordinator } from '@/repositories/checkoutTransaction';
 import { defaultTenantId } from '@/tenants';
 import {
   type CreateProductData,
@@ -28,14 +29,16 @@ type SellerProfileService = {
 export function createProductService(
   repository: ProductRepository,
   userService: SellerProfileService,
+  transactions: CheckoutTransactionCoordinator,
 ) {
-  async function ownedProduct(
+  async function ownedProductWithRepository(
+    productRepository: ProductRepository,
     productId: string,
     seller: string,
     tenantId: string,
   ) {
     const id = validateProductId(productId);
-    const product = await repository.findById(tenantId, id);
+    const product = await productRepository.findById(tenantId, id);
     if (!product)
       throw new AppError(404, 'PRODUCT_NOT_FOUND', 'Product not found');
     if (product.seller !== seller)
@@ -46,6 +49,8 @@ export function createProductService(
       );
     return product;
   }
+  const ownedProduct = (productId: string, seller: string, tenantId: string) =>
+    ownedProductWithRepository(repository, productId, seller, tenantId);
   async function listProducts(
     tenantId = defaultTenantId,
     filters: ProductFilterQuery | ProductListFilters = {},
@@ -149,17 +154,39 @@ export function createProductService(
     seller: string,
     tenantId = defaultTenantId,
   ) {
-    const product = await ownedProduct(productId, seller, tenantId);
-    const { inventory } = validateProductInventoryUpdate(body);
-    const status =
-      inventory === 0 && product.status === 'active'
-        ? 'sold_out'
-        : inventory > 0 && product.status === 'sold_out'
-          ? 'active'
-          : product.status;
-    return repository.updateOwned(tenantId, productId, seller, {
-      inventory,
-      ...(status === product.status || !status ? {} : { status }),
+    return transactions.run(async ({ products, audits }) => {
+      const product = await ownedProductWithRepository(
+        products,
+        productId,
+        seller,
+        tenantId,
+      );
+      const { inventory } = validateProductInventoryUpdate(body);
+      const status =
+        inventory === 0 && product.status === 'active'
+          ? 'sold_out'
+          : inventory > 0 && product.status === 'sold_out'
+            ? 'active'
+            : product.status;
+      const updated = await products.updateOwned(tenantId, productId, seller, {
+        inventory,
+        ...(status === product.status || !status ? {} : { status }),
+      });
+      await audits.append({
+        tenantId,
+        eventType: 'inventory.set',
+        actorId: seller,
+        resourceType: 'product',
+        resourceId: productId,
+        metadata: {
+          previousInventory: product.inventory,
+          nextInventory: inventory,
+          previousStatus: product.status || 'active',
+          nextStatus: status || 'active',
+        },
+        occurredAt: new Date(),
+      });
+      return updated;
     });
   }
 

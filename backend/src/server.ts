@@ -7,6 +7,7 @@ import { closePostgres, initializePostgres } from '@/database/postgres';
 import { getPostgresReadiness } from '@/database/postgres';
 import { createRoutes } from '@/routes';
 import { Server } from 'http';
+import { logger } from '@/logging';
 
 let runtime: ReturnType<typeof getRuntimeConfig>;
 
@@ -14,21 +15,21 @@ try {
   validateSecurityConfig();
   runtime = getRuntimeConfig();
 } catch (error) {
-  console.error('Invalid startup configuration', error);
+  logger.fatal({ err: error, event: 'startup_configuration_invalid' });
   process.exit(1);
 }
 
 let server: Server | undefined;
 
 async function shutdown(signal: string) {
-  console.log(`${signal} received, shutting down gracefully`);
+  logger.info({ event: 'shutdown_started', signal });
 
   if (server)
     await new Promise<void>((resolve, reject) => {
       server!.close((err) => {
         if (err) return reject(err);
 
-        console.log('HTTP server closed');
+        logger.info({ event: 'http_server_closed' });
         return resolve();
       });
     });
@@ -40,7 +41,7 @@ async function shutdown(signal: string) {
 async function start() {
   try {
     const db = await initializePostgres(runtime.postgres);
-    console.log('PostgreSQL connected');
+    logger.info({ event: 'postgresql_connected' });
     const composition = createPostgresComposition(db);
     const readiness = async () => {
       const postgresql = await getPostgresReadiness();
@@ -52,10 +53,10 @@ async function start() {
 
     const app = createApp(createRoutes({ ...composition, readiness }));
     server = app.listen(runtime.port, () =>
-      console.log(`Server running on port ${runtime.port}`),
+      logger.info({ event: 'http_server_started', port: runtime.port }),
     );
   } catch (err) {
-    console.error('Database connection failed', err);
+    logger.fatal({ err, event: 'application_start_failed' });
     await closePostgres();
     process.exit(1);
   }

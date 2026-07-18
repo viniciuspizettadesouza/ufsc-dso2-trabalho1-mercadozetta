@@ -5,6 +5,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   smallint,
@@ -516,5 +517,57 @@ export const sessions = pgTable(
       table.id.desc(),
     ),
     index('sessions_expiry_idx').on(table.expiresAt, table.id),
+  ],
+);
+
+export const auditEvents = pgTable(
+  'audit_events',
+  {
+    id: uuid().primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id, {
+        onDelete: 'restrict',
+        onUpdate: 'restrict',
+      }),
+    eventType: varchar('event_type', { length: 64 }).notNull(),
+    actorId: uuid('actor_id'),
+    resourceType: varchar('resource_type', { length: 32 }).notNull(),
+    resourceId: uuid('resource_id').notNull(),
+    metadata: jsonb().$type<Record<string, string | number | boolean | null>>(),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    foreignKey({
+      name: 'audit_events_tenant_actor_fkey',
+      columns: [table.tenantId, table.actorId],
+      foreignColumns: [users.tenantId, users.id],
+    })
+      .onDelete('restrict')
+      .onUpdate('restrict'),
+    check(
+      'audit_events_event_type_check',
+      sql`${table.eventType} in ('session.created', 'session.rotated', 'session.revoked', 'session.reuse_detected', 'inventory.set', 'inventory.decremented', 'order.placed', 'order.status_changed')`,
+    ),
+    check(
+      'audit_events_resource_type_check',
+      sql`${table.resourceType} in ('session', 'user', 'product', 'order')`,
+    ),
+    index('audit_events_tenant_time_idx').on(
+      table.tenantId,
+      table.occurredAt.desc(),
+      table.id.desc(),
+    ),
+    index('audit_events_resource_idx').on(
+      table.tenantId,
+      table.resourceType,
+      table.resourceId,
+      table.occurredAt.desc(),
+    ),
+    index('audit_events_actor_idx').on(
+      table.tenantId,
+      table.actorId,
+      table.occurredAt.desc(),
+    ),
   ],
 );

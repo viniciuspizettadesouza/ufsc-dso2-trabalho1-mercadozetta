@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { getTableName } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/pg-core';
 import {
+  auditEvents,
   cartItems,
   carts,
   notifications,
@@ -25,6 +26,10 @@ const catalogIndexMigration = readFileSync(
   resolve(process.cwd(), 'drizzle/0001_next_expediter.sql'),
   'utf8',
 );
+const auditEventMigration = readFileSync(
+  resolve(process.cwd(), 'drizzle/0002_easy_jasper_sitwell.sql'),
+  'utf8',
+);
 
 describe('PostgreSQL schema contract', () => {
   const tables = [
@@ -40,9 +45,10 @@ describe('PostgreSQL schema contract', () => {
     reviews,
     notifications,
     sessions,
+    auditEvents,
   ];
 
-  it('exports the twelve accepted relational tables', () => {
+  it('exports the accepted relational tables', () => {
     expect(tables.map(getTableName)).toEqual([
       'tenants',
       'users',
@@ -56,13 +62,15 @@ describe('PostgreSQL schema contract', () => {
       'reviews',
       'notifications',
       'sessions',
+      'audit_events',
     ]);
     expect(migration.match(/CREATE TABLE/g)).toHaveLength(12);
+    expect(auditEventMigration.match(/CREATE TABLE/g)).toHaveLength(1);
   });
 
   it('generates tenant-qualified integrity and inventory constraints', () => {
     const configs = tables.map(getTableConfig);
-    expect(configs.flatMap((config) => config.foreignKeys)).toHaveLength(24);
+    expect(configs.flatMap((config) => config.foreignKeys)).toHaveLength(26);
     expect(configs.flatMap((config) => config.checks).length).toBeGreaterThan(
       10,
     );
@@ -97,5 +105,23 @@ describe('PostgreSQL schema contract', () => {
     expect(catalogIndexMigration).toContain('products_name_idx');
     expect(catalogIndexMigration).toContain('products_inventory_idx');
     expect(catalogIndexMigration).toContain('"tenant_id"');
+  });
+
+  it('creates constrained append-only audit events with query indexes', () => {
+    for (const expectedSql of [
+      'audit_events_event_type_check',
+      'audit_events_resource_type_check',
+      'audit_events_tenant_actor_fkey',
+      'audit_events_tenant_time_idx',
+      'audit_events_resource_idx',
+      'audit_events_actor_idx',
+      'audit_events_reject_update',
+      'audit_events_reject_delete',
+    ])
+      expect(auditEventMigration).toContain(expectedSql);
+
+    expect(auditEventMigration).not.toMatch(
+      /password|token_hash|cookie|authorization|csrf/i,
+    );
   });
 });

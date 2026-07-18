@@ -23,8 +23,8 @@ import {
 import type { OrderStatus } from '@/orderStatus';
 import type { CartRepository } from '@/repositories/cartRepository';
 import type {
-  CheckoutRepositories,
   CheckoutTransactionCoordinator,
+  MutationRepositories,
 } from '@/repositories/checkoutTransaction';
 import type {
   CreateNotification,
@@ -36,6 +36,9 @@ import type {
 } from '@/repositories/orderItemRepository';
 import type { OrderRepository } from '@/repositories/orderRepository';
 import { PostgresProductRepository } from '@/repositories/postgres/productRepository';
+import { PostgresAuditEventRepository } from '@/repositories/postgres/auditEventRepository';
+import { PostgresSessionRepository } from '@/repositories/postgres/sessionRepository';
+import { PostgresUserRepository } from '@/repositories/postgres/userRepository';
 import { mapProductRow } from '@/repositories/mappers';
 import { paginated } from '@/pagination';
 import type { Pagination } from '@/pagination';
@@ -510,20 +513,23 @@ export class PostgresNotificationRepository implements NotificationRepository {
   }
 }
 
-function repositories(db: TransactionDatabase): CheckoutRepositories {
+function repositories(db: TransactionDatabase): MutationRepositories {
   return {
+    audits: new PostgresAuditEventRepository(db),
     carts: new PostgresCartRepository(db),
     notifications: new PostgresNotificationRepository(db),
     orderItems: new PostgresOrderItemRepository(db),
     orders: new PostgresOrderRepository(db),
     products: new PostgresProductRepository(db),
+    sessions: new PostgresSessionRepository(db),
+    users: new PostgresUserRepository(db),
   };
 }
 
 export class PostgresCheckoutTransactionCoordinator implements CheckoutTransactionCoordinator {
   constructor(private readonly db: Database) {}
 
-  run<T>(work: (repositories: CheckoutRepositories) => Promise<T>) {
+  run<T>(work: (repositories: MutationRepositories) => Promise<T>) {
     return this.db.transaction((transaction) =>
       work(repositories(transaction)),
     );

@@ -504,13 +504,46 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   generated-file parity, typecheck, lint, formatting, the frontend production
   build, all 11 PostgreSQL scenarios, and both Chromium workflows pass. Step 9
   is complete.
-- Next action: begin Step 10 with structured backend logging. Inspect the
-  existing request-context, correlation-ID, error, and application bootstrap
-  paths, then add `pino`/`pino-http` with a tested production log schema and
-  redaction for cookies, authorization, passwords, tokens, and CSRF values.
-  Preserve the current correlation ID and include safe tenant, route, response
-  status, duration, and authenticated-user identifiers without logging
-  unnecessary personal data.
+- Backend request and application logging now uses Pino and `pino-http` with
+  newline-delimited JSON on standard output. Request completion records retain
+  the existing correlation ID and include only method, matched route pattern,
+  status, duration, tenant, and authenticated-user IDs; raw URLs, headers, and
+  bodies are omitted. Application redaction covers cookie, authorization,
+  password, token, and CSRF fields, and unexpected errors use Pino's standard
+  error serialization while the API keeps its generic 500 response. Focused
+  schema, redaction, severity, and error tests pass; all 146 backend tests,
+  coverage thresholds (87.72% branches), typecheck, lint, formatting, and the
+  production dependency audit pass.
+- The provider-neutral production observability policy is recorded in
+  `docs/observability.md`. Backend records now carry stable service and
+  environment fields. Production keeps a fixed info floor; severity and error
+  boundaries distinguish expected 4xx summaries from serialized unexpected
+  5xx and fatal failures. Ordinary application logs have a 30-day retention and
+  deletion baseline, least-privilege protection requirements, and concrete
+  starting alerts for availability, 5xx ratio, fatal startup, latency,
+  authentication/CSRF and rate-limit spikes, and ingestion gaps. Hosted logging
+  and tracing providers remain deliberately unselected.
+- Append-only audit events now use a constrained, tenant-scoped PostgreSQL table
+  and a database-neutral repository boundary. Reviewed migration
+  `0002_easy_jasper_sitwell.sql` adds actor/resource/timeline indexes and rejects
+  ordinary updates and deletes through database triggers. Session creation,
+  rotation, replay revocation, individual/all-session revocation, explicit and
+  checkout inventory changes, order placement, and order progression insert
+  sanitized events in the same PostgreSQL transaction as the domain mutation;
+  failed audit insertion rolls the mutation back. No privileged administrator
+  mutations currently exist. `docs/audit-events.md` records the event contract,
+  sensitive-data boundary, atomic replay behavior, separate pending retention,
+  and safe application/schema rollback. All 147 backend tests, 154 frontend
+  tests, coverage thresholds (86.99% backend and 91.11% frontend branches),
+  typecheck, lint, formatting, Drizzle schema checks, and all 11 PostgreSQL
+  integration scenarios pass. Step 10 is complete.
+- Next action: begin Step 11 by defining the email-verification and
+  password-reset contract before implementation. Inspect
+  `backend/src/services/authService.ts`, `backend/src/validators/`, the user and
+  session repository boundaries, and the cookie-session ADR; specify
+  non-enumerating request responses, hashed single-use token records, expiry,
+  successful-reset token-version increment/all-session revocation, and
+  dedicated abuse limits before selecting an email provider.
 
 ## Recommended Order
 
@@ -694,16 +727,16 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - Continue deferring a fully generated API client until maintaining handwritten
   endpoints becomes a measured burden.
 
-### 10. Add production observability and auditability
+### 10. Add production observability and auditability (completed)
 
-- [ ] Add structured request and application logging with `pino` and
+- [x] Add structured request and application logging with `pino` and
       `pino-http`, reusing the existing request context and correlation ID.
-- [ ] Include tenant, route, response status, duration, and safe authenticated
+- [x] Include tenant, route, response status, duration, and safe authenticated
       user context while redacting cookies, authorization headers, passwords,
       tokens, CSRF values, and unnecessary personal data.
-- [ ] Define production log levels, error serialization, retention, and useful
+- [x] Define production log levels, error serialization, retention, and useful
       operational alerts before selecting a hosted monitoring or tracing provider.
-- [ ] Add append-only audit events for session, inventory, order, and privileged
+- [x] Add append-only audit events for session, inventory, order, and privileged
       mutations without treating ordinary application logs as the audit record.
 
 ### 11. Add account verification, recovery, and management

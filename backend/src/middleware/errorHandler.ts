@@ -36,6 +36,8 @@ const errorHandler: ErrorRequestHandler = (
       code: 'INVALID_JSON_PAYLOAD',
     });
 
+  res.err = err instanceof Error ? err : new Error('Unknown application error');
+
   return res.status(500).send({
     error: 'Internal server error',
     code: 'INTERNAL_SERVER_ERROR',

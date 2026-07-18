@@ -15,6 +15,13 @@
       "when": 1784235966862,
       "tag": "0001_next_expediter",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784414237244,
+      "tag": "0002_easy_jasper_sitwell",
+      "breakpoints": true
     }
   ]
 }

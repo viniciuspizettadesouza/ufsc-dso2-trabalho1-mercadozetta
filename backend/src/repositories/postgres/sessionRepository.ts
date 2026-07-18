@@ -8,6 +8,10 @@ import type {
   SessionRepository,
 } from '@/repositories/sessionRepository';
 
+type TransactionDatabase = Parameters<
+  Parameters<Database['transaction']>[0]
+>[0];
+
 function mapSession(row: typeof sessions.$inferSelect): SessionRecord {
   return {
     _id: row.id,
@@ -42,7 +46,7 @@ function mapSession(row: typeof sessions.$inferSelect): SessionRecord {
 }
 
 export class PostgresSessionRepository implements SessionRepository {
-  constructor(private readonly db: Database) {}
+  constructor(private readonly db: Database | TransactionDatabase) {}
 
   async create(input: CreateSessionRecord) {
     const [session] = await this.db

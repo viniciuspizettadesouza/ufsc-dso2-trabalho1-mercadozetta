@@ -56,6 +56,27 @@ change the host port and `VITE_TENANT_ID` to build the other built-in brand.
 Because Vite values are compiled into the bundle, changing the tenant requires
 rebuilding the frontend image.
 
+## Structured logs
+
+The backend writes newline-delimited JSON to standard output. Platform log
+collection should preserve each record as one event. Application lifecycle
+records use a stable `event` name and serialize errors under `err`. Completed
+HTTP requests use `event=http_request_completed` with these fields:
+
+- `requestId`, which is also returned as `X-Request-Id`;
+- `method` and the matched `route` pattern, without URL parameters or queries;
+- `statusCode` and `durationMs`;
+- `tenantId` after tenant resolution; and
+- `userId` only after successful authentication.
+
+Successful requests use info level, 4xx responses use warn, and 5xx responses
+use error. Request headers and bodies are not included. Logger redaction also
+censors cookie, authorization, password, token, and CSRF fields if application
+code accidentally attaches one to a structured log object. Keep collecting
+standard output through the deployment platform; retention and alert thresholds
+are defined in the provider-neutral
+[production observability policy](observability.md).
+
 ## TLS and trusted proxies
 
 Terminate TLS at a load balancer or ingress in front of Nginx and redirect HTTP

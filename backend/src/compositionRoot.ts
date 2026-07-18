@@ -56,10 +56,14 @@ type PersistenceRepositories = {
 
 function createComposition(repositories: PersistenceRepositories) {
   const users = createUserService(repositories.users);
-  const products = createProductService(repositories.products, users);
+  const products = createProductService(
+    repositories.products,
+    users,
+    repositories.checkout,
+  );
   const sessions = createSessionService(
-    repositories.users,
     repositories.sessions,
+    repositories.checkout,
   );
   const auth = createAuthService(repositories.users, sessions);
   const commerce = {
@@ -72,6 +76,7 @@ function createComposition(repositories: PersistenceRepositories) {
       repositories.orders,
       repositories.orderItems,
       repositories.notifications,
+      repositories.checkout,
     ),
     ...createNotificationCommerceService(repositories.notifications),
     ...createWatchlistCommerceService(

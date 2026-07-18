@@ -19,6 +19,7 @@ import { createPostgresComposition } from '@/compositionRoot';
 import {
   cartItems,
   carts,
+  auditEvents,
   notifications,
   orderItems,
   orders,
@@ -30,6 +31,7 @@ import {
   watchlistEntries,
 } from '@/database/schema';
 import { isUuid } from '@/ids';
+import type { AuditEventType } from '@/repositories/auditEventRepository';
 import { PostgresProductRepository } from '@/repositories/postgres/productRepository';
 import { PostgresUserRepository } from '@/repositories/postgres/userRepository';
 import {
@@ -71,11 +73,16 @@ const pool = new Pool({ connectionString, max: 2 });
 const db = drizzle({ client: pool, schema });
 const userRepository = new PostgresUserRepository(db);
 const productRepository = new PostgresProductRepository(db);
+const transactionCoordinator = new PostgresCheckoutTransactionCoordinator(db);
 const userService = createUserService(userRepository);
-const productService = createProductService(productRepository, userService);
+const productService = createProductService(
+  productRepository,
+  userService,
+  transactionCoordinator,
+);
 const checkoutService = createCommerceProductService(
   productRepository,
-  new PostgresCheckoutTransactionCoordinator(db),
+  transactionCoordinator,
 );
 const cartService = createCartCommerceService(
   new PostgresCartRepository(db),
@@ -88,6 +95,7 @@ const orderService = createOrderCommerceService(
   new PostgresOrderRepository(db),
   new PostgresOrderItemRepository(db),
   new PostgresNotificationRepository(db),
+  transactionCoordinator,
 );
 const watchlistService = createWatchlistCommerceService(
   new PostgresWatchlistRepository(db),
@@ -100,8 +108,8 @@ const reviewService = createReviewCommerceService(
 );
 const postgresSessions = new PostgresSessionRepository(db);
 const postgresSessionService = createSessionService(
-  userRepository,
   postgresSessions,
+  transactionCoordinator,
 );
 const postgresApp = createApp(
   createRoutes({
@@ -137,6 +145,7 @@ describe('PostgreSQL user and product repositories', () => {
   });
 
   beforeEach(async () => {
+    await pool.query('truncate table audit_events');
     await db.delete(notifications);
     await db.delete(reviews);
     await db.delete(watchlistEntries);
@@ -528,6 +537,54 @@ describe('PostgreSQL user and product repositories', () => {
       .set('X-CSRF-Token', sellerAuth.csrf!)
       .send({ status: 'active' })
       .expect(200);
+
+    const inventoryEvents = (await db.select().from(auditEvents)).filter(
+      (event) =>
+        event.resourceId === productId && event.eventType === 'inventory.set',
+    );
+    expect(inventoryEvents).toMatchObject([
+      {
+        actorId: sellerRegistration.body._id,
+        resourceType: 'product',
+        metadata: { previousInventory: 2, nextInventory: 0 },
+      },
+      {
+        actorId: sellerRegistration.body._id,
+        resourceType: 'product',
+        metadata: { previousInventory: 0, nextInventory: 4 },
+      },
+    ]);
+    await expect(
+      db
+        .update(auditEvents)
+        .set({ eventType: 'inventory.set' })
+        .where(eq(auditEvents.id, inventoryEvents[0].id)),
+    ).rejects.toMatchObject({ cause: { code: '55000' } });
+    await expect(
+      db.delete(auditEvents).where(eq(auditEvents.id, inventoryEvents[0].id)),
+    ).rejects.toMatchObject({ cause: { code: '55000' } });
+
+    await expect(
+      transactionCoordinator.run(async ({ products, audits }) => {
+        await products.updateOwned(
+          'mercadozetta',
+          productId,
+          sellerRegistration.body._id,
+          { inventory: 1 },
+        );
+        await audits.append({
+          tenantId: 'mercadozetta',
+          eventType: 'invalid.event' as AuditEventType,
+          actorId: sellerRegistration.body._id,
+          resourceType: 'product',
+          resourceId: productId,
+          occurredAt: new Date(),
+        });
+      }),
+    ).rejects.toMatchObject({ cause: { code: '23514' } });
+    await expect(
+      productRepository.findById('mercadozetta', productId),
+    ).resolves.toMatchObject({ inventory: 4 });
   });
 
   it('serves the existing HTTP contract through one PostgreSQL composition', async () => {
@@ -798,6 +855,28 @@ describe('PostgreSQL user and product repositories', () => {
         now,
       ),
     ).resolves.toBe(false);
+    const sessionEvents = (await db.select().from(auditEvents)).filter(
+      ({ resourceType, actorId }) =>
+        (resourceType === 'session' || resourceType === 'user') &&
+        actorId === user._id,
+    );
+    expect(sessionEvents.map(({ eventType }) => eventType)).toEqual(
+      expect.arrayContaining([
+        'session.created',
+        'session.rotated',
+        'session.reuse_detected',
+        'session.revoked',
+      ]),
+    );
+    expect(
+      sessionEvents.every(
+        ({ metadata }) =>
+          !metadata ||
+          Object.keys(metadata).every(
+            (key) => !/password|token|cookie|csrf|hash/i.test(key),
+          ),
+      ),
+    ).toBe(true);
     await expect(
       postgresSessionService.deleteExpiredSessions(new Date('2099-01-01')),
     ).resolves.toBe(3);
@@ -944,14 +1023,21 @@ describe('PostgreSQL user and product repositories', () => {
       updatedAt: expect.any(Date),
     });
 
-    const [storedProduct, storedOrders, storedItems, storedHistory, notices] =
-      await Promise.all([
-        productRepository.findById('mercadozetta', product._id),
-        db.select().from(orders),
-        db.select().from(orderItems),
-        db.select().from(orderStatusHistory),
-        db.select().from(notifications),
-      ]);
+    const [
+      storedProduct,
+      storedOrders,
+      storedItems,
+      storedHistory,
+      notices,
+      checkoutAudits,
+    ] = await Promise.all([
+      productRepository.findById('mercadozetta', product._id),
+      db.select().from(orders),
+      db.select().from(orderItems),
+      db.select().from(orderStatusHistory),
+      db.select().from(notifications),
+      db.select().from(auditEvents),
+    ]);
     expect(storedProduct?.inventory).toBe(0);
     expect(storedOrders).toHaveLength(1);
     expect(storedItems).toMatchObject([
@@ -974,6 +1060,23 @@ describe('PostgreSQL user and product repositories', () => {
     expect(notices).toHaveLength(2);
     expect(notices.map(({ userId }) => userId).sort()).toEqual(
       [seller._id, storedOrders[0].buyerId].sort(),
+    );
+    expect(checkoutAudits).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          eventType: 'order.placed',
+          actorId: storedOrders[0].buyerId,
+          resourceType: 'order',
+          resourceId: storedOrders[0].id,
+        }),
+        expect.objectContaining({
+          eventType: 'inventory.decremented',
+          actorId: storedOrders[0].buyerId,
+          resourceType: 'product',
+          resourceId: product._id,
+          metadata: expect.objectContaining({ orderId: storedOrders[0].id }),
+        }),
+      ]),
     );
 
     const remainingCartItems = await db.select().from(cartItems);
@@ -1014,6 +1117,16 @@ describe('PostgreSQL user and product repositories', () => {
       status: 'confirmed',
       items: [{ product: product._id, seller: seller._id }],
     });
+    await expect(db.select().from(auditEvents)).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          eventType: 'order.status_changed',
+          actorId: seller._id,
+          resourceId: storedOrders[0].id,
+          metadata: { previousStatus: 'placed', nextStatus: 'confirmed' },
+        }),
+      ]),
+    );
 
     const buyerNotices = await notificationService.listNotifications(
       storedOrders[0].buyerId,

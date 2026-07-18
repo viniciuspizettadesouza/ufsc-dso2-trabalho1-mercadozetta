@@ -10,6 +10,10 @@ import {
   type UserRepository,
 } from '@/repositories/userRepository';
 
+type TransactionDatabase = Parameters<
+  Parameters<Database['transaction']>[0]
+>[0];
+
 type PostgresError = {
   code?: string;
   constraint?: string;
@@ -28,7 +32,7 @@ function isEmailDuplicate(error: unknown) {
 }
 
 export class PostgresUserRepository implements UserRepository {
-  constructor(private readonly db: Database) {}
+  constructor(private readonly db: Database | TransactionDatabase) {}
 
   async emailExists(tenantId: string, email: string) {
     const rows = await this.db

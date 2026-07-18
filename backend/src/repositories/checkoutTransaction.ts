@@ -3,8 +3,12 @@ import type { NotificationRepository } from '@/repositories/notificationReposito
 import type { OrderItemRepository } from '@/repositories/orderItemRepository';
 import type { OrderRepository } from '@/repositories/orderRepository';
 import type { ProductRepository } from '@/repositories/productRepository';
+import type { AuditEventRepository } from '@/repositories/auditEventRepository';
+import type { SessionRepository } from '@/repositories/sessionRepository';
+import type { UserRepository } from '@/repositories/userRepository';
 
 export type CheckoutRepositories = {
+  audits: AuditEventRepository;
   carts: CartRepository;
   notifications: NotificationRepository;
   orderItems: OrderItemRepository;
@@ -12,6 +16,11 @@ export type CheckoutRepositories = {
   products: ProductRepository;
 };
 
+export type MutationRepositories = CheckoutRepositories & {
+  sessions: SessionRepository;
+  users: UserRepository;
+};
+
 export interface CheckoutTransactionCoordinator {
-  run<T>(work: (repositories: CheckoutRepositories) => Promise<T>): Promise<T>;
+  run<T>(work: (repositories: MutationRepositories) => Promise<T>): Promise<T>;
 }

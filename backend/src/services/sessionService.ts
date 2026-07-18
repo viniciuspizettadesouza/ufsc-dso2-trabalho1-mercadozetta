@@ -10,6 +10,8 @@ import type {
   SessionRepository,
 } from '@/repositories/sessionRepository';
 import type { UserRepository } from '@/repositories/userRepository';
+import type { AuditEventRepository } from '@/repositories/auditEventRepository';
+import type { CheckoutTransactionCoordinator } from '@/repositories/checkoutTransaction';
 import {
   createCsrfToken,
   createRefreshToken,
@@ -97,6 +99,7 @@ async function createCredentials(session: SessionRecord, tokenVersion: number) {
 
 async function createSessionWithRepository(
   sessions: SessionRepository,
+  audits: AuditEventRepository,
   userId: string,
   tenantId: string,
   tokenVersion: number,
@@ -122,6 +125,14 @@ async function createSessionWithRepository(
     createdAt: now,
     updatedAt: now,
   });
+  await audits.append({
+    tenantId,
+    eventType: 'session.created',
+    actorId: userId,
+    resourceType: 'session',
+    resourceId: sessionId,
+    occurredAt: now,
+  });
   const credentials = await createCredentials(session, tokenVersion);
 
   return {
@@ -133,20 +144,32 @@ async function createSessionWithRepository(
 
 async function revokeReusedFamily(
   sessions: SessionRepository,
+  audits: AuditEventRepository,
   session: SessionRecord,
   now: Date,
-): Promise<never> {
+) {
   await sessions.revokeById(
     session.tenantId,
     session._id,
     'refresh_reuse',
     now,
   );
-  throw new AppError(
-    401,
-    'REFRESH_TOKEN_REUSED',
-    'Refresh token reuse detected',
-  );
+  await audits.append({
+    tenantId: session.tenantId,
+    eventType: 'session.reuse_detected',
+    actorId: session.userId,
+    resourceType: 'session',
+    resourceId: session._id,
+    metadata: { reason: 'refresh_reuse' },
+    occurredAt: now,
+  });
+  return {
+    committedError: new AppError(
+      401,
+      'REFRESH_TOKEN_REUSED',
+      'Refresh token reuse detected',
+    ),
+  };
 }
 
 function isInsideConcurrencyWindow(session: SessionRecord, now: Date) {
@@ -160,6 +183,7 @@ function isInsideConcurrencyWindow(session: SessionRecord, now: Date) {
 
 async function handlePreviousRefreshToken(
   sessions: SessionRepository,
+  audits: AuditEventRepository,
   session: SessionRecord,
   refreshToken: string,
   now: Date,
@@ -184,12 +208,13 @@ async function handlePreviousRefreshToken(
     );
   }
 
-  return revokeReusedFamily(sessions, session, now);
+  return revokeReusedFamily(sessions, audits, session, now);
 }
 
 async function rotateSessionWithRepository(
   userRepository: UserRepository,
   sessions: SessionRepository,
+  audits: AuditEventRepository,
   refreshToken: string,
   tenantId: string,
   now: Date,
@@ -218,7 +243,16 @@ async function rotateSessionWithRepository(
       'invalid_user_session',
       now,
     );
-    throw invalidRefreshToken();
+    await audits.append({
+      tenantId,
+      eventType: 'session.revoked',
+      actorId: session.userId,
+      resourceType: 'session',
+      resourceId: session._id,
+      metadata: { reason: 'invalid_user_session' },
+      occurredAt: now,
+    });
+    return { committedError: invalidRefreshToken() };
   }
 
   if (
@@ -228,7 +262,13 @@ async function rotateSessionWithRepository(
       session.refreshTokenSecretVersion,
     )
   ) {
-    return handlePreviousRefreshToken(sessions, session, refreshToken, now);
+    return handlePreviousRefreshToken(
+      sessions,
+      audits,
+      session,
+      refreshToken,
+      now,
+    );
   }
 
   const nextRefreshToken = createRefreshToken(sessionId);
@@ -252,7 +292,13 @@ async function rotateSessionWithRepository(
     session = await sessions.findRefreshById(tenantId, sessionId);
     /* v8 ignore else */
     if (!session) throw invalidRefreshToken();
-    return handlePreviousRefreshToken(sessions, session, refreshToken, now);
+    return handlePreviousRefreshToken(
+      sessions,
+      audits,
+      session,
+      refreshToken,
+      now,
+    );
   }
 
   const rotatedSession = {
@@ -271,6 +317,15 @@ async function rotateSessionWithRepository(
     rotatedSession,
     session.tokenVersion,
   );
+  await audits.append({
+    tenantId,
+    eventType: 'session.rotated',
+    actorId: session.userId,
+    resourceType: 'session',
+    resourceId: session._id,
+    metadata: { rotationCounter: rotatedSession.rotationCounter },
+    occurredAt: now,
+  });
 
   return {
     ...credentials,
@@ -280,8 +335,8 @@ async function rotateSessionWithRepository(
 }
 
 export function createSessionService(
-  userRepository: UserRepository,
   sessions: SessionRepository,
+  transactions: CheckoutTransactionCoordinator,
 ) {
   return {
     createSession: (
@@ -291,22 +346,36 @@ export function createSessionService(
       userAgent: string | undefined,
       now: Date,
     ) =>
-      createSessionWithRepository(
-        sessions,
-        userId,
-        tenantId,
-        tokenVersion,
-        userAgent,
-        now,
+      transactions.run(({ sessions: transactionSessions, audits }) =>
+        createSessionWithRepository(
+          transactionSessions,
+          audits,
+          userId,
+          tenantId,
+          tokenVersion,
+          userAgent,
+          now,
+        ),
       ),
-    rotateSession: (refreshToken: string, tenantId: string, now: Date) =>
-      rotateSessionWithRepository(
-        userRepository,
-        sessions,
-        refreshToken,
-        tenantId,
-        now,
-      ),
+    rotateSession: async (
+      refreshToken: string,
+      tenantId: string,
+      now: Date,
+    ) => {
+      const result = await transactions.run(
+        ({ users: transactionUsers, sessions: transactionSessions, audits }) =>
+          rotateSessionWithRepository(
+            transactionUsers,
+            transactionSessions,
+            audits,
+            refreshToken,
+            tenantId,
+            now,
+          ),
+      );
+      if ('committedError' in result) throw result.committedError;
+      return result;
+    },
     getSession: (
       sessionId: string,
       userId: string,
@@ -322,16 +391,35 @@ export function createSessionService(
       reason: string,
       now: Date,
     ) =>
-      revokeSessionWithRepository(
-        sessions,
-        sessionId,
-        userId,
-        tenantId,
-        reason,
-        now,
+      transactions.run(({ sessions: transactionSessions, audits }) =>
+        revokeSessionWithRepository(
+          transactionSessions,
+          audits,
+          sessionId,
+          userId,
+          tenantId,
+          reason,
+          now,
+        ),
       ),
     revokeAllSessions: (userId: string, tenantId: string, now: Date) =>
-      sessions.revokeAll(tenantId, userId, 'all_sessions_logout', now),
+      transactions.run(async ({ sessions: transactionSessions, audits }) => {
+        await transactionSessions.revokeAll(
+          tenantId,
+          userId,
+          'all_sessions_logout',
+          now,
+        );
+        await audits.append({
+          tenantId,
+          eventType: 'session.revoked',
+          actorId: userId,
+          resourceType: 'user',
+          resourceId: userId,
+          metadata: { reason: 'all_sessions_logout' },
+          occurredAt: now,
+        });
+      }),
     deleteExpiredSessions: (now: Date) => sessions.deleteExpired(now),
   };
 }
@@ -370,6 +458,7 @@ async function listSessionsWithRepository(
 
 async function revokeSessionWithRepository(
   sessions: SessionRepository,
+  audits: AuditEventRepository,
   sessionId: string,
   userId: string,
   tenantId: string,
@@ -388,6 +477,15 @@ async function revokeSessionWithRepository(
   if (!revoked) {
     throw new AppError(404, 'SESSION_NOT_FOUND', 'Session not found');
   }
+  await audits.append({
+    tenantId,
+    eventType: 'session.revoked',
+    actorId: userId,
+    resourceType: 'session',
+    resourceId: sessionId,
+    metadata: { reason },
+    occurredAt: now,
+  });
 }
 
 export const accessTokenContract = {

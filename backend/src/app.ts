@@ -8,6 +8,7 @@ import errorHandler from '@/middleware/errorHandler';
 import requestContext from '@/middleware/requestContext';
 import tenantMiddleware from '@/middleware/tenant';
 import { getTrustProxyHops } from '@/config/runtime';
+import { httpLogger } from '@/logging';
 
 export function createApp(
   applicationRoutes: Router,
@@ -19,6 +20,7 @@ export function createApp(
   app.use(helmet());
   app.use(cors(getCorsOptions()));
   app.use(requestContext);
+  app.use(httpLogger);
   app.use(cookieParser());
   app.use(express.json());
   app.use(tenantMiddleware);
