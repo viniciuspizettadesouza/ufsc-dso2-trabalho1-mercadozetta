@@ -1,19 +1,11 @@
 import { useMutation } from '@tanstack/react-query';
 
-import { apiRoutes } from '@/routes';
-import api from '@/services/api';
+import { createUser, type CreateUserInput } from '@/services/users';
 
-export type CreateUserInput = {
-  username: string;
-  telephone: string;
-  email: string;
-  password: string;
-};
+export type { CreateUserInput } from '@/services/users';
 
 export function useCreateUser() {
   return useMutation({
-    mutationFn: async (input: CreateUserInput) => {
-      await api.post(apiRoutes.users, input);
-    },
+    mutationFn: (input: CreateUserInput) => createUser(input),
   });
 }

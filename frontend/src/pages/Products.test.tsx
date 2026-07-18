@@ -8,6 +8,7 @@ import api from '@/services/api';
 import { AuthTestProvider } from '@/test/AuthTestProvider';
 import type { AuthUser } from '@/auth/AuthContext';
 import { ServerStateProvider } from '@/serverState/queryClient';
+import { paginatedResponse } from '@/test/paginatedResponse';
 
 vi.mock('@/services/api', () => ({
   default: {
@@ -64,7 +65,9 @@ describe('Products', () => {
   });
 
   it('loads all products on the home page', async () => {
-    vi.mocked(api.get).mockResolvedValueOnce({ data: products });
+    vi.mocked(api.get).mockResolvedValueOnce({
+      data: paginatedResponse(products),
+    });
 
     renderProducts();
 
@@ -86,7 +89,9 @@ describe('Products', () => {
   });
 
   it('loads seller products on seller pages', async () => {
-    vi.mocked(api.get).mockResolvedValueOnce({ data: [products[0]] });
+    vi.mocked(api.get).mockResolvedValueOnce({
+      data: paginatedResponse([products[0]]),
+    });
 
     renderProducts('/sellers/seller-1', '/sellers/:sellerId');
 
@@ -105,7 +110,9 @@ describe('Products', () => {
   });
 
   it('filters products case-insensitively and handles no results', async () => {
-    vi.mocked(api.get).mockResolvedValueOnce({ data: products });
+    vi.mocked(api.get).mockResolvedValueOnce({
+      data: paginatedResponse(products),
+    });
 
     renderProducts();
 
@@ -124,8 +131,8 @@ describe('Products', () => {
 
   it('requests backend filters with query params', async () => {
     vi.mocked(api.get)
-      .mockResolvedValueOnce({ data: products })
-      .mockResolvedValueOnce({ data: [products[1]] });
+      .mockResolvedValueOnce({ data: paginatedResponse(products) })
+      .mockResolvedValueOnce({ data: paginatedResponse([products[1]]) });
 
     renderProducts();
 
@@ -151,7 +158,7 @@ describe('Products', () => {
 
   it('shows backend filter failures', async () => {
     vi.mocked(api.get)
-      .mockResolvedValueOnce({ data: products })
+      .mockResolvedValueOnce({ data: paginatedResponse(products) })
       .mockRejectedValueOnce(new Error('network error'));
 
     renderProducts();
@@ -168,7 +175,7 @@ describe('Products', () => {
 
   it('toggles persisted watchlist and cart state', async () => {
     vi.mocked(api.get)
-      .mockResolvedValueOnce({ data: products })
+      .mockResolvedValueOnce({ data: paginatedResponse(products) })
       .mockResolvedValueOnce({ data: [{ product: products[0] }] })
       .mockResolvedValueOnce({
         data: { items: [{ product: products[0], quantity: 1 }] },
@@ -192,7 +199,9 @@ describe('Products', () => {
   });
 
   it('adds catalog products to persisted commerce collections', async () => {
-    vi.mocked(api.get).mockResolvedValueOnce({ data: products });
+    vi.mocked(api.get).mockResolvedValueOnce({
+      data: paginatedResponse(products),
+    });
     vi.mocked(api.put).mockResolvedValue({ data: {} });
 
     renderProducts();
@@ -214,7 +223,9 @@ describe('Products', () => {
   });
 
   it('shows API errors without changing catalog commerce state', async () => {
-    vi.mocked(api.get).mockResolvedValueOnce({ data: products });
+    vi.mocked(api.get).mockResolvedValueOnce({
+      data: paginatedResponse(products),
+    });
     vi.mocked(api.put).mockRejectedValue(new Error('network error'));
 
     renderProducts();
@@ -231,7 +242,9 @@ describe('Products', () => {
   });
 
   it('renders image alt text from product name', async () => {
-    vi.mocked(api.get).mockResolvedValueOnce({ data: products });
+    vi.mocked(api.get).mockResolvedValueOnce({
+      data: paginatedResponse(products),
+    });
 
     renderProducts();
 

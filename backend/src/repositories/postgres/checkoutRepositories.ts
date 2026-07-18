@@ -82,10 +82,12 @@ export class PostgresCartRepository implements CartRepository {
     return {
       tenantId,
       buyer: buyerId,
-      items: items.map((item) => ({
-        product: productMap.get(item.productId) || item.productId,
-        quantity: item.quantity,
-      })),
+      items: items.map((item) => {
+        const product = productMap.get(item.productId);
+        /* v8 ignore next -- the tenant-qualified cart-item foreign key prevents a missing product. */
+        if (!product) throw new Error('Cart product relation is invalid');
+        return { product, quantity: item.quantity };
+      }),
     };
   }
 

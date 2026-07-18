@@ -69,7 +69,7 @@ export function createProductController(productService: ProductService) {
         req.userId ?? '',
         req.tenant?.id ?? '',
       );
-      return res.status(201).send({ newProduct: createdProduct });
+      return res.status(201).send(createdProduct);
     },
 
     async listBySeller(req: SellerProductsRequest, res: Response) {

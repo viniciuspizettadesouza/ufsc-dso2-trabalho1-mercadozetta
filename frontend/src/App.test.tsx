@@ -1,7 +1,15 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { paginatedResponse } from '@/test/paginatedResponse';
 
 const apiGet = vi.fn();
+
+function emptyGetData(url: string) {
+  if (url === '/cart') return { items: [] };
+  if (url === '/watchlist') return [];
+  if (url === '/notifications/unread-count') return { count: 0 };
+  return paginatedResponse([]);
+}
 
 vi.mock('@/services/api', () => ({
   setAuthenticationFailureHandler: vi.fn(),
@@ -30,7 +38,7 @@ describe('App', () => {
     apiGet.mockImplementation((url) =>
       url === '/auth/session'
         ? Promise.reject(new Error('anonymous'))
-        : Promise.resolve({ data: [] }),
+        : Promise.resolve({ data: emptyGetData(url) }),
     );
   });
 
@@ -41,8 +49,7 @@ describe('App', () => {
           data: { user, session: { id: 'session-1' } },
         });
       }
-      if (url === '/cart') return Promise.resolve({ data: { items: [] } });
-      return Promise.resolve({ data: [] });
+      return Promise.resolve({ data: emptyGetData(url) });
     });
   }
 
@@ -147,7 +154,7 @@ describe('App', () => {
             },
           },
         });
-      return Promise.resolve({ data: [] });
+      return Promise.resolve({ data: emptyGetData(url) });
     });
 
     await renderAppAt('/products/product-1');

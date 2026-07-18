@@ -6,65 +6,32 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 
-import { firstPage, pageInfo, pageItems, withPage } from '@/pagination';
-import { apiRoutes } from '@/routes';
-import api from '@/services/api';
 import type { CartItem } from '@/serverState/cart';
 import { queryKeys, type OrderListRequest } from '@/serverState/queryKeys';
+import {
+  createOrder,
+  listOrders,
+  updateOrderStatus,
+  type OrderList,
+  type OrderStatusInput,
+} from '@/services/orders';
 
-export type OrderStatus =
-  'placed' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
-export type OrderItem = {
-  productName: string;
-  quantity: number;
-  seller?: string;
-};
-export type StatusHistoryEntry = {
-  status: OrderStatus;
-  actor: string;
-  changedAt: string;
-};
-export type Order = {
-  _id: string;
-  status: OrderStatus;
-  items: OrderItem[];
-  statusHistory: StatusHistoryEntry[];
-};
-export type OrderQueryData = { items: Order[]; page: typeof firstPage };
+export type { Order, OrderStatus } from '@/services/orders';
+type OrderStatusMutation = OrderStatusInput & { orderId: string };
+export type OrderQueryData = OrderList;
 
 export const orderQueries = {
   list: (request: OrderListRequest) =>
     queryOptions({
       queryKey: queryKeys.orders.list(request),
-      queryFn: async () => {
-        const basePath = `${apiRoutes.orders}?scope=${request.scope}`;
-        const path =
-          request.limit === null || request.offset === null
-            ? basePath
-            : withPage(basePath, request.offset, request.limit);
-        const response = await api.get(path);
-        const orders = pageItems<Order>(response.data);
-        return {
-          items:
-            request.scope === 'seller'
-              ? orders
-                  .map((order) => ({
-                    ...order,
-                    items: order.items.filter(
-                      (item) => item.seller === request.userId,
-                    ),
-                  }))
-                  .filter((order) => order.items.length > 0)
-              : orders,
-          page: pageInfo<Order>(response.data),
-        };
-      },
+      queryFn: () => listOrders(request),
     }),
 };
 
-export function useOrderList(request: OrderListRequest) {
+export function useOrderList(request: OrderListRequest, enabled = true) {
   return useQuery({
     ...orderQueries.list(request),
+    enabled,
     placeholderData: keepPreviousData,
   });
 }
@@ -73,10 +40,7 @@ export function useCreateOrder(userId: string, request: OrderListRequest) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
-      const response = await api.post(apiRoutes.orders);
-      return response.data as Order;
-    },
+    mutationFn: createOrder,
     onSuccess: (order) => {
       queryClient.setQueryData<OrderQueryData>(
         queryKeys.orders.list(request),
@@ -113,19 +77,9 @@ export function useAdvanceOrder(request: OrderListRequest) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      orderId,
-      status,
-    }: {
-      orderId: string;
-      status: OrderStatus;
-    }) => {
-      const response = await api.patch(apiRoutes.orderStatus(orderId), {
-        status,
-      });
-      return response.data as Pick<Order, 'statusHistory'>;
-    },
-    onSuccess: (response, { orderId, status }) => {
+    mutationFn: ({ orderId, status }: OrderStatusMutation) =>
+      updateOrderStatus(orderId, { status }),
+    onSuccess: (updated) => {
       queryClient.setQueryData<OrderQueryData>(
         queryKeys.orders.list(request),
         (current) =>
@@ -133,14 +87,7 @@ export function useAdvanceOrder(request: OrderListRequest) {
             ? {
                 ...current,
                 items: current.items.map((entry) =>
-                  entry._id === orderId
-                    ? {
-                        ...entry,
-                        status,
-                        statusHistory:
-                          response.statusHistory ?? entry.statusHistory,
-                      }
-                    : entry,
+                  entry._id === updated._id ? updated : entry,
                 ),
               }
             : current,

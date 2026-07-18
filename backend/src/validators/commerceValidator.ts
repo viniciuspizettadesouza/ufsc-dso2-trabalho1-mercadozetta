@@ -3,6 +3,8 @@ import { isUuid, UUID_EXAMPLE } from '@/ids';
 import { orderStatuses } from '@/orderStatus';
 import { parseAppSchema, requestString } from '@/validators/parseSchema';
 import { paginationSchema } from '@/validators/paginationValidator';
+import { productResponseSchema } from '@/validators/productValidator';
+import { paginatedResponseSchema } from '@/validators/responseSchemas';
 
 export const resourceIdSchema = z
   .unknown()
@@ -17,18 +19,253 @@ export const resourceIdSchema = z
     override: { type: 'string', format: 'uuid' },
   });
 
-const cartItemSchema = z.object({
-  productId: resourceIdSchema,
-  quantity: z.coerce.number().int().min(1).default(1),
-});
+export const cartItemRequestSchema = z
+  .object({
+    productId: resourceIdSchema,
+    quantity: z.coerce.number().int().min(1).default(1),
+  })
+  .meta({ id: 'CartItemRequest' });
 
-const reviewSchema = z.object({
-  rating: z.coerce.number().int().min(1).max(5),
-  comment: z.string().trim().min(1).max(1000),
-});
+export const cartItemResponseSchema = z
+  .object({
+    product: productResponseSchema,
+    quantity: z.int().min(1),
+  })
+  .meta({ id: 'CartItem' });
 
-const statusSchema = z.object({ status: z.enum(orderStatuses) });
-const notificationReadSchema = z.object({ read: z.boolean() });
+export const cartResponseSchema = z
+  .object({
+    tenantId: z.string(),
+    buyer: z.string().uuid().meta({ example: UUID_EXAMPLE }),
+    items: z.array(cartItemResponseSchema),
+  })
+  .meta({ id: 'Cart' });
+
+export const cartErrorCodes = {
+  tenant: ['TENANT_HEADER_REQUIRED', 'INVALID_TENANT'],
+  itemRequest: [
+    'TENANT_HEADER_REQUIRED',
+    'INVALID_TENANT',
+    'INVALID_REQUEST',
+    'INVALID_RESOURCE_ID',
+  ],
+  itemPath: ['TENANT_HEADER_REQUIRED', 'INVALID_TENANT', 'INVALID_RESOURCE_ID'],
+  authentication: ['AUTH_TOKEN_REQUIRED', 'INVALID_AUTH_TOKEN'],
+  csrf: ['INVALID_ORIGIN', 'INVALID_CSRF_TOKEN'],
+  productNotFound: ['PRODUCT_NOT_FOUND'],
+  inventoryConflict: ['INSUFFICIENT_INVENTORY'],
+} as const;
+
+export const cartInvalidRequestExample = {
+  error: 'Too small: expected number to be >=1',
+  code: 'INVALID_REQUEST',
+} as const;
+
+export const watchlistEntryResponseSchema = z
+  .object({
+    _id: z.string().uuid().meta({ example: UUID_EXAMPLE }),
+    tenantId: z.string(),
+    user: z.string().uuid().meta({ example: UUID_EXAMPLE }),
+    product: productResponseSchema,
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
+  })
+  .meta({ id: 'WatchlistEntry' });
+
+export const watchlistResponseSchema = z
+  .array(watchlistEntryResponseSchema)
+  .meta({ id: 'Watchlist' });
+
+export const watchlistErrorCodes = {
+  tenant: ['TENANT_HEADER_REQUIRED', 'INVALID_TENANT'],
+  itemPath: ['TENANT_HEADER_REQUIRED', 'INVALID_TENANT', 'INVALID_RESOURCE_ID'],
+  authentication: ['AUTH_TOKEN_REQUIRED', 'INVALID_AUTH_TOKEN'],
+  csrf: ['INVALID_ORIGIN', 'INVALID_CSRF_TOKEN'],
+  productNotFound: ['PRODUCT_NOT_FOUND'],
+} as const;
+
+export const createReviewRequestSchema = z
+  .object({
+    rating: z.coerce.number().int().min(1).max(5),
+    comment: z.string().trim().min(1).max(1000),
+  })
+  .meta({ id: 'CreateReviewRequest' });
+
+export const reviewResponseSchema = z
+  .object({
+    _id: z.string().uuid().meta({ example: UUID_EXAMPLE }),
+    tenantId: z.string(),
+    product: z.string().uuid().meta({ example: UUID_EXAMPLE }),
+    author: z.string().uuid().meta({ example: UUID_EXAMPLE }),
+    rating: z.int().min(1).max(5),
+    comment: z.string(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
+  })
+  .meta({ id: 'Review' });
+
+export const reviewListResponseSchema = paginatedResponseSchema(
+  reviewResponseSchema,
+).meta({ id: 'ReviewList' });
+
+export const reviewErrorCodes = {
+  listRequest: [
+    'TENANT_HEADER_REQUIRED',
+    'INVALID_TENANT',
+    'INVALID_RESOURCE_ID',
+    'INVALID_REQUEST',
+  ],
+  createRequest: [
+    'TENANT_HEADER_REQUIRED',
+    'INVALID_TENANT',
+    'INVALID_RESOURCE_ID',
+    'INVALID_REQUEST',
+  ],
+  authentication: ['AUTH_TOKEN_REQUIRED', 'INVALID_AUTH_TOKEN'],
+  authorization: [
+    'INVALID_ORIGIN',
+    'INVALID_CSRF_TOKEN',
+    'REVIEW_FORBIDDEN',
+    'REVIEW_PURCHASE_REQUIRED',
+  ],
+  productNotFound: ['PRODUCT_NOT_FOUND'],
+} as const;
+
+export const reviewInvalidRequestExamples = {
+  list: {
+    error: 'Too small: expected number to be >=0',
+    code: 'INVALID_REQUEST',
+  },
+  create: {
+    error: 'Too small: expected string to have >=1 characters',
+    code: 'INVALID_REQUEST',
+  },
+} as const;
+
+export const orderStatusResponseSchema = z
+  .enum(orderStatuses)
+  .meta({ id: 'OrderStatus' });
+
+export const orderStatusUpdateRequestSchema = z
+  .object({ status: orderStatusResponseSchema })
+  .meta({ id: 'OrderStatusUpdateRequest' });
+
+export const orderItemResponseSchema = z
+  .object({
+    tenantId: z.string(),
+    order: z.string().uuid().meta({ example: UUID_EXAMPLE }),
+    product: z.string().uuid().meta({ example: UUID_EXAMPLE }),
+    seller: z.string().uuid().meta({ example: UUID_EXAMPLE }),
+    productName: z.string(),
+    quantity: z.int().min(1),
+  })
+  .meta({ id: 'OrderItem' });
+
+export const orderStatusHistoryResponseSchema = z
+  .object({
+    status: orderStatusResponseSchema,
+    actor: z.string().uuid().meta({ example: UUID_EXAMPLE }),
+    changedAt: z.iso.datetime(),
+  })
+  .meta({ id: 'OrderStatusHistoryEntry' });
+
+export const orderResponseSchema = z
+  .object({
+    _id: z.string().uuid().meta({ example: UUID_EXAMPLE }),
+    tenantId: z.string(),
+    buyer: z.string().uuid().meta({ example: UUID_EXAMPLE }),
+    status: orderStatusResponseSchema,
+    statusHistory: z.array(orderStatusHistoryResponseSchema),
+    items: z.array(orderItemResponseSchema),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
+  })
+  .meta({ id: 'Order' });
+
+export const orderListResponseSchema = paginatedResponseSchema(
+  orderResponseSchema,
+).meta({ id: 'OrderList' });
+
+export const orderErrorCodes = {
+  listRequest: ['TENANT_HEADER_REQUIRED', 'INVALID_TENANT', 'INVALID_REQUEST'],
+  checkoutRequest: ['TENANT_HEADER_REQUIRED', 'INVALID_TENANT', 'EMPTY_CART'],
+  statusRequest: [
+    'TENANT_HEADER_REQUIRED',
+    'INVALID_TENANT',
+    'INVALID_RESOURCE_ID',
+    'INVALID_REQUEST',
+  ],
+  authentication: ['AUTH_TOKEN_REQUIRED', 'INVALID_AUTH_TOKEN'],
+  csrf: ['INVALID_ORIGIN', 'INVALID_CSRF_TOKEN'],
+  ownership: ['INVALID_ORIGIN', 'INVALID_CSRF_TOKEN', 'ORDER_FORBIDDEN'],
+  inventoryConflict: ['INSUFFICIENT_INVENTORY'],
+  notFound: ['ORDER_NOT_FOUND'],
+  transitionConflict: ['ORDER_STATUS_TRANSITION_INVALID'],
+} as const;
+
+export const orderInvalidRequestExamples = {
+  list: {
+    error: 'Invalid option: expected one of "all"|"buyer"|"seller"',
+    code: 'INVALID_REQUEST',
+  },
+  status: {
+    error:
+      'Invalid option: expected one of "placed"|"confirmed"|"shipped"|"delivered"|"cancelled"',
+    code: 'INVALID_REQUEST',
+  },
+  inventory: {
+    error: 'A cart item is unavailable',
+    code: 'INSUFFICIENT_INVENTORY',
+  },
+} as const;
+export const notificationReadRequestSchema = z
+  .object({ read: z.boolean() })
+  .meta({ id: 'NotificationReadRequest' });
+
+export const notificationResponseSchema = z
+  .object({
+    _id: z.string().uuid().meta({ example: UUID_EXAMPLE }),
+    tenantId: z.string(),
+    user: z.string().uuid().meta({ example: UUID_EXAMPLE }),
+    message: z.string(),
+    read: z.boolean(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
+  })
+  .meta({ id: 'Notification' });
+
+export const notificationListResponseSchema = paginatedResponseSchema(
+  notificationResponseSchema,
+).meta({ id: 'NotificationList' });
+
+export const unreadNotificationCountResponseSchema = z
+  .object({ count: z.int().min(0) })
+  .meta({ id: 'UnreadNotificationCount' });
+
+export const notificationErrorCodes = {
+  listRequest: ['TENANT_HEADER_REQUIRED', 'INVALID_TENANT', 'INVALID_REQUEST'],
+  tenant: ['TENANT_HEADER_REQUIRED', 'INVALID_TENANT'],
+  updateRequest: [
+    'TENANT_HEADER_REQUIRED',
+    'INVALID_TENANT',
+    'INVALID_RESOURCE_ID',
+    'INVALID_REQUEST',
+  ],
+  authentication: ['AUTH_TOKEN_REQUIRED', 'INVALID_AUTH_TOKEN'],
+  csrf: ['INVALID_ORIGIN', 'INVALID_CSRF_TOKEN'],
+  notFound: ['NOTIFICATION_NOT_FOUND'],
+} as const;
+
+export const notificationInvalidRequestExamples = {
+  list: {
+    error: 'Too small: expected number to be >=0',
+    code: 'INVALID_REQUEST',
+  },
+  update: {
+    error: 'Invalid input: expected boolean, received string',
+    code: 'INVALID_REQUEST',
+  },
+} as const;
 export const orderListSchema = paginationSchema.extend({
   scope: z.enum(['all', 'buyer', 'seller']).default('all'),
 });
@@ -37,12 +274,12 @@ export type OrderListData = z.infer<typeof orderListSchema>;
 export const validateResourceId = (value: unknown) =>
   parseAppSchema(resourceIdSchema, value);
 export const validateCartItem = (value: object) =>
-  parseAppSchema(cartItemSchema, value);
+  parseAppSchema(cartItemRequestSchema, value);
 export const validateReview = (value: object) =>
-  parseAppSchema(reviewSchema, value);
+  parseAppSchema(createReviewRequestSchema, value);
 export const validateOrderStatus = (value: object) =>
-  parseAppSchema(statusSchema, value);
+  parseAppSchema(orderStatusUpdateRequestSchema, value);
 export const validateNotificationRead = (value: object) =>
-  parseAppSchema(notificationReadSchema, value);
+  parseAppSchema(notificationReadRequestSchema, value);
 export const validateOrderList = (value: object) =>
   parseAppSchema(orderListSchema, value);

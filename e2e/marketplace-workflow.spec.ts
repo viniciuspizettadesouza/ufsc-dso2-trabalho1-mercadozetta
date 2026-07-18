@@ -61,11 +61,9 @@ test('registers a tenant buyer and completes checkout and fulfillment', async ({
     'mercadozetta',
   );
   await expect(registrationResponse.json()).resolves.toMatchObject({
-    newUser: {
-      email: buyer.email,
-      tenantId: 'mercadozetta',
-      username: buyer.name.toLowerCase(),
-    },
+    email: buyer.email,
+    tenantId: 'mercadozetta',
+    username: buyer.name.toLowerCase(),
   });
   await expect(page).toHaveURL('/');
 

@@ -10,8 +10,8 @@ export type NotificationRecord = {
   user: string;
   message: string;
   read: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 export interface NotificationRepository {

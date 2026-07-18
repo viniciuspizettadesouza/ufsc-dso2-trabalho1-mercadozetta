@@ -1,25 +1,15 @@
 import { queryOptions, useQuery } from '@tanstack/react-query';
 
-import { apiRoutes } from '@/routes';
-import api from '@/services/api';
 import { queryKeys } from '@/serverState/queryKeys';
+import { getSeller } from '@/services/sellers';
 
-export type Seller = {
-  _id: string;
-  username?: string;
-  telephone?: string;
-  email?: string;
-  storeName?: string;
-};
+export type { Seller } from '@/services/sellers';
 
 export const sellerQueries = {
   profile: (sellerId: string) =>
     queryOptions({
       queryKey: queryKeys.sellers.profile(sellerId),
-      queryFn: async () => {
-        const response = await api.get(apiRoutes.sellerProfile(sellerId));
-        return response.data as Seller;
-      },
+      queryFn: () => getSeller(sellerId),
     }),
 };
 

@@ -5,4 +5,5 @@
 docs/openapi.json
 frontend/public/
 frontend/src/assets/
+frontend/src/contracts/api.ts
 images/

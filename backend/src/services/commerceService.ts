@@ -69,7 +69,8 @@ async function addWatchlistWithRepository(
   /* v8 ignore next -- covered through mocked model branches; CommonJS integration tests load a duplicate module copy. */
   if (!product)
     throw new AppError(404, 'PRODUCT_NOT_FOUND', 'Product not found');
-  return watchlists.add(tenantId, userId, productId, new Date());
+  const entry = await watchlists.add(tenantId, userId, productId, new Date());
+  return { ...entry, product };
 }
 
 async function createOrderWithRepository(
@@ -235,7 +236,13 @@ async function updateOrderStatusWithRepositories(
     },
     now,
   );
-  return updated;
+  const items = await orderItems.listByOrderIds(tenantId, [orderId]);
+  return {
+    ...updated,
+    items: items.filter(
+      (item) => isBuyerCancellation || item.seller === userId,
+    ),
+  };
 }
 
 async function createReviewWithRepository(

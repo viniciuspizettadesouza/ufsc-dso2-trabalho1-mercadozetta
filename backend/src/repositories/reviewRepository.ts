@@ -1,12 +1,12 @@
 export type ReviewRecord = {
   _id: string;
-  tenantId?: string;
+  tenantId: string;
   product: string;
   author: string;
   rating: number;
   comment: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 export interface ReviewRepository {

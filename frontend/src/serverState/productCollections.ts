@@ -1,12 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { apiRoutes } from '@/routes';
-import api from '@/services/api';
 import { queryKeys } from '@/serverState/queryKeys';
 import type { CartItem } from '@/serverState/cart';
+import { getCart, putCartItem, removeCartItem } from '@/services/cart';
+import {
+  getWatchlist,
+  putWatchlistItem,
+  removeWatchlistItem,
+} from '@/services/watchlist';
 
 type Collection = 'cart' | 'watchlist';
-type CollectionEntry = { product: string | { _id: string } };
 type ToggleVariables = { productId: string; remove: boolean };
 type MutationContext = {
   previous: string[] | undefined;
@@ -30,29 +33,20 @@ export function useProductCollection(
   const query = useQuery({
     queryKey,
     enabled,
-    queryFn: async () => {
-      const response = await api.get(
-        collection === 'cart' ? apiRoutes.cart : apiRoutes.watchlist,
-      );
-      const entries: CollectionEntry[] =
-        collection === 'cart' ? response.data.items : response.data;
-      return entries.map(({ product }) =>
-        typeof product === 'string' ? product : product._id,
-      );
-    },
+    queryFn: () => loadCollectionProductIds(collection),
   });
   const mutation = useMutation<void, Error, ToggleVariables, MutationContext>({
     mutationFn: async ({ productId, remove }) => {
       if (remove) {
-        await api.delete(
-          collection === 'cart'
-            ? apiRoutes.cartItem(productId)
-            : apiRoutes.watchlistItem(productId),
-        );
+        if (collection === 'cart') {
+          await removeCartItem(productId);
+        } else {
+          await removeWatchlistItem(productId);
+        }
       } else if (collection === 'cart') {
-        await api.put(apiRoutes.cartItems, { productId, quantity: 1 });
+        await putCartItem({ productId, quantity: 1 });
       } else {
-        await api.put(apiRoutes.watchlistItem(productId));
+        await putWatchlistItem(productId);
       }
     },
     onMutate: async ({ productId, remove }) => {
@@ -109,4 +103,14 @@ export function useProductCollection(
     isLoadError: query.isError && query.data === undefined,
     toggle: mutation.mutateAsync,
   };
+}
+
+async function loadCollectionProductIds(collection: Collection) {
+  if (collection === 'cart') {
+    const cart = await getCart();
+    return cart.items.map(({ product }) => product._id);
+  }
+
+  const watchlist = await getWatchlist();
+  return watchlist.map(({ product }) => product._id);
 }

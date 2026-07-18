@@ -2,6 +2,7 @@ import { productStatuses, type ProductStatus } from '@/productStatus';
 import { DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT } from '@/pagination';
 import { isUuid, UUID_EXAMPLE } from '@/ids';
 import type { RequestFieldValue } from '@/types/request';
+import { sellerProfileResponseSchema } from '@/validators/userValidator';
 import { z } from 'zod';
 import {
   firstDefined,
@@ -35,6 +36,111 @@ export type ProductFilterQuery = {
   limit?: RequestFieldValue;
   offset?: RequestFieldValue;
 };
+
+const resourceIdResponseSchema = z.string().uuid().meta({
+  example: UUID_EXAMPLE,
+});
+
+export const productResponseSchema = z
+  .object({
+    _id: resourceIdResponseSchema,
+    tenantId: z.string(),
+    name: z.string(),
+    description: z.string().nullable(),
+    category: z.string(),
+    subcategory: z.string(),
+    inventory: z.int().min(0),
+    image: z.string(),
+    status: z.enum(productStatuses),
+    seller: resourceIdResponseSchema,
+    sellerProfile: sellerProfileResponseSchema.optional(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
+  })
+  .meta({ id: 'Product' });
+
+export const productErrorCodes = {
+  list: [
+    'TENANT_HEADER_REQUIRED',
+    'INVALID_TENANT',
+    'INVALID_REQUEST',
+    'INVALID_PRODUCT_STATUS_FILTER',
+    'INVALID_PRODUCT_AVAILABILITY_FILTER',
+    'INVALID_PRODUCT_SORT',
+  ],
+  sellerList: [
+    'TENANT_HEADER_REQUIRED',
+    'INVALID_TENANT',
+    'INVALID_REQUEST',
+    'INVALID_SELLER_ID',
+    'INVALID_PRODUCT_STATUS_FILTER',
+    'INVALID_PRODUCT_AVAILABILITY_FILTER',
+    'INVALID_PRODUCT_SORT',
+  ],
+  detail: ['TENANT_HEADER_REQUIRED', 'INVALID_TENANT', 'INVALID_PRODUCT_ID'],
+  create: [
+    'TENANT_HEADER_REQUIRED',
+    'INVALID_TENANT',
+    'INVALID_REQUEST',
+    'MISSING_PRODUCT_FIELDS',
+    'INVALID_PRODUCT_INVENTORY',
+    'INVALID_PRODUCT_STATUS',
+    'INVALID_PRODUCT_STATUS_INVENTORY',
+    'INVALID_PRODUCT_IMAGE_URL',
+  ],
+  update: [
+    'TENANT_HEADER_REQUIRED',
+    'INVALID_TENANT',
+    'INVALID_REQUEST',
+    'INVALID_PRODUCT_ID',
+    'MISSING_PRODUCT_UPDATE_FIELDS',
+    'INVALID_PRODUCT_IMAGE_URL',
+  ],
+  inventory: [
+    'TENANT_HEADER_REQUIRED',
+    'INVALID_TENANT',
+    'INVALID_REQUEST',
+    'INVALID_PRODUCT_ID',
+  ],
+  status: [
+    'TENANT_HEADER_REQUIRED',
+    'INVALID_TENANT',
+    'INVALID_REQUEST',
+    'INVALID_PRODUCT_ID',
+  ],
+  authentication: ['AUTH_TOKEN_REQUIRED', 'INVALID_AUTH_TOKEN'],
+  csrf: ['INVALID_ORIGIN', 'INVALID_CSRF_TOKEN'],
+  ownership: ['INVALID_ORIGIN', 'INVALID_CSRF_TOKEN', 'PRODUCT_FORBIDDEN'],
+  notFound: ['PRODUCT_NOT_FOUND'],
+  lifecycleConflict: [
+    'PRODUCT_STATUS_TRANSITION_INVALID',
+    'PRODUCT_INVENTORY_REQUIRED',
+  ],
+} as const;
+
+export const productInvalidRequestExamples = {
+  list: {
+    error: 'Too big: expected number to be <=100',
+    code: 'INVALID_REQUEST',
+  },
+  create: {
+    error: 'Invalid input: expected object, received string',
+    code: 'INVALID_REQUEST',
+  },
+  update: {
+    error: 'Invalid input: expected string, received number',
+    code: 'INVALID_REQUEST',
+  },
+  inventory: {
+    error: 'Too small: expected number to be >=0',
+    code: 'INVALID_REQUEST',
+  },
+  status: {
+    error:
+      'Invalid option: expected one of "draft"|"active"|"paused"|"sold_out"|"archived"',
+    code: 'INVALID_REQUEST',
+  },
+} as const;
 
 function isProductStatus(status: string): status is ProductStatus {
   return productStatuses.includes(status as ProductStatus);

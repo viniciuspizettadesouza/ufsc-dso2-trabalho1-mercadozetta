@@ -1,11 +1,9 @@
 import { createContext, useContext } from 'react';
+import type { components } from '@/contracts/api';
 
-export type AuthUser = {
-  _id: string;
-  email?: string;
-  username?: string;
-  telephone?: string;
-};
+type ContractUser = components['schemas']['User'];
+export type AuthUser = Pick<ContractUser, '_id'> &
+  Partial<Pick<ContractUser, 'email' | 'username' | 'telephone'>>;
 
 export type AuthState = {
   status: 'loading' | 'authenticated' | 'anonymous';

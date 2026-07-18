@@ -65,7 +65,9 @@ function ProductCatalog({ sellerId }: { sellerId?: string }) {
         ? products.filter(
             (product) =>
               product.name.toLowerCase().includes(normalizedSearch) ||
-              product.description.toLowerCase().includes(normalizedSearch),
+              (product.description ?? '')
+                .toLowerCase()
+                .includes(normalizedSearch),
           )
         : products,
     [normalizedSearch, productRequest.q, products, produto],

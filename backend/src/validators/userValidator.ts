@@ -1,4 +1,5 @@
 import type { RequestFieldValue } from '@/types/request';
+import { UUID_EXAMPLE } from '@/ids';
 import { z } from 'zod';
 import { parseAppSchema, requestString } from '@/validators/parseSchema';
 
@@ -8,6 +9,54 @@ export type CreateUserRequestBody = {
   username?: RequestFieldValue;
   telephone?: RequestFieldValue;
 };
+
+const userIdResponseSchema = z.string().uuid().meta({ example: UUID_EXAMPLE });
+
+export const userResponseSchema = z
+  .object({
+    _id: userIdResponseSchema,
+    tenantId: z.string(),
+    email: z.email(),
+    username: z.string().nullable(),
+    telephone: z.string().nullable(),
+    createdAt: z.iso.datetime(),
+    updatedAt: z.iso.datetime(),
+  })
+  .meta({ id: 'User' });
+
+export const sellerProfileResponseSchema = z
+  .object({
+    _id: userIdResponseSchema,
+    username: z.string().nullable(),
+    telephone: z.string().nullable(),
+    email: z.email(),
+    storeName: z.string(),
+  })
+  .meta({ id: 'SellerProfile' });
+
+export const userErrorCodes = {
+  create: [
+    'TENANT_HEADER_REQUIRED',
+    'INVALID_TENANT',
+    'INVALID_REQUEST',
+    'MISSING_USER_FIELDS',
+    'INVALID_EMAIL',
+    'WEAK_PASSWORD',
+    'USER_EXISTS',
+  ],
+  rateLimit: ['REGISTER_RATE_LIMITED'],
+  sellerDetail: [
+    'TENANT_HEADER_REQUIRED',
+    'INVALID_TENANT',
+    'INVALID_SELLER_ID',
+  ],
+  sellerNotFound: ['SELLER_NOT_FOUND'],
+} as const;
+
+export const userInvalidRequestExample = {
+  error: 'Invalid input: expected object, received string',
+  code: 'INVALID_REQUEST',
+} as const;
 
 export const createUserSchema = z
   .object({

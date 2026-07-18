@@ -45,12 +45,12 @@ describe('useProductCollection', () => {
   });
 
   it('optimistically adds and then revalidates authenticated state', async () => {
-    let resolveMutation!: () => void;
+    let resolveMutation!: (response: { data: unknown }) => void;
     vi.mocked(api.get)
       .mockResolvedValueOnce({ data: [] } as never)
       .mockResolvedValueOnce({ data: [{ product: 'product-1' }] } as never);
     vi.mocked(api.put).mockReturnValue(
-      new Promise<void>((resolve) => {
+      new Promise((resolve) => {
         resolveMutation = resolve;
       }) as never,
     );
@@ -68,7 +68,7 @@ describe('useProductCollection', () => {
       expect(result.current.productIds).toEqual(['product-1']),
     );
 
-    resolveMutation();
+    resolveMutation({ data: {} });
     await act(async () => mutation);
     await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
     expect(api.put).toHaveBeenCalledWith('/watchlist/product-1');

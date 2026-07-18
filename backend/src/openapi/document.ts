@@ -1,7 +1,13 @@
 import { z } from 'zod';
 import { UUID_EXAMPLE } from '@/ids';
 import { createDocument } from 'zod-openapi';
-import { loginSchema } from '@/validators/authValidator';
+import {
+  loginSchema,
+  authStateResponseSchema,
+  sessionListResponseSchema,
+  authErrorCodes,
+  authInvalidRequestExample,
+} from '@/validators/authValidator';
 import {
   createProductSchema,
   productFiltersSchema,
@@ -10,10 +16,51 @@ import {
   updateProductSchema,
   productInventoryUpdateSchema,
   productStatusUpdateSchema,
+  productResponseSchema,
+  productErrorCodes,
+  productInvalidRequestExamples,
 } from '@/validators/productValidator';
 import { paginationSchema } from '@/validators/paginationValidator';
-import { orderListSchema } from '@/validators/commerceValidator';
-import { createUserSchema } from '@/validators/userValidator';
+import {
+  cartErrorCodes,
+  cartInvalidRequestExample,
+  cartItemRequestSchema,
+  cartResponseSchema,
+  createReviewRequestSchema,
+  notificationErrorCodes,
+  notificationInvalidRequestExamples,
+  notificationListResponseSchema,
+  notificationReadRequestSchema,
+  notificationResponseSchema,
+  orderErrorCodes,
+  orderInvalidRequestExamples,
+  orderListSchema,
+  orderListResponseSchema,
+  orderResponseSchema,
+  orderStatusUpdateRequestSchema,
+  reviewErrorCodes,
+  reviewInvalidRequestExamples,
+  reviewListResponseSchema,
+  reviewResponseSchema,
+  unreadNotificationCountResponseSchema,
+  watchlistEntryResponseSchema,
+  watchlistErrorCodes,
+  watchlistResponseSchema,
+} from '@/validators/commerceValidator';
+import {
+  createUserSchema,
+  userResponseSchema,
+  sellerProfileResponseSchema,
+  userErrorCodes,
+  userInvalidRequestExample,
+} from '@/validators/userValidator';
+import {
+  errorResponseSchemaFor,
+  appErrorExamples,
+  type AppErrorExample,
+  type AppErrorExampleCode,
+  paginatedResponseSchema,
+} from '@/validators/responseSchemas';
 
 const tenantHeader = z
   .string()
@@ -26,86 +73,12 @@ const tenantHeader = z
   });
 
 const resourceId = z.string().uuid().meta({ example: UUID_EXAMPLE });
-const timestamp = z.iso.datetime().optional();
-const productStatus = z.enum([
-  'draft',
-  'active',
-  'paused',
-  'sold_out',
-  'archived',
-]);
-const orderStatus = z.enum([
-  'placed',
-  'confirmed',
-  'shipped',
-  'delivered',
-  'cancelled',
-]);
-
-const userSchema = z
-  .object({
-    _id: resourceId,
-    tenantId: z.string(),
-    email: z.email(),
-    username: z.string(),
-    telephone: z.string(),
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  })
-  .meta({ id: 'User' });
-
-const sessionSchema = z
-  .object({
-    id: resourceId,
-    createdAt: z.iso.datetime().optional(),
-    lastUsedAt: z.iso.datetime(),
-    expiresAt: z.iso.datetime(),
-    absoluteExpiresAt: z.iso.datetime(),
-    userAgentLabel: z.string().optional(),
-  })
-  .meta({ id: 'Session' });
-
 const csrfHeader = z.string().meta({
   param: { name: 'X-CSRF-Token', in: 'header' },
   description:
     'Session-bound double-submit proof required for cookie-authenticated mutations.',
   example: 'nonce.signature',
 });
-
-const sellerProfileSchema = z
-  .object({
-    _id: resourceId,
-    username: z.string(),
-    telephone: z.string(),
-    email: z.email(),
-    storeName: z.string(),
-  })
-  .meta({ id: 'SellerProfile' });
-
-const productSchema = z
-  .object({
-    _id: resourceId,
-    tenantId: z.string(),
-    name: z.string(),
-    description: z.string().optional(),
-    category: z.string().optional(),
-    subcategory: z.string().optional(),
-    inventory: z.int().min(0),
-    image: z.string(),
-    status: productStatus,
-    seller: z.union([resourceId, sellerProfileSchema]),
-    createdAt: timestamp,
-    updatedAt: timestamp,
-  })
-  .meta({ id: 'Product' });
-
-const errorSchema = z
-  .object({
-    error: z.string(),
-    code: z.string(),
-    details: z.unknown().optional(),
-  })
-  .meta({ id: 'Error' });
 
 const welcomeSchema = z.object({ message: z.string() }).meta({ id: 'Welcome' });
 const healthSchema = z
@@ -119,66 +92,6 @@ const readinessSchema = z
     }),
   })
   .meta({ id: 'Readiness' });
-const cartSchema = z.object({
-  _id: resourceId.optional(),
-  tenantId: z.string(),
-  buyer: resourceId,
-  items: z.array(
-    z.object({
-      product: z.union([resourceId, productSchema]),
-      quantity: z.int(),
-    }),
-  ),
-});
-const watchlistSchema = z.object({
-  _id: resourceId,
-  tenantId: z.string(),
-  user: resourceId,
-  product: z.union([resourceId, productSchema]),
-});
-const orderItemSchema = z.object({
-  product: resourceId,
-  productName: z.string(),
-  seller: resourceId,
-  quantity: z.int(),
-});
-const orderSchema = z.object({
-  _id: resourceId,
-  tenantId: z.string(),
-  buyer: resourceId,
-  status: orderStatus,
-  statusHistory: z.array(
-    z.object({
-      status: orderStatus,
-      actor: resourceId,
-      changedAt: z.iso.datetime(),
-    }),
-  ),
-  items: z.array(orderItemSchema),
-});
-const reviewSchema = z.object({
-  _id: resourceId,
-  product: resourceId,
-  author: resourceId,
-  rating: z.int().min(1).max(5),
-  comment: z.string(),
-});
-const notificationSchema = z.object({
-  _id: resourceId,
-  user: resourceId,
-  message: z.string(),
-  read: z.boolean(),
-});
-const unreadCountSchema = z.object({ count: z.int().min(0) });
-const notificationReadRequest = z.object({ read: z.boolean() });
-const pageSchema = z.object({
-  limit: z.int().min(1).max(100),
-  offset: z.int().min(0),
-  total: z.int().min(0),
-  hasMore: z.boolean(),
-});
-const paginatedSchema = <T extends z.ZodType>(item: T) =>
-  z.object({ items: z.array(item), page: pageSchema });
 const pageExample = { limit: 20, offset: 0, total: 1, hasMore: false };
 
 const productExample = {
@@ -192,6 +105,8 @@ const productExample = {
   image: 'https://example.com/keyboard.jpg',
   status: 'active',
   seller: '507f1f77-bcf8-4ecd-8994-390110000001',
+  createdAt: '2026-01-15T12:00:00.000Z',
+  updatedAt: '2026-01-15T12:00:00.000Z',
 };
 
 const userExample = {
@@ -200,32 +115,76 @@ const userExample = {
   email: 'seller@example.com',
   username: 'seller',
   telephone: '+55 48 99999-0000',
+  createdAt: '2026-01-15T12:00:00.000Z',
+  updatedAt: '2026-01-15T12:00:00.000Z',
+};
+
+const sessionExample = {
+  id: '507f1f77-bcf8-4ecd-8994-390120000002',
+  createdAt: '2026-07-15T12:00:00.000Z',
+  lastUsedAt: '2026-07-15T12:00:00.000Z',
+  expiresAt: '2026-07-22T12:00:00.000Z',
+  absoluteExpiresAt: '2026-08-14T12:00:00.000Z',
+  userAgentLabel: 'Chrome on Linux',
+};
+
+const sellerProfileExample = {
+  _id: userExample._id,
+  email: userExample.email,
+  username: userExample.username,
+  telephone: userExample.telephone,
+  storeName: 'seller store',
+};
+
+const orderExample = {
+  _id: '507f191e-810c-4197-9de8-60ea00000004',
+  tenantId: 'mercadozetta',
+  buyer: userExample._id,
+  status: 'placed',
+  statusHistory: [
+    {
+      status: 'placed',
+      actor: userExample._id,
+      changedAt: '2026-07-13T10:00:00.000Z',
+    },
+  ],
+  items: [
+    {
+      tenantId: 'mercadozetta',
+      order: '507f191e-810c-4197-9de8-60ea00000004',
+      product: productExample._id,
+      seller: productExample.seller,
+      productName: productExample.name,
+      quantity: 1,
+    },
+  ],
+  createdAt: '2026-07-13T10:00:00.000Z',
+  updatedAt: '2026-07-13T10:00:00.000Z',
 };
 
 const json = (schema: z.ZodType, example?: unknown) => ({
   'application/json': { schema, ...(example === undefined ? {} : { example }) },
 });
 
-const badRequest = {
-  description: 'Invalid input or tenant',
-  content: json(errorSchema, {
-    error: 'Invalid tenant',
-    code: 'INVALID_TENANT',
-  }),
-};
-const unauthorized = {
-  description: 'Missing or invalid credentials/token',
-  content: json(errorSchema, {
-    error: 'Invalid authorization token',
-    code: 'INVALID_AUTH_TOKEN',
-  }),
-};
-const notFound = (resource: string) => ({
-  description: `${resource} not found`,
-  content: json(errorSchema, {
-    error: `${resource} not found`,
-    code: `${resource.toUpperCase()}_NOT_FOUND`,
-  }),
+const appErrors = <
+  const TCodes extends readonly [AppErrorExampleCode, ...AppErrorExampleCode[]],
+>(
+  description: string,
+  codes: TCodes,
+  examples: Partial<Record<AppErrorExampleCode, AppErrorExample>> = {},
+) => ({
+  description,
+  content: {
+    'application/json': {
+      schema: errorResponseSchemaFor(codes),
+      examples: Object.fromEntries(
+        codes.map((code) => [
+          code,
+          { summary: code, value: examples[code] ?? appErrorExamples[code] },
+        ]),
+      ),
+    },
+  },
 });
 
 export function createOpenApiDocument() {
@@ -311,28 +270,28 @@ export function createOpenApiDocument() {
             200: {
               description:
                 'Authenticated session; also sets access, refresh, and CSRF cookies',
-              content: json(
-                z.object({
-                  user: userSchema,
-                  session: sessionSchema,
-                }),
-                {
-                  user: userExample,
-                  session: {
-                    id: '507f1f77-bcf8-4ecd-8994-390120000002',
-                    lastUsedAt: '2026-07-15T12:00:00.000Z',
-                    expiresAt: '2026-07-22T12:00:00.000Z',
-                    absoluteExpiresAt: '2026-08-14T12:00:00.000Z',
-                  },
-                },
-              ),
+              content: json(authStateResponseSchema, {
+                user: userExample,
+                session: sessionExample,
+              }),
             },
-            400: badRequest,
-            401: unauthorized,
-            429: {
-              description: 'Rate limit exceeded',
-              content: json(errorSchema),
-            },
+            400: appErrors(
+              'Invalid tenant or login payload',
+              authErrorCodes.loginRequest,
+              { INVALID_REQUEST: authInvalidRequestExample },
+            ),
+            401: appErrors(
+              'Invalid credentials',
+              authErrorCodes.invalidCredentials,
+            ),
+            403: appErrors(
+              'Origin validation failed',
+              authErrorCodes.loginOrigin,
+            ),
+            429: appErrors(
+              'Login rate limit exceeded',
+              authErrorCodes.loginRateLimit,
+            ),
           },
         },
       },
@@ -345,12 +304,16 @@ export function createOpenApiDocument() {
           responses: {
             200: {
               description: 'Current user and session',
-              content: json(
-                z.object({ user: userSchema, session: sessionSchema }),
-              ),
+              content: json(authStateResponseSchema, {
+                user: userExample,
+                session: sessionExample,
+              }),
             },
-            400: badRequest,
-            401: unauthorized,
+            400: appErrors('Invalid tenant', authErrorCodes.tenant),
+            401: appErrors(
+              'Missing, invalid, or incomplete cookie session',
+              authErrorCodes.sessionAuthentication,
+            ),
           },
         },
       },
@@ -362,16 +325,19 @@ export function createOpenApiDocument() {
           parameters: [tenantHeader, csrfHeader],
           responses: {
             204: { description: 'Session rotated and cookies replaced' },
-            400: badRequest,
-            401: unauthorized,
-            403: {
-              description: 'Origin or CSRF validation failed',
-              content: json(errorSchema),
-            },
-            409: {
-              description: 'A concurrent request already rotated the token',
-              content: json(errorSchema),
-            },
+            400: appErrors('Invalid tenant', authErrorCodes.tenant),
+            401: appErrors(
+              'Invalid, expired, or reused refresh token',
+              authErrorCodes.refreshAuthentication,
+            ),
+            403: appErrors(
+              'Origin or CSRF validation failed',
+              authErrorCodes.csrf,
+            ),
+            409: appErrors(
+              'A concurrent request already rotated the token',
+              authErrorCodes.refreshConflict,
+            ),
           },
         },
       },
@@ -384,10 +350,15 @@ export function createOpenApiDocument() {
           responses: {
             200: {
               description: 'Active sessions',
-              content: json(z.object({ sessions: z.array(sessionSchema) })),
+              content: json(sessionListResponseSchema, {
+                sessions: [sessionExample],
+              }),
             },
-            400: badRequest,
-            401: unauthorized,
+            400: appErrors('Invalid tenant', authErrorCodes.tenant),
+            401: appErrors(
+              'Missing or invalid cookie session',
+              authErrorCodes.authentication,
+            ),
           },
         },
       },
@@ -400,13 +371,22 @@ export function createOpenApiDocument() {
           requestParams: { path: z.object({ sessionId: resourceId }) },
           responses: {
             204: { description: 'Session revoked' },
-            400: badRequest,
-            401: unauthorized,
-            403: {
-              description: 'Origin or CSRF validation failed',
-              content: json(errorSchema),
-            },
-            404: notFound('Session'),
+            400: appErrors(
+              'Invalid tenant or session identifier',
+              authErrorCodes.sessionId,
+            ),
+            401: appErrors(
+              'Missing or invalid cookie session',
+              authErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Origin or CSRF validation failed',
+              authErrorCodes.csrf,
+            ),
+            404: appErrors(
+              'Owned session not found',
+              authErrorCodes.sessionNotFound,
+            ),
           },
         },
       },
@@ -418,12 +398,15 @@ export function createOpenApiDocument() {
           parameters: [tenantHeader, csrfHeader],
           responses: {
             204: { description: 'Current session revoked' },
-            400: badRequest,
-            401: unauthorized,
-            403: {
-              description: 'Origin or CSRF validation failed',
-              content: json(errorSchema),
-            },
+            400: appErrors('Invalid tenant', authErrorCodes.tenant),
+            401: appErrors(
+              'Missing, invalid, or incomplete cookie session',
+              authErrorCodes.sessionAuthentication,
+            ),
+            403: appErrors(
+              'Origin or CSRF validation failed',
+              authErrorCodes.csrf,
+            ),
           },
         },
       },
@@ -435,12 +418,15 @@ export function createOpenApiDocument() {
           parameters: [tenantHeader, csrfHeader],
           responses: {
             204: { description: 'Logged out' },
-            400: badRequest,
-            401: unauthorized,
-            403: {
-              description: 'Origin or CSRF validation failed',
-              content: json(errorSchema),
-            },
+            400: appErrors('Invalid tenant', authErrorCodes.tenant),
+            401: appErrors(
+              'Missing or invalid cookie session',
+              authErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Origin or CSRF validation failed',
+              authErrorCodes.csrf,
+            ),
           },
         },
       },
@@ -461,15 +447,17 @@ export function createOpenApiDocument() {
           responses: {
             201: {
               description: 'Account created',
-              content: json(z.object({ newUser: userSchema }), {
-                newUser: userExample,
-              }),
+              content: json(userResponseSchema, userExample),
             },
-            400: badRequest,
-            429: {
-              description: 'Rate limit exceeded',
-              content: json(errorSchema),
-            },
+            400: appErrors(
+              'Invalid tenant or registration payload',
+              userErrorCodes.create,
+              { INVALID_REQUEST: userInvalidRequestExample },
+            ),
+            429: appErrors(
+              'Registration rate limit exceeded',
+              userErrorCodes.rateLimit,
+            ),
           },
         },
       },
@@ -482,13 +470,13 @@ export function createOpenApiDocument() {
           responses: {
             200: {
               description: 'Public seller profile',
-              content: json(sellerProfileSchema, {
-                ...userExample,
-                storeName: 'seller store',
-              }),
+              content: json(sellerProfileResponseSchema, sellerProfileExample),
             },
-            400: badRequest,
-            404: notFound('Seller'),
+            400: appErrors(
+              'Invalid tenant or seller identifier',
+              userErrorCodes.sellerDetail,
+            ),
+            404: appErrors('Seller not found', userErrorCodes.sellerNotFound),
           },
         },
       },
@@ -504,12 +492,16 @@ export function createOpenApiDocument() {
           responses: {
             200: {
               description: 'Products from the seller',
-              content: json(paginatedSchema(productSchema), {
+              content: json(paginatedResponseSchema(productResponseSchema), {
                 items: [productExample],
                 page: pageExample,
               }),
             },
-            400: badRequest,
+            400: appErrors(
+              'Invalid seller, tenant, pagination, or product filters',
+              productErrorCodes.sellerList,
+              { INVALID_REQUEST: productInvalidRequestExamples.list },
+            ),
           },
         },
       },
@@ -522,12 +514,16 @@ export function createOpenApiDocument() {
           responses: {
             200: {
               description: 'Products in the current tenant',
-              content: json(paginatedSchema(productSchema), {
+              content: json(paginatedResponseSchema(productResponseSchema), {
                 items: [productExample],
                 page: pageExample,
               }),
             },
-            400: badRequest,
+            400: appErrors(
+              'Invalid tenant, pagination, or product filters',
+              productErrorCodes.list,
+              { INVALID_REQUEST: productInvalidRequestExamples.list },
+            ),
           },
         },
         post: {
@@ -550,16 +546,21 @@ export function createOpenApiDocument() {
           responses: {
             201: {
               description: 'Product created',
-              content: json(z.object({ newProduct: productSchema }), {
-                newProduct: productExample,
-              }),
+              content: json(productResponseSchema, productExample),
             },
-            400: badRequest,
-            401: unauthorized,
-            403: {
-              description: 'Origin or CSRF validation failed',
-              content: json(errorSchema),
-            },
+            400: appErrors(
+              'Invalid tenant or product payload',
+              productErrorCodes.create,
+              { INVALID_REQUEST: productInvalidRequestExamples.create },
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              productErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Origin or CSRF validation failed',
+              productErrorCodes.csrf,
+            ),
           },
         },
       },
@@ -572,10 +573,16 @@ export function createOpenApiDocument() {
           responses: {
             200: {
               description: 'Product detail',
-              content: json(productSchema, productExample),
+              content: json(productResponseSchema, {
+                ...productExample,
+                sellerProfile: sellerProfileExample,
+              }),
             },
-            400: badRequest,
-            404: notFound('Product'),
+            400: appErrors(
+              'Invalid tenant or product identifier',
+              productErrorCodes.detail,
+            ),
+            404: appErrors('Product not found', productErrorCodes.notFound),
           },
         },
         patch: {
@@ -594,15 +601,22 @@ export function createOpenApiDocument() {
           responses: {
             200: {
               description: 'Updated product',
-              content: json(productSchema, productExample),
+              content: json(productResponseSchema, productExample),
             },
-            400: badRequest,
-            401: unauthorized,
-            403: {
-              description: 'Ownership, Origin, or CSRF validation failed',
-              content: json(errorSchema),
-            },
-            404: notFound('Product'),
+            400: appErrors(
+              'Invalid tenant, product identifier, or update payload',
+              productErrorCodes.update,
+              { INVALID_REQUEST: productInvalidRequestExamples.update },
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              productErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Ownership, Origin, or CSRF validation failed',
+              productErrorCodes.ownership,
+            ),
+            404: appErrors('Product not found', productErrorCodes.notFound),
           },
         },
       },
@@ -620,15 +634,22 @@ export function createOpenApiDocument() {
           responses: {
             200: {
               description: 'Updated product',
-              content: json(productSchema, productExample),
+              content: json(productResponseSchema, productExample),
             },
-            400: badRequest,
-            401: unauthorized,
-            403: {
-              description: 'Ownership, Origin, or CSRF validation failed',
-              content: json(errorSchema),
-            },
-            404: notFound('Product'),
+            400: appErrors(
+              'Invalid tenant, product identifier, or inventory payload',
+              productErrorCodes.inventory,
+              { INVALID_REQUEST: productInvalidRequestExamples.inventory },
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              productErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Ownership, Origin, or CSRF validation failed',
+              productErrorCodes.ownership,
+            ),
+            404: appErrors('Product not found', productErrorCodes.notFound),
           },
         },
       },
@@ -646,19 +667,26 @@ export function createOpenApiDocument() {
           responses: {
             200: {
               description: 'Updated product',
-              content: json(productSchema, productExample),
+              content: json(productResponseSchema, productExample),
             },
-            400: badRequest,
-            401: unauthorized,
-            403: {
-              description: 'Ownership, Origin, or CSRF validation failed',
-              content: json(errorSchema),
-            },
-            404: notFound('Product'),
-            409: {
-              description: 'Invalid lifecycle transition',
-              content: json(errorSchema),
-            },
+            400: appErrors(
+              'Invalid tenant, product identifier, or status payload',
+              productErrorCodes.status,
+              { INVALID_REQUEST: productInvalidRequestExamples.status },
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              productErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Ownership, Origin, or CSRF validation failed',
+              productErrorCodes.ownership,
+            ),
+            404: appErrors('Product not found', productErrorCodes.notFound),
+            409: appErrors(
+              'Invalid lifecycle transition',
+              productErrorCodes.lifecycleConflict,
+            ),
           },
         },
       },
@@ -671,13 +699,17 @@ export function createOpenApiDocument() {
           responses: {
             200: {
               description: 'Cart',
-              content: json(cartSchema, {
+              content: json(cartResponseSchema, {
                 tenantId: 'mercadozetta',
                 buyer: userExample._id,
                 items: [],
               }),
             },
-            401: unauthorized,
+            400: appErrors('Invalid tenant', cartErrorCodes.tenant),
+            401: appErrors(
+              'Missing or invalid session',
+              cartErrorCodes.authentication,
+            ),
           },
         },
       },
@@ -689,26 +721,38 @@ export function createOpenApiDocument() {
           parameters: [tenantHeader, csrfHeader],
           requestBody: {
             required: true,
-            content: json(
-              z.object({ productId: resourceId, quantity: z.int().min(1) }),
-              { productId: productExample._id, quantity: 1 },
-            ),
+            content: json(cartItemRequestSchema, {
+              productId: productExample._id,
+              quantity: 1,
+            }),
           },
           responses: {
             200: {
               description: 'Updated cart',
-              content: json(cartSchema, {
+              content: json(cartResponseSchema, {
                 tenantId: 'mercadozetta',
                 buyer: userExample._id,
-                items: [],
+                items: [{ product: productExample, quantity: 1 }],
               }),
             },
-            400: badRequest,
-            401: unauthorized,
-            403: {
-              description: 'Origin or CSRF validation failed',
-              content: json(errorSchema),
-            },
+            400: appErrors(
+              'Invalid tenant, product identifier, or cart item payload',
+              cartErrorCodes.itemRequest,
+              { INVALID_REQUEST: cartInvalidRequestExample },
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              cartErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Origin or CSRF validation failed',
+              cartErrorCodes.csrf,
+            ),
+            404: appErrors('Product not found', cartErrorCodes.productNotFound),
+            409: appErrors(
+              'Requested quantity exceeds inventory',
+              cartErrorCodes.inventoryConflict,
+            ),
           },
         },
       },
@@ -722,17 +766,24 @@ export function createOpenApiDocument() {
           responses: {
             200: {
               description: 'Updated cart',
-              content: json(cartSchema, {
+              content: json(cartResponseSchema, {
                 tenantId: 'mercadozetta',
                 buyer: userExample._id,
                 items: [],
               }),
             },
-            401: unauthorized,
-            403: {
-              description: 'Origin or CSRF validation failed',
-              content: json(errorSchema),
-            },
+            400: appErrors(
+              'Invalid tenant or product identifier',
+              cartErrorCodes.itemPath,
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              cartErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Origin or CSRF validation failed',
+              cartErrorCodes.csrf,
+            ),
           },
         },
       },
@@ -745,9 +796,13 @@ export function createOpenApiDocument() {
           responses: {
             200: {
               description: 'Watchlist',
-              content: json(z.array(watchlistSchema), []),
+              content: json(watchlistResponseSchema, []),
             },
-            401: unauthorized,
+            400: appErrors('Invalid tenant', watchlistErrorCodes.tenant),
+            401: appErrors(
+              'Missing or invalid session',
+              watchlistErrorCodes.authentication,
+            ),
           },
         },
       },
@@ -761,18 +816,31 @@ export function createOpenApiDocument() {
           responses: {
             201: {
               description: 'Watchlist entry',
-              content: json(watchlistSchema, {
+              content: json(watchlistEntryResponseSchema, {
                 _id: productExample._id,
                 tenantId: 'mercadozetta',
                 user: userExample._id,
-                product: productExample._id,
+                product: productExample,
+                createdAt: '2026-01-15T12:00:00.000Z',
+                updatedAt: '2026-01-15T12:00:00.000Z',
               }),
             },
-            401: unauthorized,
-            403: {
-              description: 'Origin or CSRF validation failed',
-              content: json(errorSchema),
-            },
+            400: appErrors(
+              'Invalid tenant or product identifier',
+              watchlistErrorCodes.itemPath,
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              watchlistErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Origin or CSRF validation failed',
+              watchlistErrorCodes.csrf,
+            ),
+            404: appErrors(
+              'Product not found',
+              watchlistErrorCodes.productNotFound,
+            ),
           },
         },
         delete: {
@@ -783,11 +851,18 @@ export function createOpenApiDocument() {
           requestParams: { path: z.object({ productId: resourceId }) },
           responses: {
             204: { description: 'Watchlist entry removed' },
-            401: unauthorized,
-            403: {
-              description: 'Origin or CSRF validation failed',
-              content: json(errorSchema),
-            },
+            400: appErrors(
+              'Invalid tenant or product identifier',
+              watchlistErrorCodes.itemPath,
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              watchlistErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Origin or CSRF validation failed',
+              watchlistErrorCodes.csrf,
+            ),
           },
         },
       },
@@ -801,12 +876,20 @@ export function createOpenApiDocument() {
           responses: {
             200: {
               description: 'Orders',
-              content: json(paginatedSchema(orderSchema), {
+              content: json(orderListResponseSchema, {
                 items: [],
                 page: { ...pageExample, total: 0 },
               }),
             },
-            401: unauthorized,
+            400: appErrors(
+              'Invalid tenant, scope, or pagination',
+              orderErrorCodes.listRequest,
+              { INVALID_REQUEST: orderInvalidRequestExamples.list },
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              orderErrorCodes.authentication,
+            ),
           },
         },
         post: {
@@ -817,27 +900,27 @@ export function createOpenApiDocument() {
           responses: {
             201: {
               description: 'Order placed',
-              content: json(orderSchema, {
-                _id: productExample._id,
-                tenantId: 'mercadozetta',
-                buyer: userExample._id,
-                status: 'placed',
-                statusHistory: [
-                  {
-                    status: 'placed',
-                    actor: userExample._id,
-                    changedAt: '2026-07-13T10:00:00.000Z',
-                  },
-                ],
-                items: [],
-              }),
+              content: json(orderResponseSchema, orderExample),
             },
-            400: badRequest,
-            401: unauthorized,
-            403: {
-              description: 'Origin or CSRF validation failed',
-              content: json(errorSchema),
-            },
+            400: appErrors(
+              'Invalid tenant or empty cart',
+              orderErrorCodes.checkoutRequest,
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              orderErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Origin or CSRF validation failed',
+              orderErrorCodes.csrf,
+            ),
+            409: appErrors(
+              'A cart item is unavailable',
+              orderErrorCodes.inventoryConflict,
+              {
+                INSUFFICIENT_INVENTORY: orderInvalidRequestExamples.inventory,
+              },
+            ),
           },
         },
       },
@@ -850,45 +933,45 @@ export function createOpenApiDocument() {
           requestParams: { path: z.object({ orderId: resourceId }) },
           requestBody: {
             required: true,
-            content: json(z.object({ status: orderStatus }), {
+            content: json(orderStatusUpdateRequestSchema, {
               status: 'shipped',
             }),
           },
           responses: {
             200: {
               description: 'Updated order',
-              content: json(orderSchema, {
-                _id: productExample._id,
-                tenantId: 'mercadozetta',
-                buyer: userExample._id,
+              content: json(orderResponseSchema, {
+                ...orderExample,
                 status: 'shipped',
                 statusHistory: [
-                  {
-                    status: 'placed',
-                    actor: userExample._id,
-                    changedAt: '2026-07-13T10:00:00.000Z',
-                  },
+                  ...orderExample.statusHistory,
                   {
                     status: 'shipped',
                     actor: userExample._id,
                     changedAt: '2026-07-13T11:00:00.000Z',
                   },
                 ],
-                items: [],
+                updatedAt: '2026-07-13T11:00:00.000Z',
               }),
             },
-            401: unauthorized,
-            403: {
-              description: 'Origin or CSRF validation failed',
-              content: json(errorSchema),
-            },
-            409: {
-              description: 'Invalid order status transition',
-              content: json(errorSchema, {
-                error: 'Order cannot transition from placed to shipped',
-                code: 'ORDER_STATUS_TRANSITION_INVALID',
-              }),
-            },
+            400: appErrors(
+              'Invalid tenant, order identifier, or status payload',
+              orderErrorCodes.statusRequest,
+              { INVALID_REQUEST: orderInvalidRequestExamples.status },
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              orderErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Ownership, Origin, or CSRF validation failed',
+              orderErrorCodes.ownership,
+            ),
+            404: appErrors('Order not found', orderErrorCodes.notFound),
+            409: appErrors(
+              'Invalid order status transition',
+              orderErrorCodes.transitionConflict,
+            ),
           },
         },
       },
@@ -904,11 +987,16 @@ export function createOpenApiDocument() {
           responses: {
             200: {
               description: 'Reviews',
-              content: json(paginatedSchema(reviewSchema), {
+              content: json(reviewListResponseSchema, {
                 items: [],
                 page: { ...pageExample, total: 0 },
               }),
             },
+            400: appErrors(
+              'Invalid tenant, product identifier, or pagination',
+              reviewErrorCodes.listRequest,
+              { INVALID_REQUEST: reviewInvalidRequestExamples.list },
+            ),
           },
         },
         post: {
@@ -919,27 +1007,42 @@ export function createOpenApiDocument() {
           requestParams: { path: z.object({ productId: resourceId }) },
           requestBody: {
             required: true,
-            content: json(
-              z.object({ rating: z.int().min(1).max(5), comment: z.string() }),
-              { rating: 5, comment: 'Excellent product' },
-            ),
+            content: json(createReviewRequestSchema, {
+              rating: 5,
+              comment: 'Excellent product',
+            }),
           },
           responses: {
             201: {
               description: 'Review',
-              content: json(reviewSchema, {
+              content: json(reviewResponseSchema, {
                 _id: productExample._id,
+                tenantId: 'mercadozetta',
                 product: productExample._id,
                 author: userExample._id,
                 rating: 5,
                 comment: 'Excellent product',
+                createdAt: '2026-01-15T12:00:00.000Z',
+                updatedAt: '2026-01-15T12:00:00.000Z',
               }),
             },
-            401: unauthorized,
-            403: {
-              description: 'Origin or CSRF validation failed',
-              content: json(errorSchema),
-            },
+            400: appErrors(
+              'Invalid tenant, product identifier, or review payload',
+              reviewErrorCodes.createRequest,
+              { INVALID_REQUEST: reviewInvalidRequestExamples.create },
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              reviewErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Origin, CSRF, self-review, or purchase validation failed',
+              reviewErrorCodes.authorization,
+            ),
+            404: appErrors(
+              'Product not found',
+              reviewErrorCodes.productNotFound,
+            ),
           },
         },
       },
@@ -953,12 +1056,20 @@ export function createOpenApiDocument() {
           responses: {
             200: {
               description: 'Notifications',
-              content: json(paginatedSchema(notificationSchema), {
+              content: json(notificationListResponseSchema, {
                 items: [],
                 page: { ...pageExample, total: 0 },
               }),
             },
-            401: unauthorized,
+            400: appErrors(
+              'Invalid tenant or pagination',
+              notificationErrorCodes.listRequest,
+              { INVALID_REQUEST: notificationInvalidRequestExamples.list },
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              notificationErrorCodes.authentication,
+            ),
           },
         },
       },
@@ -971,9 +1082,15 @@ export function createOpenApiDocument() {
           responses: {
             200: {
               description: 'Unread notification count',
-              content: json(unreadCountSchema, { count: 2 }),
+              content: json(unreadNotificationCountResponseSchema, {
+                count: 2,
+              }),
             },
-            401: unauthorized,
+            400: appErrors('Invalid tenant', notificationErrorCodes.tenant),
+            401: appErrors(
+              'Missing or invalid session',
+              notificationErrorCodes.authentication,
+            ),
           },
         },
       },
@@ -988,24 +1105,38 @@ export function createOpenApiDocument() {
           },
           requestBody: {
             required: true,
-            content: json(notificationReadRequest, { read: true }),
+            content: json(notificationReadRequestSchema, { read: true }),
           },
           responses: {
             200: {
               description: 'Updated notification',
-              content: json(notificationSchema, {
+              content: json(notificationResponseSchema, {
                 _id: productExample._id,
+                tenantId: 'mercadozetta',
                 user: userExample._id,
                 message: 'Order created',
                 read: true,
+                createdAt: '2026-01-15T12:00:00.000Z',
+                updatedAt: '2026-01-15T12:00:00.000Z',
               }),
             },
-            401: unauthorized,
-            403: {
-              description: 'Origin or CSRF validation failed',
-              content: json(errorSchema),
-            },
-            404: notFound('Notification'),
+            400: appErrors(
+              'Invalid tenant, notification identifier, or read-state payload',
+              notificationErrorCodes.updateRequest,
+              { INVALID_REQUEST: notificationInvalidRequestExamples.update },
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              notificationErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Origin or CSRF validation failed',
+              notificationErrorCodes.csrf,
+            ),
+            404: appErrors(
+              'Owned notification not found',
+              notificationErrorCodes.notFound,
+            ),
           },
         },
       },

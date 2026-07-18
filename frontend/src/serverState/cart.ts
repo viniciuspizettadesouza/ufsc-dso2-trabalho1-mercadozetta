@@ -1,16 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { apiRoutes } from '@/routes';
-import api from '@/services/api';
 import { queryKeys } from '@/serverState/queryKeys';
+import {
+  getCart,
+  putCartItem,
+  removeCartItem,
+  type CartItem,
+  type CartItemInput,
+} from '@/services/cart';
 
-export type CartProduct = {
-  _id: string;
-  name: string;
-  inventory?: number;
-  status?: string;
-};
-export type CartItem = { product: CartProduct; quantity: number };
+export type { CartItem } from '@/services/cart';
 type CartMutationContext = {
   previousItems: CartItem[] | undefined;
   previousProductIds: string[] | undefined;
@@ -24,20 +23,15 @@ export function useDetailedCart(userId: string) {
   const productIdsKey = queryKeys.cart.productIds(userId);
   const query = useQuery({
     queryKey: itemsKey,
-    queryFn: async () => {
-      const response = await api.get(apiRoutes.cart);
-      return response.data.items as CartItem[];
-    },
+    queryFn: async () => (await getCart()).items,
   });
   const updateQuantity = useMutation<
     void,
     Error,
-    { productId: string; quantity: number },
+    CartItemInput,
     CartMutationContext
   >({
-    mutationFn: async ({ productId, quantity }) => {
-      await api.put(apiRoutes.cartItems, { productId, quantity });
-    },
+    mutationFn: async (input) => void (await putCartItem(input)),
     onMutate: async ({ productId, quantity }) => {
       await Promise.all([
         queryClient.cancelQueries({ queryKey: itemsKey }),
@@ -59,9 +53,7 @@ export function useDetailedCart(userId: string) {
     },
   });
   const removeItem = useMutation<void, Error, string, CartMutationContext>({
-    mutationFn: async (productId) => {
-      await api.delete(apiRoutes.cartItem(productId));
-    },
+    mutationFn: async (productId) => void (await removeCartItem(productId)),
     onMutate: async (productId) => {
       await Promise.all([
         queryClient.cancelQueries({ queryKey: itemsKey }),

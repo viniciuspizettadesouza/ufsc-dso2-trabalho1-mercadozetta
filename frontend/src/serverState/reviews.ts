@@ -6,33 +6,22 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 
-import { pageInfo, pageItems, withPage, type PageInfo } from '@/pagination';
-import { apiRoutes } from '@/routes';
-import api from '@/services/api';
 import { queryKeys, type ReviewListRequest } from '@/serverState/queryKeys';
+import {
+  createReview,
+  listReviews,
+  type CreateReviewInput,
+  type ReviewList,
+} from '@/services/reviews';
 
-export type Review = { _id: string; rating: number; comment: string };
-export type ReviewQueryData = { items: Review[]; page: PageInfo };
+export type { Review } from '@/services/reviews';
+export type ReviewQueryData = ReviewList;
 
 export const reviewQueries = {
   list: (request: ReviewListRequest) =>
     queryOptions({
       queryKey: queryKeys.reviews.list(request),
-      queryFn: async () => {
-        const path =
-          request.limit === null || request.offset === null
-            ? apiRoutes.reviews(request.productId)
-            : withPage(
-                apiRoutes.reviews(request.productId),
-                request.offset,
-                request.limit,
-              );
-        const response = await api.get(path);
-        return {
-          items: pageItems<Review>(response.data),
-          page: pageInfo<Review>(response.data),
-        };
-      },
+      queryFn: () => listReviews(request),
     }),
 };
 
@@ -51,13 +40,7 @@ export function useCreateReview(
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ rating, comment }: Omit<Review, '_id'>) => {
-      const response = await api.post(apiRoutes.reviews(productId!), {
-        rating,
-        comment,
-      });
-      return response.data as Review;
-    },
+    mutationFn: (input: CreateReviewInput) => createReview(productId!, input),
     onSuccess: (review) => {
       queryClient.setQueryData<ReviewQueryData>(
         queryKeys.reviews.list(request),

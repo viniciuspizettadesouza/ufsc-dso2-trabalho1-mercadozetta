@@ -7,8 +7,8 @@ import {
 } from 'react';
 
 import { AuthContext, type AuthUser } from '@/auth/AuthContext';
-import { apiRoutes } from '@/routes';
-import api, { setAuthenticationFailureHandler } from '@/services/api';
+import { setAuthenticationFailureHandler } from '@/services/api';
+import { restoreSession } from '@/services/auth';
 
 type AuthProviderProps = {
   children: ReactNode;
@@ -38,10 +38,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     let active = true;
 
-    api
-      .get(apiRoutes.session)
-      .then(({ data }) => {
-        if (active) establishSession(data.user);
+    restoreSession()
+      .then(({ user }) => {
+        if (active) establishSession(user);
       })
       .catch(() => {
         if (active) clearSession();

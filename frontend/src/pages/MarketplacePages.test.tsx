@@ -10,6 +10,7 @@ import api from '@/services/api';
 import { AuthTestProvider } from '@/test/AuthTestProvider';
 import type { AuthUser } from '@/auth/AuthContext';
 import { ServerStateProvider } from '@/serverState/queryClient';
+import { paginatedResponse } from '@/test/paginatedResponse';
 
 vi.mock('@/services/api', () => ({
   default: {
@@ -72,12 +73,14 @@ describe('marketplace pages', () => {
     vi.mocked(api.patch).mockReset();
   });
 
-  function mockCheckout(cart: unknown, orders: unknown = []) {
+  function mockCheckout(cart: unknown, orders: object[] = []) {
     vi.mocked(api.get).mockImplementation(async (url) => {
       if (url === '/cart') return { data: cart };
-      if (url === '/orders?scope=buyer') return { data: orders };
+      if (url === '/orders?scope=buyer') {
+        return { data: paginatedResponse(orders) };
+      }
       if (url === '/notifications/unread-count') return { data: { count: 0 } };
-      return { data: [] };
+      return { data: paginatedResponse([]) };
     });
   }
 
@@ -85,8 +88,9 @@ describe('marketplace pages', () => {
     vi.mocked(api.get).mockImplementation(async (url) => {
       if (url === '/products/product-1') return { data: product };
       if (url === '/cart') return { data: { items: [] } };
+      if (url === '/watchlist') return { data: [] };
       if (url === '/notifications/unread-count') return { data: { count: 0 } };
-      return { data: [] };
+      return { data: paginatedResponse([]) };
     });
     vi.mocked(api.put).mockResolvedValue({ data: {} });
     vi.mocked(api.post).mockResolvedValue({
@@ -121,7 +125,7 @@ describe('marketplace pages', () => {
   it('shows errors when product commerce actions fail', async () => {
     vi.mocked(api.get)
       .mockResolvedValueOnce({ data: product })
-      .mockResolvedValueOnce({ data: [] });
+      .mockResolvedValueOnce({ data: paginatedResponse([]) });
     vi.mocked(api.put).mockRejectedValue(new Error('network error'));
     vi.mocked(api.post).mockRejectedValue(new Error('network error'));
 
@@ -162,7 +166,7 @@ describe('marketplace pages', () => {
           resolveReviews = resolve;
         }) as never;
       }
-      return Promise.resolve({ data: [] });
+      return Promise.resolve({ data: paginatedResponse([]) });
     });
 
     renderAt('/products/product-1', '/products/:productId', <ProductDetail />);
@@ -172,7 +176,7 @@ describe('marketplace pages', () => {
       screen.queryByRole('heading', { name: 'Coffee' }),
     ).not.toBeInTheDocument();
 
-    resolveReviews({ data: [] });
+    resolveReviews({ data: paginatedResponse([]) });
 
     expect(
       await screen.findByRole('heading', { name: 'Coffee' }),
@@ -195,7 +199,7 @@ describe('marketplace pages', () => {
       if (url === '/notifications/unread-count') {
         return Promise.resolve({ data: { count: 0 } });
       }
-      return Promise.resolve({ data: [] });
+      return Promise.resolve({ data: paginatedResponse([]) });
     });
     vi.mocked(api.put).mockResolvedValue({ data: {} });
 
@@ -231,7 +235,7 @@ describe('marketplace pages', () => {
           resolveNextPage = resolve;
         }) as never;
       }
-      return Promise.resolve({ data: [] });
+      return Promise.resolve({ data: paginatedResponse([]) });
     });
 
     renderAt('/products/product-1', '/products/:productId', <ProductDetail />);
@@ -310,7 +314,7 @@ describe('marketplace pages', () => {
     vi.mocked(api.get).mockImplementation(async (url) => {
       if (url === '/cart') throw new Error('network error');
       if (url === '/notifications/unread-count') return { data: { count: 0 } };
-      return { data: [] };
+      return { data: paginatedResponse([]) };
     });
 
     renderAt('/checkout', '/checkout', <Checkout />);
@@ -392,7 +396,7 @@ describe('marketplace pages', () => {
   it('loads seller profiles with product links', async () => {
     vi.mocked(api.get)
       .mockResolvedValueOnce({ data: product.sellerProfile })
-      .mockResolvedValueOnce({ data: [product] });
+      .mockResolvedValueOnce({ data: paginatedResponse([product]) });
 
     renderAt(
       '/sellers/seller-1/profile',

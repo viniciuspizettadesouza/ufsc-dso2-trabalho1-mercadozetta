@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@source not './contracts/api.ts';
 
 @theme inline {
   --color-canvas: var(--theme-canvas);

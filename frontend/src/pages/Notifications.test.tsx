@@ -8,6 +8,7 @@ import api from '@/services/api';
 import { AuthTestProvider } from '@/test/AuthTestProvider';
 import { ServerStateProvider } from '@/serverState/queryClient';
 import type { AuthUser } from '@/auth/AuthContext';
+import { paginatedResponse } from '@/test/paginatedResponse';
 
 vi.mock('@/services/api', () => ({
   default: {
@@ -41,10 +42,10 @@ describe('Notifications', () => {
 
   it('loads notifications and updates read state', async () => {
     vi.mocked(api.get).mockResolvedValueOnce({
-      data: [
+      data: paginatedResponse([
         { _id: 'notification-1', message: 'Order created', read: false },
         { _id: 'notification-2', message: 'Review created', read: false },
-      ],
+      ]),
     });
     vi.mocked(api.patch).mockResolvedValueOnce({
       data: {
@@ -75,7 +76,9 @@ describe('Notifications', () => {
 
   it('preserves notification state when a read update fails', async () => {
     vi.mocked(api.get).mockResolvedValueOnce({
-      data: [{ _id: 'notification-1', message: 'Order created', read: false }],
+      data: paginatedResponse([
+        { _id: 'notification-1', message: 'Order created', read: false },
+      ]),
     });
     vi.mocked(api.patch).mockRejectedValueOnce(new Error('network error'));
 
@@ -97,9 +100,9 @@ describe('Notifications', () => {
     vi.mocked(api.get).mockImplementation(async (url) => {
       if (url === '/notifications/unread-count') return { data: { count: 2 } };
       return {
-        data: [
+        data: paginatedResponse([
           { _id: 'notification-1', message: 'Order created', read: false },
-        ],
+        ]),
       };
     });
     vi.mocked(api.patch).mockResolvedValueOnce({
@@ -135,7 +138,9 @@ describe('Notifications', () => {
   });
 
   it('shows an empty state after a successful empty response', async () => {
-    vi.mocked(api.get).mockResolvedValueOnce({ data: [] });
+    vi.mocked(api.get).mockResolvedValueOnce({
+      data: paginatedResponse([]),
+    });
 
     renderNotifications();
 

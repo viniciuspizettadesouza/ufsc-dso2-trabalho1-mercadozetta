@@ -12,8 +12,8 @@ export type CheckoutOrder = {
     actor: string;
     changedAt: Date;
   }>;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 export interface OrderRepository {

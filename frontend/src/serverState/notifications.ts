@@ -6,45 +6,31 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 
-import { pageInfo, pageItems, withPage, type PageInfo } from '@/pagination';
-import { apiRoutes } from '@/routes';
-import api from '@/services/api';
 import {
   queryKeys,
   type NotificationListRequest,
 } from '@/serverState/queryKeys';
+import {
+  getUnreadNotificationCount,
+  listNotifications,
+  updateNotificationRead,
+  type Notification,
+  type NotificationList,
+} from '@/services/notifications';
 
-export type Notification = {
-  _id: string;
-  message: string;
-  read: boolean;
-};
-export type NotificationQueryData = {
-  items: Notification[];
-  page: PageInfo;
-};
+export type { Notification } from '@/services/notifications';
+export type NotificationQueryData = NotificationList;
 
 export const notificationQueries = {
   list: (request: NotificationListRequest) =>
     queryOptions({
       queryKey: queryKeys.notifications.list(request),
-      queryFn: async () => {
-        const response = await api.get(
-          withPage(apiRoutes.notifications, request.offset, request.limit),
-        );
-        return {
-          items: pageItems<Notification>(response.data),
-          page: pageInfo<Notification>(response.data),
-        };
-      },
+      queryFn: () => listNotifications(request),
     }),
   unreadCount: (userId: string) =>
     queryOptions({
       queryKey: queryKeys.notifications.unreadCount(userId),
-      queryFn: async () => {
-        const response = await api.get(apiRoutes.unreadNotificationCount);
-        return response.data.count as number;
-      },
+      queryFn: getUnreadNotificationCount,
     }),
 };
 
@@ -75,13 +61,7 @@ export function useNotificationReadMutation(
     }: {
       notification: Notification;
       read: boolean;
-    }) => {
-      const response = await api.patch(
-        apiRoutes.notification(notification._id),
-        { read },
-      );
-      return response.data as Notification;
-    },
+    }) => updateNotificationRead(notification._id, { read }),
     onSuccess: (updated, { notification }) => {
       queryClient.setQueryData<NotificationQueryData>(
         queryKeys.notifications.list(request),

@@ -13,11 +13,11 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - TypeScript 7 is deferred until `typescript-eslint` publishes a compatible
   release; version 8.63.0 and its current canary support TypeScript only through
   versions earlier than 6.1.0.
-- Backend has 113 focused tests across 27 files and passes its coverage
-  thresholds with 87.23% branches and 85.46% functions. Frontend has 104 tests
-  across 20 files and passes its thresholds with 90.8% branches and 92.72% functions.
-  Type checks, tests, lint, formatting, OpenAPI
-  generation, coverage, and the production build pass.
+- Backend has 142 focused tests across 29 files and passes its coverage
+  thresholds with 87.95% branches and 86.48% functions. Frontend has 133 tests
+  across 24 files and passes its thresholds with 91.11% branches and 96.18%
+  functions. Type checks, tests, lint, formatting, generated-contract parity,
+  coverage, and the production build pass.
 - Checkout commits order creation, items, conditional inventory decrements, cart
   clearing, and notifications in one PostgreSQL transaction.
 - A separate `npm run test:integration` lane builds ephemeral PostgreSQL 18,
@@ -65,7 +65,7 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - Focused unit and contract tests pass for cookie flags, login response safety,
   access validation, Origin/CSRF rejection, expiry, rotation, replay,
   concurrency, tenant scoping, revocation, and failed frontend renewal. The
-  database-backed integration lane passes all 10 scenarios and cleans up its
+  database-backed integration lane passes all 11 scenarios and cleans up its
   containers and isolated network successfully.
 - The root `npm run test:e2e` lane builds isolated, deterministically seeded
   PostgreSQL backend/frontend stacks and runs Chromium through protected-route
@@ -336,13 +336,181 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   construction under `frontend/src/pages/`. All 129 frontend tests, coverage
   thresholds (91.28% branches and 96.07% functions), formatting, lint,
   typecheck, and the production build pass. Step 8 is complete.
-- Next action: begin Step 9 with a contract audit of the product endpoints.
-  Compare their implemented success/error/list responses with the Zod schemas
-  and response metadata in `backend/src/validators/` and
-  `backend/src/openapi/document.ts`, plus the handwritten product types in
-  `frontend/src/serverState/products.ts`. Record concrete schema or example gaps
-  before changing frontend types, and regenerate `docs/openapi.json` after any
-  backend contract metadata change.
+- The Step 9 product contract audit is recorded in
+  `docs/product-api-contract-audit.md`. Reusable Zod schemas now define product,
+  seller-profile, create-product, pagination, list, and error responses. OpenAPI
+  correctly documents a UUID `seller` plus optional detail `sellerProfile`, a
+  nullable description, required database-backed fields and timestamps, and
+  complete product examples. No frontend response type changed during the audit.
+  The regenerated contract, 115 backend tests, 129 frontend tests, coverage
+  thresholds, typecheck, lint, formatting, and the frontend production build
+  pass.
+- The accepted shared-type boundary uses `openapi-typescript` 7.13.0 to generate
+  runtime-free declarations from the checked-in OpenAPI document. Product,
+  product-status, product-list, create-product, update-product, and page-info
+  types now flow into the frontend without generating an API client or moving
+  endpoint paths out of `frontend/src/routes.ts`. Product and shared pagination
+  consumers no longer accept undocumented bare-array list responses. Root tests
+  and CI enforce generated-file parity, and `npm run generate:contracts`
+  refreshes OpenAPI and frontend types together. Tailwind source detection
+  excludes the generated declaration so contract strings cannot add unrelated
+  production CSS. All 115 backend tests, 129 frontend tests, coverage thresholds
+  (87.23% backend branches and 90.95% frontend branches), typecheck, lint,
+  formatting, the frontend production build, generated-file parity, and the root
+  production dependency audit pass.
+- Product endpoint error responses now enumerate only the codes reachable at
+  each HTTP status and provide a matching example for every code through shared
+  error-schema and product metadata. All successful product mutations return a
+  bare `Product`; the undeployed create-only `newProduct` wrapper is removed from
+  the controller, OpenAPI, generated types, frontend hook, and tests. The
+  PostgreSQL integration lane verifies the composed `201` creation response.
+  All 124 backend tests, 129 frontend tests, coverage thresholds, generated-file
+  parity, typecheck, lint, formatting, the frontend production build, and all 11
+  database scenarios pass with deterministic integration cleanup.
+- The Step 9 user/authentication audit is recorded in
+  `docs/user-auth-api-contract-audit.md`. Reusable schemas now describe nullable
+  persisted user fields, required user/session timestamps, public seller
+  profiles, authentication state, and active-session lists. User/authentication
+  errors constrain reachable codes per response with matching examples, login
+  documents invalid-origin failures, and seller IDs are validated by the live
+  route. Registration now returns a bare `User`; login, session restoration,
+  registration, and seller-profile Axios boundaries consume generated types.
+  Cookie, CSRF, rotation, revocation, and lifetime semantics are unchanged. All
+  131 backend tests, 129 frontend tests, coverage thresholds, generated-file
+  parity, typecheck, lint, formatting, the frontend production build, all 11
+  PostgreSQL scenarios, and both Chromium workflows pass.
+- The Step 9 cart audit is recorded in `docs/cart-api-contract-audit.md`. Named
+  request, populated-line, and cart schemas now match the implemented public
+  response without exposing the internal cart ID or a bare product-ID fallback.
+  Reads, updates, and removals share one `Cart` shape; every cart error response
+  constrains reachable codes and matching examples, including product-not-found
+  and inventory conflicts. Detailed-cart and product-collection HTTP boundaries
+  consume generated types while preserving their existing React Query keys,
+  optimistic updates, invalidation, and rollback behavior. All 133 backend
+  tests, 129 frontend tests, coverage thresholds, generated-file parity,
+  typecheck, lint, formatting, the frontend production build, and all 11
+  PostgreSQL scenarios pass.
+- The Step 9 watchlist audit is recorded in
+  `docs/watchlist-api-contract-audit.md`. Named list and entry schemas now
+  require populated products and persisted timestamps. Successful adds attach
+  the already-authorized product, so list and mutation responses expose one
+  shape while duplicate adds remain idempotent. Every watchlist error response
+  constrains its reachable codes and matching examples, and the shared frontend
+  collection hook consumes generated types without changing its React Query
+  optimistic rollback behavior. All 135 backend tests, 129 frontend tests,
+  coverage thresholds, generated-file parity, typecheck, lint, formatting, the
+  frontend production build, and all 11 PostgreSQL scenarios pass.
+- The Step 9 reviews audit is recorded in
+  `docs/reviews-api-contract-audit.md`. Named request, complete persisted review,
+  and paginated list schemas now match runtime validation and PostgreSQL output.
+  Public reads and verified-buyer upserts constrain every reachable validation,
+  authentication, CSRF, product, self-review, and purchase error with matching
+  examples. Frontend review queries and mutations consume generated types
+  without changing cache replacement or invalidation. All 138 backend tests,
+  129 frontend tests, coverage thresholds, generated-file parity, typecheck,
+  lint, formatting, the frontend production build, and all 11 PostgreSQL
+  scenarios pass.
+- The Step 9 notifications audit is recorded in
+  `docs/notifications-api-contract-audit.md`. Named complete notification,
+  paginated list, unread-count, and read-state request schemas now match runtime
+  validation and PostgreSQL output. Every list, count, and update response
+  constrains its reachable validation, authentication, CSRF, and
+  ownership-concealing not-found errors. Frontend notification hooks consume
+  generated types without changing cache replacement, unread-count deltas, or
+  invalidation. All 140 backend tests, 129 frontend tests, coverage thresholds,
+  generated-file parity, typecheck, lint, formatting, the frontend production
+  build, and all 11 PostgreSQL scenarios pass.
+- The Step 9 orders audit is recorded in `docs/orders-api-contract-audit.md`.
+  Named status, immutable line, history, complete order, list, and mutation
+  schemas now match PostgreSQL output. Checkout, scoped lists, and lifecycle
+  updates return one complete `Order`; seller updates include only owned lines
+  and buyer cancellation includes all lines. Every order error response
+  constrains reachable codes and examples. Frontend hooks consume generated
+  types, no longer duplicate seller filtering, and suppress anonymous seller
+  queries while preserving checkout cart clearing and invalidation. All 142
+  backend tests, 129 frontend tests, coverage thresholds, generated-file
+  parity, typecheck, lint, formatting, the frontend production build, all 11
+  PostgreSQL scenarios, and both Chromium workflows pass.
+- The domain-by-domain contract pass now covers products, users/authentication,
+  cart, watchlist, reviews, notifications, and orders. Successful resources,
+  lists, pagination, mutations, and reachable errors are represented by
+  Zod/OpenAPI, and frontend HTTP boundaries consume generated contracts without
+  a generated client.
+- Product HTTP access now lives in `frontend/src/services/products.ts`. The
+  service owns generated request/response types, catalog/seller URL query
+  serialization, and detail/create/update Axios calls while
+  `frontend/src/serverState/products.ts` retains query keys, enabled state,
+  cache replacement, and list invalidation. Focused service tests cover both
+  list scopes and every mutation route. All 142 backend tests, 133 frontend
+  tests, coverage thresholds, generated-file parity, typecheck, lint,
+  formatting, and the frontend production build pass.
+- Authentication HTTP access now lives in `frontend/src/services/auth.ts`. The
+  service owns generated login and authentication-state types plus login,
+  session-restoration, and logout Axios calls. Refresh/retry transport mechanics
+  remain in `frontend/src/services/api.ts`, identity lifecycle remains in
+  `AuthProvider`, and mutation policy remains in
+  `frontend/src/serverState/auth.ts`. Focused service tests cover every route.
+  All 142 backend tests, 136 frontend tests, coverage thresholds (87.95% backend
+  branches and 91.11% frontend branches), generated-file parity, typecheck,
+  lint, formatting, and the frontend production build pass.
+- User and seller HTTP access now lives in `frontend/src/services/users.ts` and
+  `frontend/src/services/sellers.ts`. The services own generated registration
+  and seller-profile types plus their Axios calls, while
+  `frontend/src/serverState/users.ts` and
+  `frontend/src/serverState/sellers.ts` retain mutation/query construction,
+  seller query keys, and enabled state. Focused service tests cover both routes.
+  All 142 backend tests, 138 frontend tests, coverage thresholds (87.95% backend
+  branches and 91.11% frontend branches), generated-file parity, typecheck,
+  lint, formatting, and the frontend production build pass.
+- Cart and watchlist HTTP access now lives in
+  `frontend/src/services/cart.ts` and
+  `frontend/src/services/watchlist.ts`. The shared cart service removes
+  duplicated reads and mutations across `frontend/src/serverState/cart.ts` and
+  `frontend/src/serverState/productCollections.ts`; those server-state modules
+  retain query keys, optimistic updates, rollback, and invalidation. Focused
+  service tests cover every cart and watchlist route and documented response.
+  All 142 backend tests, 144 frontend tests, coverage thresholds (87.95% backend
+  branches and 91.11% frontend branches), generated-file parity, typecheck,
+  lint, formatting, and the frontend production build pass.
+- Review HTTP access now lives in `frontend/src/services/reviews.ts`. The
+  service owns generated review types, paginated and unpaginated list URL
+  construction, list reads, and review upserts, while
+  `frontend/src/serverState/reviews.ts` retains query keys, placeholder data,
+  cache replacement, and invalidation. Focused service tests cover both list
+  path forms and the mutation route. All 142 backend tests, 147 frontend tests,
+  coverage thresholds (87.95% backend branches and 91.11% frontend branches),
+  generated-file parity, typecheck, lint, formatting, and the frontend
+  production build pass.
+- Notification HTTP access now lives in
+  `frontend/src/services/notifications.ts`. The service owns generated
+  notification types, pagination URL construction, list and unread-count reads,
+  and read-state updates, while
+  `frontend/src/serverState/notifications.ts` retains user-scoped query keys,
+  placeholder data, unread-count deltas, cache replacement, and invalidation.
+  Focused service tests cover all three routes and response transformations.
+  All 142 backend tests, 150 frontend tests, coverage thresholds (87.95% backend
+  branches and 91.11% frontend branches), generated-file parity, typecheck,
+  lint, formatting, and the frontend production build pass.
+- Order HTTP access now lives in `frontend/src/services/orders.ts`. The service
+  owns generated order types, buyer/seller scope and pagination URL
+  construction, list reads, checkout, and lifecycle updates, while
+  `frontend/src/serverState/orders.ts` retains query keys, placeholder data,
+  order cache replacement, cart clearing, and invalidation. Focused service
+  tests cover both list path forms and both mutation routes. The source audit
+  finds direct Axios calls only in domain services and the shared refresh
+  transport; pages, authentication lifecycle, and server-state modules no
+  longer own endpoint calls. All 142 backend tests, 154 frontend tests, coverage
+  thresholds (87.95% backend branches and 91.11% frontend branches),
+  generated-file parity, typecheck, lint, formatting, the frontend production
+  build, all 11 PostgreSQL scenarios, and both Chromium workflows pass. Step 9
+  is complete.
+- Next action: begin Step 10 with structured backend logging. Inspect the
+  existing request-context, correlation-ID, error, and application bootstrap
+  paths, then add `pino`/`pino-http` with a tested production log schema and
+  redaction for cookies, authorization, passwords, tokens, and CSRF values.
+  Preserve the current correlation ID and include safe tenant, route, response
+  status, duration, and authenticated-user identifiers without logging
+  unnecessary personal data.
 
 ## Recommended Order
 
@@ -517,11 +685,11 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 
 ### 9. Improve API consistency and frontend contract safety
 
-- [ ] Define consistent error, list, pagination, and mutation response shapes in
+- [x] Define consistent error, list, pagination, and mutation response shapes in
       Zod and OpenAPI before migrating list consumers.
-- [ ] Share or generate TypeScript contract types from the existing Zod/OpenAPI
+- [x] Share or generate TypeScript contract types from the existing Zod/OpenAPI
       source so frontend pages do not repeatedly declare approximate API types.
-- [ ] Organize the Axios layer around small domain services while keeping all
+- [x] Organize the Axios layer around small domain services while keeping all
       API paths in `frontend/src/routes.ts`.
 - Continue deferring a fully generated API client until maintaining handwritten
   endpoints becomes a measured burden.

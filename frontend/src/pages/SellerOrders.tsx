@@ -23,10 +23,22 @@ export default function SellerOrders() {
   const { user } = useAuth();
   const sellerId = user?._id ?? 'anonymous';
 
-  return <SellerOrdersPage key={sellerId} sellerId={sellerId} />;
+  return (
+    <SellerOrdersPage
+      key={sellerId}
+      sellerId={sellerId}
+      enabled={Boolean(user)}
+    />
+  );
 }
 
-function SellerOrdersPage({ sellerId }: { sellerId: string }) {
+function SellerOrdersPage({
+  sellerId,
+  enabled,
+}: {
+  sellerId: string;
+  enabled: boolean;
+}) {
   const [pendingOrder, setPendingOrder] = useState('');
   const [feedback, setFeedback] = useState<{
     type: 'success' | 'error';
@@ -38,7 +50,7 @@ function SellerOrdersPage({ sellerId }: { sellerId: string }) {
     limit: null,
     offset: null,
   }));
-  const orderQuery = useOrderList(orderRequest);
+  const orderQuery = useOrderList(orderRequest, enabled);
   const updateOrder = useAdvanceOrder(orderRequest);
   const orders = orderQuery.data?.items ?? [];
   const page = orderQuery.data?.page ?? firstPage;
@@ -87,7 +99,7 @@ function SellerOrdersPage({ sellerId }: { sellerId: string }) {
             {feedback.message}
           </p>
         )}
-        {orderQuery.isPending ? (
+        {enabled && orderQuery.isPending ? (
           <p role="status">Loading seller orders...</p>
         ) : orderQuery.isError &&
           orderQuery.data === undefined &&

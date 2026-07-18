@@ -1,3 +1,13 @@
+import type { NotificationListRequest } from '@/services/notifications';
+import type { OrderListRequest } from '@/services/orders';
+import type { ProductListRequest } from '@/services/products';
+import type { ReviewListRequest } from '@/services/reviews';
+
+export type { NotificationListRequest } from '@/services/notifications';
+export type { OrderListRequest } from '@/services/orders';
+export type { ProductListRequest } from '@/services/products';
+export type { ReviewListRequest } from '@/services/reviews';
+
 export const queryKeys = {
   cart: {
     all: ['cart'] as const,
@@ -55,32 +65,3 @@ export const queryKeys = {
       [...queryKeys.watchlist.all, 'product-ids', userId] as const,
   },
 } as const;
-
-export type ProductListRequest = {
-  sellerId: string | null;
-  q: string;
-  category: string;
-  availability: string;
-  sort: string;
-  limit: number | null;
-  offset: number | null;
-};
-
-export type ReviewListRequest = {
-  productId: string;
-  limit: number | null;
-  offset: number | null;
-};
-
-export type OrderListRequest = {
-  userId: string;
-  scope: 'buyer' | 'seller';
-  limit: number | null;
-  offset: number | null;
-};
-
-export type NotificationListRequest = {
-  userId: string;
-  limit: number;
-  offset: number;
-};

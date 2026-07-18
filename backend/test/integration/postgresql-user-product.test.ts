@@ -417,6 +417,13 @@ describe('PostgreSQL user and product repositories', () => {
   });
 
   it('enforces seller-owned product management and inventory lifecycle rules', async () => {
+    await request(postgresApp)
+      .get('/users/not-a-uuid')
+      .expect(400)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({ code: 'INVALID_SELLER_ID' });
+      });
+
     const sellerRegistration = await request(postgresApp)
       .post('/users')
       .send(userPayload)
@@ -445,7 +452,7 @@ describe('PostgreSQL user and product repositories', () => {
       .set('X-CSRF-Token', sellerAuth.csrf!)
       .send({ name: 'Managed', inventory: 2, image: 'managed.png' })
       .expect(201);
-    const productId = created.body.newProduct._id;
+    const productId = created.body._id;
 
     await request(postgresApp)
       .patch(`/products/${productId}`)
@@ -465,7 +472,7 @@ describe('PostgreSQL user and product repositories', () => {
         expect(body).toMatchObject({
           name: 'updated managed',
           category: 'office',
-          seller: sellerRegistration.body.newUser._id,
+          seller: sellerRegistration.body._id,
           tenantId: 'mercadozetta',
           inventory: 2,
           status: 'active',
@@ -528,7 +535,7 @@ describe('PostgreSQL user and product repositories', () => {
       .post('/users')
       .send(userPayload)
       .expect(201);
-    const sellerId = sellerRegistration.body.newUser._id;
+    const sellerId = sellerRegistration.body._id;
     const login = await request(postgresApp)
       .post('/auth/login')
       .set('Origin', 'http://localhost:5173')
@@ -554,7 +561,7 @@ describe('PostgreSQL user and product repositories', () => {
         image: 'postgres-http.png',
       })
       .expect(201);
-    const productId = createdProduct.body.newProduct._id;
+    const productId = createdProduct.body._id;
     await request(postgresApp)
       .get(`/products/${productId}`)
       .expect(200)
@@ -585,7 +592,12 @@ describe('PostgreSQL user and product repositories', () => {
       .send({ productId, quantity: 1 })
       .expect(200)
       .expect(({ body }) => {
-        expect(body).toMatchObject({ items: [{ quantity: 1 }] });
+        expect(body).toMatchObject({
+          tenantId: 'mercadozetta',
+          buyer: buyerLogin.body.user._id,
+          items: [{ product: { _id: productId }, quantity: 1 }],
+        });
+        expect(body).not.toHaveProperty('_id');
       });
     await request(postgresApp)
       .get('/ready')
@@ -909,6 +921,28 @@ describe('PostgreSQL user and product repositories', () => {
         },
       },
     ]);
+    const placedOrder = attempts.find(
+      (attempt) => attempt.status === 'fulfilled',
+    );
+    expect(placedOrder?.status).toBe('fulfilled');
+    if (placedOrder?.status !== 'fulfilled')
+      throw new Error('Expected one placed order');
+    expect(placedOrder.value).toMatchObject({
+      tenantId: 'mercadozetta',
+      status: 'placed',
+      items: [
+        {
+          tenantId: 'mercadozetta',
+          order: placedOrder.value._id,
+          product: product._id,
+          seller: seller._id,
+          productName: 'concurrent final unit',
+          quantity: 1,
+        },
+      ],
+      createdAt: expect.any(Date),
+      updatedAt: expect.any(Date),
+    });
 
     const [storedProduct, storedOrders, storedItems, storedHistory, notices] =
       await Promise.all([
@@ -970,14 +1004,16 @@ describe('PostgreSQL user and product repositories', () => {
     await expect(
       orderService.listOrders(losingCart!.buyerId, 'mercadozetta', firstPage),
     ).resolves.toMatchObject({ items: [] });
-    await expect(
-      orderService.updateOrderStatus(
-        seller._id,
-        'mercadozetta',
-        storedOrders[0].id,
-        'confirmed',
-      ),
-    ).resolves.toMatchObject({ status: 'confirmed' });
+    const advancedOrder = await orderService.updateOrderStatus(
+      seller._id,
+      'mercadozetta',
+      storedOrders[0].id,
+      'confirmed',
+    );
+    expect(advancedOrder).toMatchObject({
+      status: 'confirmed',
+      items: [{ product: product._id, seller: seller._id }],
+    });
 
     const buyerNotices = await notificationService.listNotifications(
       storedOrders[0].buyerId,
@@ -999,12 +1035,20 @@ describe('PostgreSQL user and product repositories', () => {
     await expect(
       notificationService.countUnreadNotifications(seller._id, 'mercadozetta'),
     ).resolves.toBe(sellerNotices.items.length);
-    await notificationService.updateNotificationRead(
+    const updatedNotice = await notificationService.updateNotificationRead(
       seller._id,
       'mercadozetta',
       sellerNotices.items[0]._id,
       true,
     );
+    expect(updatedNotice).toMatchObject({
+      _id: sellerNotices.items[0]._id,
+      tenantId: 'mercadozetta',
+      user: seller._id,
+      read: true,
+      createdAt: expect.any(Date),
+      updatedAt: expect.any(Date),
+    });
     await expect(
       notificationService.updateNotificationRead(
         losingCart!.buyerId,
@@ -1060,6 +1104,11 @@ describe('PostgreSQL user and product repositories', () => {
       product._id,
     );
     expect(duplicateWatch._id).toBe(firstWatch._id);
+    expect(firstWatch.product).toMatchObject({
+      _id: product._id,
+      seller: seller._id,
+    });
+    expect(duplicateWatch.product).toMatchObject({ _id: product._id });
     await expect(
       watchlistService.listWatchlist(buyer._id, 'mercadozetta'),
     ).resolves.toMatchObject([
@@ -1128,6 +1177,13 @@ describe('PostgreSQL user and product repositories', () => {
       'Excellent',
     );
     expect(updated._id).toBe(created._id);
+    expect(created).toMatchObject({
+      tenantId: 'mercadozetta',
+      product: product._id,
+      author: buyer._id,
+      createdAt: expect.any(Date),
+      updatedAt: expect.any(Date),
+    });
     await expect(
       reviewService.listReviews('mercadozetta', product._id, firstPage),
     ).resolves.toMatchObject({

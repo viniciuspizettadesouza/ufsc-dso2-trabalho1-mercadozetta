@@ -17,7 +17,7 @@ export interface CartRepository {
   ): Promise<{
     tenantId: string;
     buyer: string;
-    items: Array<{ product: ProductRecord | string; quantity: number }>;
+    items: Array<{ product: ProductRecord; quantity: number }>;
   } | null>;
   setItem(
     tenantId: string,

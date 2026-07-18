@@ -1,9 +1,6 @@
-export type PageInfo = {
-  limit: number;
-  offset: number;
-  total: number;
-  hasMore: boolean;
-};
+import type { components } from '@/contracts/api';
+
+export type PageInfo = components['schemas']['PageInfo'];
 
 export type Paginated<T> = { items: T[]; page: PageInfo };
 
@@ -14,12 +11,12 @@ export const firstPage: PageInfo = {
   hasMore: false,
 };
 
-export function pageItems<T>(data: Paginated<T> | T[]): T[] {
-  return Array.isArray(data) ? data : data.items;
+export function pageItems<T>(data: Paginated<T>): T[] {
+  return data.items;
 }
 
-export function pageInfo<T>(data: Paginated<T> | T[]): PageInfo {
-  return Array.isArray(data) ? { ...firstPage, total: data.length } : data.page;
+export function pageInfo<T>(data: Paginated<T>): PageInfo {
+  return data.page;
 }
 
 export function withPage(path: string, offset: number, limit = 20) {

@@ -90,7 +90,15 @@ export function createRoutes(dependencies: RouteDependencies) {
     asyncHandler(ProductController.detail),
   );
 
-  routes.get('/users/:userId', asyncHandler(UserController.sellerProfile));
+  routes.get(
+    '/users/:userId',
+    validateRequest({
+      params: (params) => ({
+        userId: validateSellerId(String(params.userId || '')),
+      }),
+    }),
+    asyncHandler(UserController.sellerProfile),
+  );
 
   routes.get(
     '/users/:userId/products',

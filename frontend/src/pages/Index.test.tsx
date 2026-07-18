@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Index from '@/pages/Index';
 import api from '@/services/api';
 import { ServerStateProvider } from '@/serverState/queryClient';
+import { paginatedResponse } from '@/test/paginatedResponse';
 
 const navigate = vi.fn();
 
@@ -41,7 +42,7 @@ describe('Index', () => {
 
   beforeEach(() => {
     navigate.mockReset();
-    vi.mocked(api.get).mockResolvedValue({ data: [] });
+    vi.mocked(api.get).mockResolvedValue({ data: paginatedResponse([]) });
   });
 
   it('renders the main marketplace experience', async () => {

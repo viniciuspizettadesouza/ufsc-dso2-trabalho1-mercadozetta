@@ -1,27 +1,21 @@
 import { useMutation } from '@tanstack/react-query';
 
 import type { AuthUser } from '@/auth/AuthContext';
-import { apiRoutes } from '@/routes';
-import api from '@/services/api';
+import { login, logout, type LoginInput } from '@/services/auth';
 
-export type LoginInput = {
-  email: string;
-  password: string;
-};
+export type { LoginInput } from '@/services/auth';
 
 export function useLogin() {
   return useMutation({
     mutationFn: async (input: LoginInput) => {
-      const response = await api.post(apiRoutes.login, input);
-      return response.data.user as AuthUser;
+      const authState = await login(input);
+      return authState.user satisfies AuthUser;
     },
   });
 }
 
 export function useLogout() {
   return useMutation({
-    mutationFn: async () => {
-      await api.post(apiRoutes.logout);
-    },
+    mutationFn: logout,
   });
 }

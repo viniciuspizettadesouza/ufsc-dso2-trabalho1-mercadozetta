@@ -8,6 +8,7 @@ import api from '@/services/api';
 import { AuthTestProvider } from '@/test/AuthTestProvider';
 import type { AuthUser } from '@/auth/AuthContext';
 import { ServerStateProvider } from '@/serverState/queryClient';
+import { paginatedResponse } from '@/test/paginatedResponse';
 
 vi.mock('@/services/api', () => ({
   default: {
@@ -41,7 +42,10 @@ describe('SellerOrders', () => {
 
   function mockOrders(data: unknown) {
     vi.mocked(api.get).mockImplementation(async (url) => ({
-      data: url === '/notifications/unread-count' ? { count: 0 } : data,
+      data:
+        url === '/notifications/unread-count'
+          ? { count: 0 }
+          : paginatedResponse(data as object[]),
     }));
   }
 
@@ -57,10 +61,7 @@ describe('SellerOrders', () => {
             changedAt: '2026-07-13T10:00:00.000Z',
           },
         ],
-        items: [
-          { productName: 'Coffee', quantity: 2, seller: 'seller-1' },
-          { productName: 'Tea', quantity: 1, seller: 'seller-2' },
-        ],
+        items: [{ productName: 'Coffee', quantity: 2, seller: 'seller-1' }],
       },
     ]);
 
@@ -85,6 +86,9 @@ describe('SellerOrders', () => {
     ]);
     vi.mocked(api.patch).mockResolvedValueOnce({
       data: {
+        _id: 'order-1',
+        status: 'confirmed',
+        items: [{ productName: 'Coffee', quantity: 1, seller: 'seller-1' }],
         statusHistory: [
           {
             status: 'confirmed',

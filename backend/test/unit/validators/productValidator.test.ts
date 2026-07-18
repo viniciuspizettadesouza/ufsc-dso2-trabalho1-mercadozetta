@@ -5,6 +5,10 @@ import {
   validateProductId,
   validateSellerId,
   validateUpdateProductPayload,
+  productResponseSchema,
+  productInvalidRequestExamples,
+  validateProductInventoryUpdate,
+  validateProductStatusUpdate,
 } from '@/validators/productValidator';
 
 describe('productValidator', () => {
@@ -201,5 +205,71 @@ describe('productValidator', () => {
     expect(() => validateSellerId('not-a-uuid')).toThrow(
       expect.objectContaining({ code: 'INVALID_SELLER_ID' }),
     );
+  });
+
+  it('defines the PostgreSQL product response including nullable fields and seller detail', () => {
+    const product = {
+      _id: '507f191e-810c-4197-9de8-60ea00000001',
+      tenantId: 'mercadozetta',
+      seller: '507f1f77-bcf8-4ecd-8994-390110000001',
+      name: 'Keyboard',
+      description: null,
+      category: 'electronics',
+      subcategory: 'keyboards',
+      inventory: 2,
+      image: 'keyboard.png',
+      status: 'active',
+      createdAt: '2026-01-15T12:00:00.000Z',
+      updatedAt: '2026-01-15T12:00:00.000Z',
+      sellerProfile: {
+        _id: '507f1f77-bcf8-4ecd-8994-390110000001',
+        username: null,
+        telephone: null,
+        email: 'seller@example.com',
+        storeName: 'Seller store',
+      },
+    };
+
+    expect(productResponseSchema.parse(product)).toEqual(product);
+    expect(() =>
+      productResponseSchema.parse({
+        ...product,
+        seller: product.sellerProfile,
+      }),
+    ).toThrow();
+  });
+
+  it('keeps documented INVALID_REQUEST examples aligned with Zod failures', () => {
+    const cases = [
+      [
+        () => validateProductFilters({ limit: 101 }),
+        productInvalidRequestExamples.list,
+      ],
+      [
+        () => validateCreateProductPayload('invalid' as never),
+        productInvalidRequestExamples.create,
+      ],
+      [
+        () => validateUpdateProductPayload({ name: 1 } as never),
+        productInvalidRequestExamples.update,
+      ],
+      [
+        () => validateProductInventoryUpdate({ inventory: -1 }),
+        productInvalidRequestExamples.inventory,
+      ],
+      [
+        () => validateProductStatusUpdate({ status: 'deleted' }),
+        productInvalidRequestExamples.status,
+      ],
+    ] as const;
+
+    for (const [validate, example] of cases) {
+      expect(validate).toThrow(
+        expect.objectContaining({
+          message: example.error,
+          code: example.code,
+        }),
+      );
+    }
   });
 });

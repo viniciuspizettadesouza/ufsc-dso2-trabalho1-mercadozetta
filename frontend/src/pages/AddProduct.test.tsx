@@ -84,7 +84,7 @@ describe('AddProduct', () => {
 
   it('creates a product and redirects to the seller page', async () => {
     vi.mocked(api.post).mockResolvedValueOnce({
-      data: { newProduct: { _id: 'product-1' } },
+      data: { _id: 'product-1' },
     });
 
     renderAddProduct({ _id: 'user-1' });
@@ -110,7 +110,7 @@ describe('AddProduct', () => {
 
   it('submits the selected product status', async () => {
     vi.mocked(api.post).mockResolvedValueOnce({
-      data: { newProduct: { _id: 'product-1' } },
+      data: { _id: 'product-1' },
     });
 
     renderAddProduct({ _id: 'user-1' });
@@ -153,7 +153,7 @@ describe('AddProduct', () => {
     await userEvent.click(submit);
     expect(api.post).toHaveBeenCalledTimes(1);
 
-    resolveRequest?.({ data: { newProduct: { _id: 'product-1' } } });
+    resolveRequest?.({ data: { _id: 'product-1' } });
     await waitFor(() =>
       expect(navigate).toHaveBeenCalledWith('/sellers/user-1'),
     );
