@@ -5,6 +5,8 @@ import Header from '@/pages/header';
 import api from '@/services/api';
 import { apiRoutes, appRoutes } from '@/routes';
 import PaginationControls from '@/components/PaginationControls';
+import { Button } from '@/components/Button';
+import { Select } from '@/components/Select';
 import { firstPage, pageInfo, pageItems, withPage } from '@/pagination';
 
 type Product = {
@@ -131,7 +133,7 @@ export default function Checkout() {
           <p
             className={
               feedback.type === 'error'
-                ? 'mt-4 font-bold text-red-600'
+                ? 'mt-4 font-bold text-red-700'
                 : 'mt-4 font-bold text-green-700'
             }
             role={feedback.type === 'error' ? 'alert' : 'status'}
@@ -152,7 +154,7 @@ export default function Checkout() {
                     <span className="sr-only">
                       Quantity for {item.product.name}
                     </span>
-                    <select
+                    <Select
                       aria-label={`Quantity for ${item.product.name}`}
                       disabled={Boolean(pendingItem)}
                       value={item.quantity}
@@ -171,9 +173,9 @@ export default function Checkout() {
                           {quantity}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </label>{' '}
-                  <button
+                  <Button
                     type="button"
                     disabled={Boolean(pendingItem)}
                     onClick={() => removeItem(item.product._id)}
@@ -181,10 +183,10 @@ export default function Checkout() {
                     {pendingItem === item.product._id
                       ? 'Updating item...'
                       : `Remove ${item.product.name}`}
-                  </button>
+                  </Button>
                   {(item.product.status !== 'active' ||
                     (item.product.inventory ?? 0) < item.quantity) && (
-                    <span className="font-bold text-red-600"> Unavailable</span>
+                    <span className="font-bold text-red-700"> Unavailable</span>
                   )}
                 </li>
               ))}
@@ -197,7 +199,8 @@ export default function Checkout() {
               Update or remove unavailable items before placing your order.
             </p>
           )}
-          <button
+          <Button
+            variant="primary"
             type="button"
             disabled={
               isLoading ||
@@ -209,7 +212,7 @@ export default function Checkout() {
             onClick={placeOrder}
           >
             {isPlacingOrder ? 'Placing order...' : 'Place order'}
-          </button>
+          </Button>
         </section>
         <section className="mt-8">
           <h2 className="text-xl font-bold">Order history</h2>

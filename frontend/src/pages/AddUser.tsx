@@ -6,6 +6,8 @@ import Header from '@/pages/header';
 import api from '@/services/api';
 import { useBrand } from '@/brands/brandContext';
 import { apiRoutes, appRoutes } from '@/routes';
+import { Button } from '@/components/Button';
+import { Input } from '@/components/Input';
 
 export default function AddUser() {
   const brand = useBrand();
@@ -46,6 +48,7 @@ export default function AddUser() {
       <Header />
       <main className="flex h-full items-center justify-center">
         <form
+          aria-describedby={error ? 'registration-error' : undefined}
           className="flex w-full max-w-[300px] flex-col"
           onSubmit={handleSubmit}
         >
@@ -53,10 +56,10 @@ export default function AddUser() {
           <label className="sr-only" htmlFor="register-name">
             Name
           </label>
-          <input
+          <Input
             id="register-name"
             autoComplete="name"
-            className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
+            className="mt-5 h-12 px-5 text-base"
             type="text"
             placeholder="Name"
             value={username}
@@ -65,10 +68,10 @@ export default function AddUser() {
           <label className="sr-only" htmlFor="register-phone">
             Phone
           </label>
-          <input
+          <Input
             id="register-phone"
             autoComplete="tel"
-            className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
+            className="mt-5 h-12 px-5 text-base"
             type="text"
             placeholder="Phone"
             value={telephone}
@@ -77,10 +80,10 @@ export default function AddUser() {
           <label className="sr-only" htmlFor="register-email">
             Email
           </label>
-          <input
+          <Input
             id="register-email"
             autoComplete="email"
-            className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
+            className="mt-5 h-12 px-5 text-base"
             type="email"
             placeholder="Email"
             value={email}
@@ -89,26 +92,31 @@ export default function AddUser() {
           <label className="sr-only" htmlFor="register-password">
             Password
           </label>
-          <input
+          <Input
             id="register-password"
             autoComplete="new-password"
-            className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
+            className="mt-5 h-12 px-5 text-base"
             type="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
           {error && (
-            <p className="mt-3 text-sm font-medium text-red-600" role="alert">
+            <p
+              id="registration-error"
+              className="mt-3 text-sm font-medium text-red-700"
+              role="alert"
+            >
               {error}
             </p>
           )}
-          <button
-            className="mt-2.5 h-12 cursor-pointer rounded border-0 bg-[var(--brand-secondary)] text-base font-bold text-white"
+          <Button
+            className="mt-2.5 h-12 text-base"
+            variant="primary"
             type="submit"
           >
             {brand.copy.forms.createAccountAction}
-          </button>
+          </Button>
         </form>
       </main>
     </div>

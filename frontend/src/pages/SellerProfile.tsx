@@ -53,35 +53,35 @@ export default function SellerProfile() {
       <Header />
       <main className="mx-auto max-w-[900px] px-4 py-8">
         {error ? (
-          <p role="alert" className="text-xl font-bold text-red-600">
+          <p role="alert" className="text-xl font-bold text-red-700">
             {error}
           </p>
         ) : !seller ? (
-          <p role="status" className="text-xl font-bold text-[#999]">
+          <p role="status" className="text-xl font-bold text-muted">
             Loading seller...
           </p>
         ) : (
           <>
-            <section className="rounded border border-solid border-[#ddd] p-5">
+            <section className="rounded-surface border border-solid border-theme-border bg-surface p-5 shadow-surface">
               <h1 className="text-3xl font-bold">
                 {seller.storeName || 'Seller store'}
               </h1>
-              <p className="mt-2 text-[#666]">{seller.username || 'Seller'}</p>
+              <p className="mt-2 text-muted">{seller.username || 'Seller'}</p>
               {seller.telephone && (
-                <p className="text-[#666]">Contact: {seller.telephone}</p>
+                <p className="text-muted">Contact: {seller.telephone}</p>
               )}
-              {seller.email && <p className="text-[#666]">{seller.email}</p>}
+              {seller.email && <p className="text-muted">{seller.email}</p>}
             </section>
             <section className="mt-8">
               <h2 className="text-xl font-bold">Seller products</h2>
               <ul className="mt-3 space-y-2">
                 {products.map((product) => (
                   <li
-                    className="rounded border border-solid border-[#ddd] p-3"
+                    className="rounded-surface border border-solid border-theme-border bg-surface p-3"
                     key={product._id}
                   >
                     <Link
-                      className="font-bold text-[var(--brand-secondary)]"
+                      className="font-bold text-action"
                       to={appRoutes.productDetail(product._id)}
                     >
                       {product.name}

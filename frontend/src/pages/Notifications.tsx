@@ -5,6 +5,7 @@ import Header from '@/pages/header';
 import { firstPage, pageInfo, pageItems, withPage } from '@/pagination';
 import { apiRoutes } from '@/routes';
 import api from '@/services/api';
+import { Button } from '@/components/Button';
 
 type Notification = {
   _id: string;
@@ -92,11 +93,11 @@ export default function Notifications() {
           <ul className="mt-6 space-y-2">
             {notifications.map((notification) => (
               <li
-                className="rounded border border-solid border-[#ddd] p-3"
+                className="rounded-surface border border-solid border-theme-border bg-surface p-3 shadow-surface"
                 key={notification._id}
               >
                 {notification.message}
-                <button
+                <Button
                   className="ml-3 cursor-pointer underline disabled:cursor-wait"
                   disabled={pendingId !== null}
                   type="button"
@@ -105,7 +106,7 @@ export default function Notifications() {
                   {pendingId === notification._id
                     ? 'Updating...'
                     : `Mark as ${notification.read ? 'unread' : 'read'}`}
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

@@ -5,6 +5,7 @@ import { useBrand } from '@/brands/brandContext';
 import { apiRoutes, appRoutes } from '@/routes';
 import api from '@/services/api';
 import { useAuth } from '@/auth/AuthContext';
+import { Button } from '@/components/Button';
 
 type HeaderProps = {
   hideLoginAction?: boolean;
@@ -63,17 +64,17 @@ const Header = ({ hideLoginAction = false }: HeaderProps) => {
   }
 
   return (
-    <header className="flex w-full box-border items-center justify-between bg-[var(--brand-primary)] max-[700px]:flex-col max-[700px]:items-start max-[700px]:gap-3 max-[700px]:pb-4">
+    <header className="box-border flex w-full items-center justify-between bg-surface-emphasized max-[700px]:flex-col max-[700px]:items-start max-[700px]:gap-3 max-[700px]:pb-4">
       <Link to="/">
         <img
-          className="h-[100px] bg-[var(--brand-primary)] pl-[100px] max-[700px]:pl-5"
+          className="h-[100px] bg-surface-emphasized pl-[100px] max-[700px]:pl-5"
           src={brand.logo}
           alt={`${brand.brandName} logo`}
         />
       </Link>
 
       {user ? (
-        <div className="mr-[100px] flex items-center gap-4 text-[var(--brand-text)] max-[700px]:mx-5 max-[700px]:items-start">
+        <div className="mr-[100px] flex items-center gap-4 text-content max-[700px]:mx-5 max-[700px]:items-start">
           <Link className="font-bold" to={appRoutes.sellerOrders}>
             Seller orders
           </Link>
@@ -93,25 +94,27 @@ const Header = ({ hideLoginAction = false }: HeaderProps) => {
             {user.email && <span>{user.email}</span>}
             {user.telephone && <span>{user.telephone}</span>}
           </div>
-          <button
-            className="h-10 cursor-pointer rounded border-0 bg-[var(--brand-secondary)] px-4 text-sm font-bold text-white"
+          <Button
+            className="h-10 px-4 text-sm"
+            variant="primary"
             type="button"
             onClick={handleLogout}
           >
             {brand.copy.header.logoutAction}
-          </button>
+          </Button>
         </div>
       ) : (
         !hideLoginAction &&
         location.pathname !== appRoutes.login && (
-          <div className="mr-[100px] flex items-center gap-4 text-[var(--brand-text)] max-[700px]:mx-5 max-[700px]:items-start">
-            <button
-              className="h-10 cursor-pointer rounded border-0 bg-[var(--brand-secondary)] px-4 text-sm font-bold text-white"
+          <div className="mr-[100px] flex items-center gap-4 text-content max-[700px]:mx-5 max-[700px]:items-start">
+            <Button
+              className="h-10 px-4 text-sm"
+              variant="primary"
               type="button"
               onClick={handleLogin}
             >
               {brand.copy.header.loginAction}
-            </button>
+            </Button>
           </div>
         )
       )}

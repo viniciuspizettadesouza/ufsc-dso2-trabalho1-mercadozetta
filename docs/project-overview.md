@@ -480,6 +480,8 @@ environment configuration.
   troubleshooting
 - [Authentication flow](authentication-flow.md): token, tenant, logout, and
   protected-route mechanics
+- [Tenant theming](tenant-theming.md): typed brand configuration, Tailwind
+  aliases, contrast requirements, and the checked-in brand workflow
 - [Generated OpenAPI contract](openapi.json): request and response reference
 - [Improvement plan](../PROJECT_IMPROVEMENT_PLAN.md): current priority, planned
   sequence, implementation status, and handoff

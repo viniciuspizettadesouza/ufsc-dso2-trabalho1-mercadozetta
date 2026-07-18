@@ -5,6 +5,7 @@ import { apiRoutes } from '@/routes';
 import api from '@/services/api';
 import { useAuth } from '@/auth/AuthContext';
 import PaginationControls from '@/components/PaginationControls';
+import { Button } from '@/components/Button';
 import { firstPage, pageInfo, pageItems, withPage } from '@/pagination';
 
 type OrderStatus =
@@ -157,7 +158,8 @@ export default function SellerOrders() {
                     ))}
                   </ul>
                   {status && (
-                    <button
+                    <Button
+                      variant="primary"
                       type="button"
                       disabled={Boolean(pendingOrder)}
                       onClick={() => advanceOrder(order)}
@@ -165,7 +167,7 @@ export default function SellerOrders() {
                       {pendingOrder === order._id
                         ? 'Updating order...'
                         : `Mark as ${status}`}
-                    </button>
+                    </Button>
                   )}
                 </li>
               );

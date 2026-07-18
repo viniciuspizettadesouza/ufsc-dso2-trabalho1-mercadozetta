@@ -3,6 +3,10 @@ import { Link, useParams } from 'react-router';
 import Header from '@/pages/header';
 import api from '@/services/api';
 import { apiRoutes, appRoutes } from '@/routes';
+import { Button } from '@/components/Button';
+import { Input } from '@/components/Input';
+import { Select } from '@/components/Select';
+import { Textarea } from '@/components/Textarea';
 
 type ProductStatus = 'draft' | 'active' | 'paused' | 'sold_out' | 'archived';
 type Product = {
@@ -96,42 +100,46 @@ export default function EditProduct() {
               <h2 className="text-xl font-bold">Listing details</h2>
               <label>
                 Name{' '}
-                <input
+                <Input
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                 />
               </label>
               <label>
                 Description{' '}
-                <textarea
+                <Textarea
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
                 />
               </label>
               <label>
                 Category{' '}
-                <input
+                <Input
                   value={category}
                   onChange={(event) => setCategory(event.target.value)}
                 />
               </label>
               <label>
                 Subcategory{' '}
-                <input
+                <Input
                   value={subcategory}
                   onChange={(event) => setSubcategory(event.target.value)}
                 />
               </label>
               <label>
                 Image URL{' '}
-                <input
+                <Input
                   value={image}
                   onChange={(event) => setImage(event.target.value)}
                 />
               </label>
-              <button disabled={Boolean(pending)} type="submit">
+              <Button
+                variant="primary"
+                disabled={Boolean(pending)}
+                type="submit"
+              >
                 {pending === 'details' ? 'Saving details...' : 'Save details'}
-              </button>
+              </Button>
             </form>
             <form
               className="mt-8 grid gap-3"
@@ -147,7 +155,7 @@ export default function EditProduct() {
               <h2 className="text-xl font-bold">Inventory</h2>
               <label>
                 Available units{' '}
-                <input
+                <Input
                   type="number"
                   min="0"
                   step="1"
@@ -155,11 +163,15 @@ export default function EditProduct() {
                   onChange={(event) => setInventory(event.target.value)}
                 />
               </label>
-              <button disabled={Boolean(pending)} type="submit">
+              <Button
+                variant="primary"
+                disabled={Boolean(pending)}
+                type="submit"
+              >
                 {pending === 'inventory'
                   ? 'Saving inventory...'
                   : 'Save inventory'}
-              </button>
+              </Button>
             </form>
             <form
               className="mt-8 grid gap-3"
@@ -175,7 +187,7 @@ export default function EditProduct() {
               <h2 className="text-xl font-bold">Lifecycle</h2>
               <label>
                 Status{' '}
-                <select
+                <Select
                   value={status}
                   onChange={(event) =>
                     setStatus(event.target.value as ProductStatus)
@@ -186,14 +198,18 @@ export default function EditProduct() {
                       <option key={value}>{value}</option>
                     ),
                   )}
-                </select>
+                </Select>
               </label>
-              <button disabled={Boolean(pending)} type="submit">
+              <Button
+                variant="primary"
+                disabled={Boolean(pending)}
+                type="submit"
+              >
                 {pending === 'status' ? 'Saving status...' : 'Save status'}
-              </button>
+              </Button>
             </form>
             <Link
-              className="mt-8 inline-block"
+              className="mt-8 inline-block text-action underline"
               to={appRoutes.productDetail(productId)}
             >
               Back to product

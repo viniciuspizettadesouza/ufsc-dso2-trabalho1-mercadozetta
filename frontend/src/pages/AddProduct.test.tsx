@@ -39,13 +39,13 @@ function renderAddProduct(user: AuthUser | null = null) {
 }
 
 async function fillProductForm() {
-  await userEvent.type(screen.getByPlaceholderText('Product name'), 'Coffee');
+  await userEvent.type(screen.getByLabelText('Product name'), 'Coffee');
   await userEvent.type(
-    screen.getByPlaceholderText('Product description'),
+    screen.getByLabelText('Product description'),
     'Fresh beans',
   );
-  await userEvent.type(screen.getByPlaceholderText('Quantity'), '3');
-  await userEvent.type(screen.getByPlaceholderText('Image URL'), 'coffee.jpg');
+  await userEvent.type(screen.getByLabelText('Quantity'), '3');
+  await userEvent.type(screen.getByLabelText('Enviar imagem'), 'coffee.jpg');
 }
 
 describe('AddProduct', () => {
@@ -62,6 +62,10 @@ describe('AddProduct', () => {
 
   it('shows an auth error when the user is not logged in', async () => {
     renderAddProduct();
+
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Criar anúncio' }),
+    ).toBeInTheDocument();
 
     await fillProductForm();
     await userEvent.click(

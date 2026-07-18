@@ -9,11 +9,36 @@ export const campusMarketBrand: BrandConfig = {
   marketplaceName: 'CampusMarket',
   logo,
   favicon: logo,
-  primaryColor: '#dff7f0',
-  secondaryColor: '#0f766e',
-  accentColor: '#f59e0b',
-  surfaceColor: '#f8fafc',
-  textColor: '#172554',
+  theme: {
+    colors: {
+      canvas: '#f1f5f9',
+      surface: {
+        default: '#f8fafc',
+        emphasized: '#dff7f0',
+      },
+      action: {
+        primary: '#0f766e',
+        primaryText: '#ffffff',
+        accent: '#b45309',
+      },
+      text: {
+        primary: '#172554',
+        muted: '#475569',
+      },
+      border: '#cbd5e1',
+    },
+    typography: {
+      body: 'Arial, Helvetica, sans-serif',
+      heading: 'Arial, Helvetica, sans-serif',
+    },
+    radius: {
+      control: '0.375rem',
+      surface: '0.5rem',
+    },
+    shadows: {
+      surface: '0 1px 3px rgb(15 23 42 / 12%)',
+    },
+  },
   currency: 'BRL',
   locale: 'pt-BR',
   supportEmail: 'support@campusmarket.example',

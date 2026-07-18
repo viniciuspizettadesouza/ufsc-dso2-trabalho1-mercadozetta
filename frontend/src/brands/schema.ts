@@ -76,17 +76,44 @@ export type BrandFeatures = {
   inventory: boolean;
 };
 
+export type BrandTheme = {
+  colors: {
+    canvas: string;
+    surface: {
+      default: string;
+      emphasized: string;
+    };
+    action: {
+      primary: string;
+      primaryText: string;
+      accent: string;
+    };
+    text: {
+      primary: string;
+      muted: string;
+    };
+    border: string;
+  };
+  typography: {
+    body: string;
+    heading: string;
+  };
+  radius: {
+    control: string;
+    surface: string;
+  };
+  shadows: {
+    surface: string;
+  };
+};
+
 export type BrandConfig = {
   tenantId: string;
   brandName: string;
   marketplaceName: string;
   logo: string;
   favicon: string;
-  primaryColor: string;
-  secondaryColor: string;
-  accentColor: string;
-  surfaceColor: string;
-  textColor: string;
+  theme: BrandTheme;
   currency: string;
   locale: string;
   supportEmail: string;

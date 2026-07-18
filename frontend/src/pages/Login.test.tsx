@@ -96,9 +96,13 @@ describe('Login', () => {
     );
     await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
 
-    expect(
-      await screen.findByText('E-mail ou senha inválidos'),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'E-mail ou senha inválidos',
+    );
+    expect(screen.getByLabelText('Email')).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    );
     expect(navigate).not.toHaveBeenCalled();
   });
 

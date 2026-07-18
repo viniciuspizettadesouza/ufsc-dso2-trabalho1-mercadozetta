@@ -13,6 +13,25 @@ function setCssVariable(name: string, value: string) {
   document.documentElement.style.setProperty(name, value);
 }
 
+function applyTheme(theme: BrandConfig['theme']) {
+  const { colors, typography, radius, shadows } = theme;
+
+  setCssVariable('--theme-canvas', colors.canvas);
+  setCssVariable('--theme-surface', colors.surface.default);
+  setCssVariable('--theme-surface-emphasized', colors.surface.emphasized);
+  setCssVariable('--theme-action-primary', colors.action.primary);
+  setCssVariable('--theme-action-primary-text', colors.action.primaryText);
+  setCssVariable('--theme-action-accent', colors.action.accent);
+  setCssVariable('--theme-text', colors.text.primary);
+  setCssVariable('--theme-text-muted', colors.text.muted);
+  setCssVariable('--theme-border', colors.border);
+  setCssVariable('--theme-font-body', typography.body);
+  setCssVariable('--theme-font-heading', typography.heading);
+  setCssVariable('--theme-radius-control', radius.control);
+  setCssVariable('--theme-radius-surface', radius.surface);
+  setCssVariable('--theme-shadow-surface', shadows.surface);
+}
+
 function updateFavicon(href: string) {
   let icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
 
@@ -34,12 +53,7 @@ export function BrandProvider({ brand, children }: BrandProviderProps) {
   useEffect(() => {
     document.title = activeBrand.marketplaceName;
     updateFavicon(activeBrand.favicon);
-
-    setCssVariable('--brand-primary', activeBrand.primaryColor);
-    setCssVariable('--brand-secondary', activeBrand.secondaryColor);
-    setCssVariable('--brand-accent', activeBrand.accentColor);
-    setCssVariable('--brand-surface', activeBrand.surfaceColor);
-    setCssVariable('--brand-text', activeBrand.textColor);
+    applyTheme(activeBrand.theme);
   }, [activeBrand]);
 
   return (

@@ -6,6 +6,9 @@ import { useBrand } from '@/brands/brandContext';
 import { apiRoutes, appRoutes } from '@/routes';
 import { useAuth } from '@/auth/AuthContext';
 import PaginationControls from '@/components/PaginationControls';
+import { Button } from '@/components/Button';
+import { Input } from '@/components/Input';
+import { Select } from '@/components/Select';
 import { firstPage, pageInfo, pageItems } from '@/pagination';
 
 type Product = {
@@ -222,38 +225,38 @@ export default function Products() {
   return (
     <section className="mx-auto max-w-[1180px] px-5 py-8">
       <form
-        className="grid gap-3 rounded border border-solid border-[#e5e7eb] bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.08)] md:grid-cols-[minmax(220px,1fr)_170px_190px_170px_auto]"
+        className="grid gap-3 rounded-surface border border-solid border-theme-border bg-surface p-4 shadow-surface md:grid-cols-[minmax(220px,1fr)_170px_190px_170px_auto]"
         onSubmit={(event) => {
           event.preventDefault();
           loadProducts();
         }}
       >
-        <label className="flex flex-col gap-1 text-sm font-bold text-[#374151]">
+        <label className="flex flex-col gap-1 text-sm font-bold text-content">
           {brand.copy.catalog.searchPlaceholder}
-          <input
-            className="h-11 rounded border border-solid border-[#d1d5db] px-3 text-base font-normal text-[#111827] placeholder:text-[#9ca3af]"
+          <Input
+            className="h-11 text-base font-normal"
             type="text"
             placeholder={brand.copy.catalog.searchPlaceholder}
             value={produto}
             onChange={procure}
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm font-bold text-[#374151]">
+        <label className="flex flex-col gap-1 text-sm font-bold text-content">
           {brand.copy.catalog.categoryFilterLabel}
-          <input
+          <Input
             aria-label={brand.copy.catalog.categoryFilterLabel}
-            className="h-11 rounded border border-solid border-[#d1d5db] px-3 text-base font-normal text-[#111827] placeholder:text-[#9ca3af]"
+            className="h-11 text-base font-normal"
             type="text"
             placeholder={brand.copy.catalog.categoryFilterPlaceholder}
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           />
         </label>
-        <label className="flex flex-col gap-1 text-sm font-bold text-[#374151]">
+        <label className="flex flex-col gap-1 text-sm font-bold text-content">
           {brand.copy.catalog.availabilityFilterLabel}
-          <select
+          <Select
             aria-label={brand.copy.catalog.availabilityFilterLabel}
-            className="h-11 rounded border border-solid border-[#d1d5db] px-3 text-base font-normal text-[#111827]"
+            className="h-11 text-base font-normal"
             value={availability}
             onChange={(e) => setAvailability(e.target.value)}
           >
@@ -264,13 +267,13 @@ export default function Products() {
             <option value="sold_out">
               {brand.copy.catalog.availabilitySoldOutLabel}
             </option>
-          </select>
+          </Select>
         </label>
-        <label className="flex flex-col gap-1 text-sm font-bold text-[#374151]">
+        <label className="flex flex-col gap-1 text-sm font-bold text-content">
           {brand.copy.catalog.sortLabel}
-          <select
+          <Select
             aria-label={brand.copy.catalog.sortLabel}
-            className="h-11 rounded border border-solid border-[#d1d5db] px-3 text-base font-normal text-[#111827]"
+            className="h-11 text-base font-normal"
             value={sort}
             onChange={(e) => setSort(e.target.value)}
           >
@@ -284,19 +287,20 @@ export default function Products() {
             <option value="inventory_desc">
               {brand.copy.catalog.sortInventoryLabel}
             </option>
-          </select>
+          </Select>
         </label>
-        <button
-          className="h-11 self-end rounded bg-[var(--brand-secondary)] px-5 text-sm font-bold text-white"
+        <Button
+          className="h-11 self-end px-5 text-sm"
+          variant="primary"
           type="submit"
         >
           {brand.copy.catalog.searchAction}
-        </button>
+        </Button>
       </form>
 
       {actionFeedback && (
         <p
-          className={`mt-4 rounded border p-3 font-bold ${
+          className={`mt-4 rounded-surface border p-3 font-bold ${
             actionFeedback.type === 'error'
               ? 'border-red-200 bg-red-50 text-red-700'
               : 'border-green-200 bg-green-50 text-green-700'
@@ -314,15 +318,15 @@ export default function Products() {
             <ul className="grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-4">
               {productSkeletons.map((item) => (
                 <li
-                  className="overflow-hidden rounded border border-solid border-[#e5e7eb] bg-white"
+                  className="overflow-hidden rounded-surface border border-solid border-theme-border bg-surface"
                   key={item}
                 >
-                  <div className="aspect-[4/3] bg-[#e5e7eb]" />
+                  <div className="aspect-[4/3] bg-theme-border" />
                   <div className="space-y-3 p-4">
-                    <div className="h-5 w-3/4 rounded bg-[#e5e7eb]" />
-                    <div className="h-4 w-full rounded bg-[#eef0f3]" />
-                    <div className="h-4 w-2/3 rounded bg-[#eef0f3]" />
-                    <div className="h-9 w-full rounded bg-[#e5e7eb]" />
+                    <div className="h-5 w-3/4 rounded-control bg-theme-border" />
+                    <div className="h-4 w-full rounded-control bg-canvas" />
+                    <div className="h-4 w-2/3 rounded-control bg-canvas" />
+                    <div className="h-9 w-full rounded-control bg-theme-border" />
                   </div>
                 </li>
               ))}
@@ -331,7 +335,7 @@ export default function Products() {
         ) : error ? (
           <div
             role="alert"
-            className="rounded border border-solid border-red-200 bg-red-50 p-5 text-base font-bold text-red-700"
+            className="rounded-surface border border-solid border-red-200 bg-red-50 p-5 text-base font-bold text-red-700"
           >
             {error}
           </div>
@@ -339,11 +343,11 @@ export default function Products() {
           <ul className="grid list-none grid-cols-1 gap-5 p-0 sm:grid-cols-2 lg:grid-cols-4">
             {newProducts.map((product) => (
               <li
-                className="flex min-h-full flex-col overflow-hidden rounded border border-solid border-[#e5e7eb] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.08)]"
+                className="flex min-h-full flex-col overflow-hidden rounded-surface border border-solid border-theme-border bg-surface shadow-surface"
                 key={product._id}
               >
                 <Link
-                  className="block bg-[#f3f4f6]"
+                  className="block bg-canvas"
                   to={appRoutes.productDetail(product._id)}
                 >
                   <img
@@ -355,22 +359,22 @@ export default function Products() {
                 <div className="flex flex-1 flex-col gap-3 p-4">
                   <div>
                     <Link
-                      className="line-clamp-2 min-h-12 text-base font-bold leading-6 text-[#111827]"
+                      className="line-clamp-2 min-h-12 text-base leading-6 font-bold text-content"
                       to={appRoutes.productDetail(product._id)}
                     >
                       {product.name}
                     </Link>
-                    <p className="mt-1 text-lg font-bold text-[var(--brand-accent)]">
+                    <p className="mt-1 text-lg font-bold text-accent">
                       {brand.copy.catalog.priceUnavailableLabel}
                     </p>
                   </div>
-                  <p className="line-clamp-3 min-h-[72px] text-sm leading-6 text-[#4b5563]">
+                  <p className="line-clamp-3 min-h-[72px] text-sm leading-6 text-muted">
                     <span className="font-bold">
                       {brand.copy.catalog.descriptionLabel}
                     </span>{' '}
                     {product.description}
                   </p>
-                  <dl className="grid gap-2 text-sm text-[#4b5563]">
+                  <dl className="grid gap-2 text-sm text-muted">
                     {product.category && (
                       <div className="flex items-start justify-between gap-3">
                         <dt className="font-bold">
@@ -388,8 +392,8 @@ export default function Products() {
                           <dd
                             className={
                               product.inventory > 0
-                                ? 'font-bold text-[var(--brand-accent)]'
-                                : 'font-bold text-red-600'
+                                ? 'font-bold text-green-700'
+                                : 'font-bold text-red-700'
                             }
                           >
                             {product.inventory > 0
@@ -403,7 +407,7 @@ export default function Products() {
                         <dt className="font-bold">
                           {brand.copy.catalog.statusLabel}
                         </dt>
-                        <dd className="rounded bg-[#eef2ff] px-2 py-0.5 text-right text-xs font-bold text-[#3730a3]">
+                        <dd className="rounded-control bg-slate-100 px-2 py-0.5 text-right text-xs font-bold text-slate-800">
                           {brand.copy.catalog.statusLabels[product.status]}
                         </dd>
                       </div>
@@ -415,7 +419,7 @@ export default function Products() {
                         </dt>
                         <dd className="text-right">
                           <Link
-                            className="font-bold text-[var(--brand-secondary)]"
+                            className="font-bold text-action"
                             to={appRoutes.sellerProfile(product.seller)}
                           >
                             {product.seller}
@@ -426,7 +430,7 @@ export default function Products() {
                   </dl>
                   <div className="mt-auto grid grid-cols-3 gap-2 pt-1">
                     <Link
-                      className="col-span-3 inline-flex min-h-10 items-center justify-center rounded bg-[var(--brand-secondary)] px-3 text-center text-sm font-bold text-white"
+                      className="col-span-3 inline-flex min-h-10 items-center justify-center rounded-control bg-action px-3 text-center text-sm font-bold text-on-action"
                       to={appRoutes.productDetail(product._id)}
                     >
                       {brand.copy.catalog.detailsAction}
@@ -439,8 +443,8 @@ export default function Products() {
                         Manage listing
                       </Link>
                     )}
-                    <button
-                      className="min-h-10 rounded border border-solid border-[#d1d5db] px-2 text-sm font-bold text-[#374151]"
+                    <Button
+                      className="px-2 text-sm"
                       type="button"
                       disabled={Boolean(pendingAction)}
                       onClick={() => toggleFavorite(product._id)}
@@ -450,9 +454,9 @@ export default function Products() {
                         : favorites.includes(product._id)
                           ? brand.copy.catalog.watchingAction
                           : brand.copy.catalog.watchAction}
-                    </button>
-                    <button
-                      className="col-span-2 min-h-10 rounded border border-solid border-[#d1d5db] px-2 text-sm font-bold text-[#374151]"
+                    </Button>
+                    <Button
+                      className="col-span-2 px-2 text-sm"
                       type="button"
                       disabled={Boolean(pendingAction)}
                       onClick={() => toggleCart(product._id)}
@@ -462,15 +466,15 @@ export default function Products() {
                         : cart.includes(product._id)
                           ? brand.copy.catalog.inCartAction
                           : brand.copy.catalog.cartAction}
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </li>
             ))}
           </ul>
         ) : (
-          <div className="rounded border border-dashed border-[#cbd5e1] bg-white p-8 text-center">
-            <h2 className="text-xl font-bold text-[#4b5563]">
+          <div className="rounded-surface border border-dashed border-theme-border bg-surface p-8 text-center">
+            <h2 className="text-xl font-bold text-muted">
               {brand.copy.catalog.empty}
             </h2>
           </div>

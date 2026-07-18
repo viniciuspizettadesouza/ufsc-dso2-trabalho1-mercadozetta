@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { expectPageToBeAccessible } from './accessibility';
+import { expectPageToBeAccessible, expectVisibleFocus } from './accessibility';
 
 test('returns to a protected route, renews cookies, and logs out', async ({
   context,
@@ -12,6 +12,13 @@ test('returns to a protected route, renews cookies, and logs out', async ({
     'Entre para acessar o checkout.',
   );
   await expectPageToBeAccessible(page);
+
+  await page.keyboard.press('Tab');
+  await expectVisibleFocus(
+    page.getByRole('link', { name: 'MercadoZetta logo' }),
+  );
+  await page.keyboard.press('Tab');
+  await expectVisibleFocus(page.getByLabel('Email'));
 
   await page.getByPlaceholder('Email').fill('vinicius@mercadozetta.test');
   await page.getByPlaceholder('Password').fill('mercadozetta123');

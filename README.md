@@ -125,6 +125,10 @@ The tenant header selects a known tenant but is not trusted as authorization.
 Backend services scope protected records and ownership checks to the resolved
 tenant.
 
+See [Tenant Theming](docs/tenant-theming.md) for the typed theme contract,
+Tailwind aliases, adding or modifying a checked-in brand, and required contrast
+and accessibility verification.
+
 ## Running the project
 
 ### Host development servers with Dockerized PostgreSQL
@@ -233,6 +237,9 @@ Run these from the repository root unless noted otherwise.
 | `npm --prefix backend run db:check`    | Check the consistency of the Drizzle migration history                           |
 | `npm --prefix backend run db:migrate`  | Apply committed PostgreSQL migrations using `POSTGRESQL_URL`                     |
 | `npm run seed:demo`                    | Refresh repeatable demo data                                                     |
+
+See the [accessibility verification guide](docs/accessibility.md) for automated
+checks and the manual keyboard and screen-reader smoke test.
 
 Dependency audits are run separately because there is no root aggregate script:
 

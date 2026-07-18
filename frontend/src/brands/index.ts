@@ -14,4 +14,4 @@ export function getBrandByTenantId(tenantId?: string): BrandConfig {
 }
 
 export { campusMarketBrand, defaultBrand };
-export type { BrandConfig };
+export type { BrandConfig, BrandTheme } from '@/brands/schema';

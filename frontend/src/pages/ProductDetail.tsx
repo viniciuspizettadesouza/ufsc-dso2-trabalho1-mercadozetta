@@ -7,6 +7,9 @@ import { useBrand } from '@/brands/brandContext';
 import { apiRoutes, appRoutes } from '@/routes';
 import { useAuth } from '@/auth/AuthContext';
 import PaginationControls from '@/components/PaginationControls';
+import { Button } from '@/components/Button';
+import { Input } from '@/components/Input';
+import { Select } from '@/components/Select';
 import { firstPage, pageInfo, pageItems, withPage } from '@/pagination';
 
 type Product = {
@@ -155,7 +158,7 @@ export default function ProductDetail() {
       <Header />
       <main className="mx-auto max-w-[980px] px-4 py-8">
         {error ? (
-          <p role="alert" className="text-xl font-bold text-red-600">
+          <p role="alert" className="text-xl font-bold text-red-700">
             {error}
           </p>
         ) : !product ? (
@@ -163,13 +166,13 @@ export default function ProductDetail() {
         ) : (
           <div className="grid gap-8 md:grid-cols-[360px_1fr]">
             <img
-              className="w-full rounded object-cover"
+              className="w-full rounded-surface object-cover"
               src={product.image}
               alt={product.name}
             />
             <section>
               <h1 className="text-3xl font-bold">{product.name}</h1>
-              <p className="mt-4 text-[#666]">{product.description}</p>
+              <p className="mt-4 text-muted">{product.description}</p>
               <dl className="mt-5 grid gap-2 text-sm">
                 <div>
                   <dt className="inline font-bold">
@@ -186,7 +189,7 @@ export default function ProductDetail() {
                   </div>
                 )}
               </dl>
-              <div className="mt-5 rounded border p-4">
+              <div className="mt-5 rounded-surface border border-theme-border bg-surface p-4 shadow-surface">
                 <h2 className="font-bold">
                   {product.sellerProfile?.storeName || 'Seller store'}
                 </h2>
@@ -198,7 +201,7 @@ export default function ProductDetail() {
                 )}
               </div>
               <div className="mt-5 flex gap-2">
-                <button
+                <Button
                   type="button"
                   disabled={Boolean(pendingAction)}
                   onClick={toggleWatch}
@@ -208,8 +211,8 @@ export default function ProductDetail() {
                     : watched
                       ? 'Watching'
                       : 'Watch'}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   disabled={Boolean(pendingAction)}
                   onClick={toggleCart}
@@ -219,14 +222,14 @@ export default function ProductDetail() {
                     : inCart
                       ? 'In cart'
                       : 'Add to cart'}
-                </button>
+                </Button>
                 <Link to={appRoutes.checkout}>Checkout</Link>
               </div>
               {actionFeedback && (
                 <p
                   className={
                     actionFeedback.type === 'error'
-                      ? 'mt-3 font-bold text-red-600'
+                      ? 'mt-3 font-bold text-red-700'
                       : 'mt-3 font-bold text-green-700'
                   }
                   role={actionFeedback.type === 'error' ? 'alert' : 'status'}
@@ -236,11 +239,14 @@ export default function ProductDetail() {
               )}
               <section className="mt-8">
                 <h2 className="text-xl font-bold">Reviews and rating</h2>
-                <form className="mt-3 flex gap-2" onSubmit={handleReview}>
+                <form
+                  className="mt-3 flex flex-wrap gap-2"
+                  onSubmit={handleReview}
+                >
                   <label className="sr-only" htmlFor="rating">
                     Rating
                   </label>
-                  <select
+                  <Select
                     id="rating"
                     value={rating}
                     onChange={(event) => setRating(event.target.value)}
@@ -248,21 +254,25 @@ export default function ProductDetail() {
                     {[5, 4, 3, 2, 1].map((value) => (
                       <option key={value}>{value}</option>
                     ))}
-                  </select>
+                  </Select>
                   <label className="sr-only" htmlFor="review">
                     Review
                   </label>
-                  <input
+                  <Input
                     id="review"
                     value={comment}
                     onChange={(event) => setComment(event.target.value)}
                     placeholder="Review this product"
                   />
-                  <button type="submit" disabled={Boolean(pendingAction)}>
+                  <Button
+                    variant="primary"
+                    type="submit"
+                    disabled={Boolean(pendingAction)}
+                  >
                     {pendingAction === 'review'
                       ? 'Adding review...'
                       : 'Add review'}
-                  </button>
+                  </Button>
                 </form>
                 <ul>
                   {reviews.map((review) => (

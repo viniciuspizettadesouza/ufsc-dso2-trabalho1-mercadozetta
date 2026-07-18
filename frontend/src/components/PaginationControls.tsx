@@ -1,4 +1,5 @@
 import type { PageInfo } from '@/pagination';
+import { Button } from '@/components/Button';
 
 export default function PaginationControls({
   page,
@@ -12,24 +13,24 @@ export default function PaginationControls({
   if (page.total <= page.limit) return null;
   return (
     <nav aria-label={label} className="mt-5 flex items-center justify-between">
-      <button
+      <Button
         type="button"
         disabled={page.offset === 0}
         onClick={() => onPage(Math.max(0, page.offset - page.limit))}
       >
         Previous
-      </button>
+      </Button>
       <span>
         {page.offset + 1}–{Math.min(page.offset + page.limit, page.total)} of{' '}
         {page.total}
       </span>
-      <button
+      <Button
         type="button"
         disabled={!page.hasMore}
         onClick={() => onPage(page.offset + page.limit)}
       >
         Next
-      </button>
+      </Button>
     </nav>
   );
 }

@@ -139,7 +139,7 @@ test('registers a tenant buyer and completes checkout and fulfillment', async ({
     await sellerContext.close();
   }
 
-  await page.goto('/admin');
+  await page.goto('/notifications');
   await expect(page.getByLabel('4 unread notifications')).toBeVisible();
   await expectPageToBeAccessible(page);
   const deliveredNotification = page

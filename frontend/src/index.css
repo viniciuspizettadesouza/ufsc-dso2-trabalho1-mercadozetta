@@ -1,1 +1,56 @@
 @import 'tailwindcss';
+
+@theme inline {
+  --color-canvas: var(--theme-canvas);
+  --color-surface: var(--theme-surface);
+  --color-surface-emphasized: var(--theme-surface-emphasized);
+  --color-action: var(--theme-action-primary);
+  --color-on-action: var(--theme-action-primary-text);
+  --color-accent: var(--theme-action-accent);
+  --color-content: var(--theme-text);
+  --color-muted: var(--theme-text-muted);
+  --color-theme-border: var(--theme-border);
+  --font-body: var(--theme-font-body);
+  --font-heading: var(--theme-font-heading);
+  --radius-control: var(--theme-radius-control);
+  --radius-surface: var(--theme-radius-surface);
+  --shadow-surface: var(--theme-shadow-surface);
+}
+
+@layer base {
+  body {
+    min-height: 100vh;
+    background-color: var(--color-canvas);
+    color: var(--color-content);
+    font-family: var(--font-body);
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-heading);
+  }
+
+  a:where(:not([class])) {
+    color: var(--color-action);
+    text-decoration-line: underline;
+    text-decoration-thickness: 0.1em;
+    text-underline-offset: 0.2em;
+  }
+
+  :where(a, button, input, select, textarea):focus-visible {
+    outline: 3px solid var(--color-action);
+    outline-offset: 3px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

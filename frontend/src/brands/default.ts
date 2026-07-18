@@ -7,11 +7,36 @@ export const defaultBrand: BrandConfig = {
   marketplaceName: 'MercadoZetta',
   logo,
   favicon: logo,
-  primaryColor: '#fff159',
-  secondaryColor: '#1d4ed8',
-  accentColor: '#00a650',
-  surfaceColor: '#ffffff',
-  textColor: '#333333',
+  theme: {
+    colors: {
+      canvas: '#f5f6f8',
+      surface: {
+        default: '#ffffff',
+        emphasized: '#fff159',
+      },
+      action: {
+        primary: '#1d4ed8',
+        primaryText: '#ffffff',
+        accent: '#007a3d',
+      },
+      text: {
+        primary: '#333333',
+        muted: '#4b5563',
+      },
+      border: '#e5e7eb',
+    },
+    typography: {
+      body: 'Arial, Helvetica, sans-serif',
+      heading: 'Arial, Helvetica, sans-serif',
+    },
+    radius: {
+      control: '0.25rem',
+      surface: '0.25rem',
+    },
+    shadows: {
+      surface: '0 1px 2px rgb(15 23 42 / 8%)',
+    },
+  },
   currency: 'BRL',
   locale: 'pt-BR',
   supportEmail: 'support@mercadozetta.example',

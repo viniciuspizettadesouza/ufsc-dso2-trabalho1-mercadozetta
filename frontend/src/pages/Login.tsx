@@ -6,6 +6,8 @@ import api from '@/services/api';
 import { useBrand } from '@/brands/brandContext';
 import { apiRoutes, appRoutes } from '@/routes';
 import { useAuth } from '@/auth/AuthContext';
+import { Button } from '@/components/Button';
+import { Input } from '@/components/Input';
 
 export default function Login() {
   const brand = useBrand();
@@ -47,6 +49,7 @@ export default function Login() {
       <Header hideLoginAction />
       <main className="flex h-full items-center justify-center">
         <form
+          aria-describedby={error ? 'login-error' : undefined}
           className="flex w-full max-w-[300px] flex-col"
           onSubmit={handleSubmit}
         >
@@ -59,10 +62,11 @@ export default function Login() {
           <label className="sr-only" htmlFor="login-email">
             Email
           </label>
-          <input
+          <Input
             id="login-email"
+            aria-invalid={Boolean(error)}
             autoComplete="email"
-            className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
+            className="mt-5 h-12 px-5 text-base"
             type="email"
             placeholder="Email"
             value={email}
@@ -71,22 +75,32 @@ export default function Login() {
           <label className="sr-only" htmlFor="login-password">
             Password
           </label>
-          <input
+          <Input
             id="login-password"
+            aria-invalid={Boolean(error)}
             autoComplete="current-password"
-            className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
+            className="mt-5 h-12 px-5 text-base"
             type="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          {error && <p>{error}</p>}
-          <button
-            className="mt-2.5 h-12 cursor-pointer rounded border-0 bg-[var(--brand-secondary)] text-base font-bold text-white"
+          {error && (
+            <p
+              id="login-error"
+              className="mt-3 text-sm font-medium text-red-700"
+              role="alert"
+            >
+              {error}
+            </p>
+          )}
+          <Button
+            className="mt-2.5 h-12 text-base"
+            variant="primary"
             type="submit"
           >
             {brand.copy.forms.loginAction}
-          </button>
+          </Button>
         </form>
       </main>
     </div>

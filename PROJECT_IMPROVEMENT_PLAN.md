@@ -14,8 +14,8 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   release; version 8.63.0 and its current canary support TypeScript only through
   versions earlier than 6.1.0.
 - Backend has 113 focused tests across 27 files and passes its coverage
-  thresholds with 87.23% branches and 85.46% functions. Frontend has 96 tests
-  across 15 files and passes its thresholds with 90.04% branches and 92.45% functions.
+  thresholds with 87.23% branches and 85.46% functions. Frontend has 104 tests
+  across 20 files and passes its thresholds with 90.8% branches and 92.72% functions.
   Type checks, tests, lint, formatting, OpenAPI
   generation, coverage, and the production build pass.
 - Checkout commits order creation, items, conditional inventory decrements, cart
@@ -172,7 +172,7 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   Absolute URLs require HTTPS and an exact `PRODUCT_IMAGE_HOSTS` match, with
   loopback-only HTTP for local development; upload remains deferred until an
   object-storage provider is selected.
-- Typecheck, 113 focused backend tests, 96 frontend tests, coverage
+- Typecheck, 113 focused backend tests, 104 frontend tests, coverage
   thresholds, lint, formatting, 11 PostgreSQL integration scenarios, both
   Chromium workflows, the OpenAPI contract, production-only dependency audit,
   and the PostgreSQL production-image smoke lane pass.
@@ -181,9 +181,46 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   notifications, and no longer labels catalog summaries as moderation or an
   audit trail. Privileged roles are intentionally deferred until a concrete
   administration requirement exists.
-- Next action: begin Step 7 by adding `prettier-plugin-tailwindcss`, configuring
-  it last with the Tailwind CSS 4 stylesheet, and reviewing the initial class
-  ordering rewrite.
+- Root Prettier formatting now loads `prettier-plugin-tailwindcss` last and uses
+  the Tailwind CSS 4 stylesheet entry point. The reviewed initial rewrite only
+  canonicalizes utility ordering in three frontend components; formatting,
+  lint, focused tests, typecheck, and the frontend production build pass.
+- Both tenant configurations now use a typed semantic theme covering canvas,
+  surfaces, actions, text, muted text, borders, typography, radii, and shadows.
+  `BrandProvider` maps every token to consistently named `--theme-*` custom
+  properties, all legacy `--brand-*` consumers are migrated, and focused tests
+  verify explicit-tenant application and unknown-tenant fallback.
+- Reusable frontend canvas, surface, text, muted-text, border, radius, and shadow
+  values now consume Tailwind CSS 4 semantic utilities backed by `@theme inline`
+  aliases over the runtime tenant properties. Components no longer repeat
+  arbitrary `var(...)` utilities. Success, error, and neutral lifecycle states
+  remain tenant-independent. Focused tests enforce WCAG AA contrast for both
+  tenant palettes, including action and accent usage.
+- The browser workflow's stale `/admin` navigation is corrected to
+  `/notifications`; both deterministic Chromium workflows and their Axe checks
+  pass against the themed UI and clean up their isolated stack.
+- Individually defined and tested Tailwind `Button`, `Input`, `Select`, and
+  `Textarea` primitives now own reusable control presentation and disabled
+  states; callers select explicit primary or secondary button variants while
+  retaining layout utilities near their components. The global stylesheet is
+  limited to the Tailwind theme bridge and document-wide typography, link,
+  visible-focus, and reduced-motion policies. Product creation uses a main
+  landmark, level-one heading, and
+  explicit field labels; login errors are announced and associated with invalid
+  fields; review controls wrap on narrow layouts; and remaining commerce and
+  product-management actions use consistent themed controls.
+- `docs/accessibility.md` documents automated Axe coverage and a repeatable
+  two-tenant keyboard, responsive, reduced-motion, and screen-reader smoke test.
+  The browser lane also asserts visible keyboard focus before running the full
+  Axe-enabled workflows.
+- `docs/tenant-theming.md` documents the typed configuration, runtime-property
+  and Tailwind alias bridge, semantic utility rules, existing-theme and new-brand
+  workflows, backend tenant boundary, WCAG contrast test, and required automated
+  and manual verification. Step 7 is complete.
+- Next action: begin Step 8 with the notification-count migration. Establish the
+  React Query provider and query-key conventions, then replace the local
+  `useEffect`/`useState` request in `frontend/src/pages/header/index.tsx` while
+  preserving its non-disruptive error behavior and focused header tests.
 
 ## Recommended Order
 
@@ -312,26 +349,26 @@ marketplace demo while evolving the new persistent commerce workflows safely.
       scenarios until privileged roles exist. Existing tenant, ownership, and
       seller-scope denial tests remain authoritative for current workflows.
 
-### 7. Centralize tenant-specific themes and accessibility
+### 7. Centralize tenant-specific themes and accessibility (completed)
 
-- [ ] Add `prettier-plugin-tailwindcss` as a root development dependency and
+- [x] Add `prettier-plugin-tailwindcss` as a root development dependency and
       load it last in `prettier.config.mjs`, using
       `tailwindStylesheet: './frontend/src/index.css'` for the Tailwind CSS 4
       entry point. Review the initial class-order rewrite, then verify it with
       the root formatting, lint, test, and frontend build commands.
-- [ ] Replace flat brand colors with a typed theme object covering canvas,
+- [x] Replace flat brand colors with a typed theme object covering canvas,
       surface, actions, text, muted text, borders, typography, radius, and shadows.
-- [ ] Expose the active theme through consistently named CSS custom properties
+- [x] Expose the active theme through consistently named CSS custom properties
       and replace reusable hard-coded colors without duplicating components per
       tenant.
-- [ ] Keep semantic success, warning, and error colors independent from
+- [x] Keep semantic success, warning, and error colors independent from
       decorative tenant colors and verify readable contrast for both tenants.
-- [ ] Audit keyboard navigation, visible focus, form labels and errors, live
+- [x] Audit keyboard navigation, visible focus, form labels and errors, live
       mutation feedback, landmarks, image alternatives, reduced motion, responsive
       layouts, and screen-reader announcements.
-- [ ] Add focused theme/fallback tests, automated `axe` checks for important
+- [x] Add focused theme/fallback tests, automated `axe` checks for important
       pages, and a documented manual keyboard smoke test.
-- [ ] Document how to add or modify a tenant theme. Continue using Tailwind and
+- [x] Document how to add or modify a tenant theme. Continue using Tailwind and
       CSS variables unless a redesign establishes a need for a component library.
 
 ### 8. Centralize frontend server state

@@ -7,6 +7,9 @@ import api from '@/services/api';
 import { useBrand } from '@/brands/brandContext';
 import { apiRoutes, appRoutes } from '@/routes';
 import { useAuth } from '@/auth/AuthContext';
+import { Button } from '@/components/Button';
+import { Input } from '@/components/Input';
+import { Select } from '@/components/Select';
 
 type ProductStatus = 'draft' | 'active' | 'paused' | 'sold_out' | 'archived';
 
@@ -66,53 +69,69 @@ export default function AddProduct() {
   return (
     <div>
       <Header />
-      <div className="flex h-full items-center justify-center">
+      <main className="flex h-full items-center justify-center">
         <form
+          aria-describedby={error ? 'product-form-error' : undefined}
           className="flex w-full max-w-[300px] flex-col"
           onSubmit={handleSubmit}
         >
-          <input
-            className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
+          <h1 className="mt-5 text-center text-2xl font-bold">
+            {brand.copy.forms.createProductAction}
+          </h1>
+          <label className="sr-only" htmlFor="product-name">
+            Product name
+          </label>
+          <Input
+            id="product-name"
+            className="mt-5 h-12 px-5 text-base"
             type="text"
             placeholder="Product name"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
-          <input
-            className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
+          <label className="sr-only" htmlFor="product-description">
+            Product description
+          </label>
+          <Input
+            id="product-description"
+            className="mt-5 h-12 px-5 text-base"
             type="text"
             placeholder="Product description"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
           <label
-            className="mt-5 text-sm font-medium text-[#666]"
+            className="mt-5 text-sm font-medium text-muted"
             htmlFor="product-category"
           >
             {brand.copy.forms.categoryLabel}
           </label>
-          <input
+          <Input
             id="product-category"
-            className="mt-2 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
+            className="mt-2 h-12 px-5 text-base"
             type="text"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           />
           <label
-            className="mt-5 text-sm font-medium text-[#666]"
+            className="mt-5 text-sm font-medium text-muted"
             htmlFor="product-subcategory"
           >
             {brand.copy.forms.subcategoryLabel}
           </label>
-          <input
+          <Input
             id="product-subcategory"
-            className="mt-2 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
+            className="mt-2 h-12 px-5 text-base"
             type="text"
             value={subcategory}
             onChange={(e) => setSubcategory(e.target.value)}
           />
-          <input
-            className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
+          <label className="sr-only" htmlFor="product-inventory">
+            Quantity
+          </label>
+          <Input
+            id="product-inventory"
+            className="mt-5 h-12 px-5 text-base"
             type="number"
             min="0"
             step="1"
@@ -120,23 +139,23 @@ export default function AddProduct() {
             value={inventory}
             onChange={(e) => setInventory(e.target.value)}
           />
-          <input
+          <Input
             aria-label={brand.copy.forms.uploadImageLabel}
-            className="mt-5 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666] placeholder:text-[#999]"
+            className="mt-5 h-12 px-5 text-base"
             type="text"
             placeholder="Image URL"
             value={image}
             onChange={(e) => setImage(e.target.value)}
           />
           <label
-            className="mt-5 text-sm font-medium text-[#666]"
+            className="mt-5 text-sm font-medium text-muted"
             htmlFor="product-status"
           >
             {brand.copy.forms.productStatusLabel}
           </label>
-          <select
+          <Select
             id="product-status"
-            className="mt-2 h-12 rounded border border-solid border-[#ddd] px-5 text-base text-[#666]"
+            className="mt-2 h-12 px-5 text-base"
             value={status}
             onChange={(e) => setStatus(e.target.value as ProductStatus)}
           >
@@ -145,20 +164,25 @@ export default function AddProduct() {
                 {brand.copy.catalog.statusLabels[option]}
               </option>
             ))}
-          </select>
+          </Select>
           {error && (
-            <p className="mt-3 text-sm font-medium text-red-600" role="alert">
+            <p
+              id="product-form-error"
+              className="mt-3 text-sm font-medium text-red-700"
+              role="alert"
+            >
               {error}
             </p>
           )}
-          <button
-            className="mt-2.5 h-12 cursor-pointer rounded border-0 bg-[var(--brand-secondary)] text-base font-bold text-white"
+          <Button
+            className="mt-2.5 h-12 text-base"
+            variant="primary"
             type="submit"
           >
             {brand.copy.forms.createProductAction}
-          </button>
+          </Button>
         </form>
-      </div>
+      </main>
     </div>
   );
 }
