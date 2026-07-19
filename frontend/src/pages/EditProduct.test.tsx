@@ -22,13 +22,16 @@ const product = {
   status: 'active' as const,
 };
 
-function renderPage() {
+function renderPage(
+  route = '/products/product-1/edit',
+  path = '/products/:productId/edit',
+) {
   return render(
     <ServerStateProvider>
       <AuthTestProvider user={{ _id: 'seller-1' }}>
-        <MemoryRouter initialEntries={['/products/product-1/edit']}>
+        <MemoryRouter initialEntries={[route]}>
           <Routes>
-            <Route path="/products/:productId/edit" element={<EditProduct />} />
+            <Route path={path} element={<EditProduct />} />
           </Routes>
         </MemoryRouter>
       </AuthTestProvider>
@@ -116,5 +119,39 @@ describe('EditProduct', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Unable to load product.',
     );
+  });
+
+  it('initializes safe defaults for optional editable product fields', async () => {
+    vi.mocked(api.get).mockImplementation(async (path) =>
+      path === '/notifications/unread-count'
+        ? ({ data: { count: 0 } } as never)
+        : ({
+            data: {
+              ...product,
+              description: null,
+              category: null,
+              subcategory: null,
+              inventory: undefined,
+              status: null,
+            },
+          } as never),
+    );
+
+    renderPage();
+
+    expect(await screen.findByLabelText('Description')).toHaveValue('');
+    expect(screen.getByLabelText('Category')).toHaveValue('general');
+    expect(screen.getByLabelText('Subcategory')).toHaveValue('');
+    expect(screen.getByLabelText('Available units')).toHaveValue(0);
+    expect(screen.getByLabelText('Status')).toHaveValue('draft');
+  });
+
+  it('renders no management form when the route has no product id', () => {
+    renderPage('/edit', '/edit');
+
+    expect(
+      screen.queryByRole('heading', { name: 'Manage product' }),
+    ).not.toBeInTheDocument();
+    expect(api.get).not.toHaveBeenCalledWith('/products/missing-product');
   });
 });

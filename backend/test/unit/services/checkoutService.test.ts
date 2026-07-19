@@ -1,0 +1,260 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { CheckoutTransactionCoordinator } from '@/repositories/checkoutTransaction';
+import type { ProductRecord } from '@/repositories/productRepository';
+import { createCheckoutService } from '@/services/checkoutService';
+
+const now = new Date('2026-07-19T15:00:00.000Z');
+const tenantId = 'mercadozetta';
+const buyerId = '507f1f77-bcf8-4ecd-8994-390110000001';
+const sellerId = '507f1f77-bcf8-4ecd-8994-390110000002';
+const cart = {
+  id: '507f191e-810c-4197-9de8-60ea00000001',
+  tenantId,
+  buyerId,
+  items: [
+    {
+      productId: '507f191e-810c-4197-9de8-60ea00000002',
+      quantity: 2,
+    },
+    {
+      productId: '507f191e-810c-4197-9de8-60ea00000003',
+      quantity: 1,
+    },
+  ],
+};
+const products: ProductRecord[] = [
+  {
+    _id: cart.items[0].productId,
+    tenantId,
+    seller: sellerId,
+    name: 'Keyboard',
+    inventory: 5,
+    status: 'active',
+  },
+  {
+    _id: cart.items[1].productId,
+    tenantId,
+    seller: sellerId,
+    name: 'Mouse',
+    inventory: 3,
+    status: 'active',
+  },
+];
+const order = {
+  _id: '507f191e-810c-4197-9de8-60ea00000004',
+  tenantId,
+  buyer: buyerId,
+  status: 'placed' as const,
+  statusHistory: [
+    {
+      status: 'placed' as const,
+      actor: buyerId,
+      changedAt: now,
+    },
+  ],
+  createdAt: now,
+  updatedAt: now,
+};
+
+function harness(
+  overrides: {
+    cart?: typeof cart | null;
+    products?: ProductRecord[];
+    inventoryUpdated?: boolean;
+  } = {},
+) {
+  const checkoutCart = overrides.cart === undefined ? cart : overrides.cart;
+  const carts = {
+    findForCheckout: vi.fn().mockResolvedValue(checkoutCart),
+    clear: vi.fn().mockResolvedValue(undefined),
+  };
+
+  const productRepository = {
+    findByIdsForUpdate: vi
+      .fn()
+      .mockResolvedValue(overrides.products ?? products),
+    decrementAvailableInventory: vi
+      .fn()
+      .mockResolvedValue(overrides.inventoryUpdated ?? true),
+  };
+  const orders = { createPlaced: vi.fn().mockResolvedValue(order) };
+  const orderItems = { createMany: vi.fn().mockResolvedValue([]) };
+  const audits = { appendMany: vi.fn().mockResolvedValue(undefined) };
+  const notifications = {
+    create: vi.fn().mockResolvedValue(undefined),
+    createMany: vi.fn().mockResolvedValue(undefined),
+  };
+  const repositories = {
+    carts,
+    products: productRepository,
+    orders,
+    orderItems,
+    audits,
+    notifications,
+  };
+  const transactions = {
+    run: vi.fn((work) => work(repositories as never)),
+  } as unknown as CheckoutTransactionCoordinator;
+
+  return {
+    ...createCheckoutService(transactions),
+    transactions,
+    carts,
+    products: productRepository,
+    orders,
+    orderItems,
+    audits,
+    notifications,
+  };
+}
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(now);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+describe('checkoutService', () => {
+  it('places the complete order and all side effects in one transaction', async () => {
+    const test = harness();
+
+    const created = await test.createOrder(buyerId, tenantId);
+
+    expect(test.transactions.run).toHaveBeenCalledTimes(1);
+    expect(test.carts.findForCheckout).toHaveBeenCalledWith(tenantId, buyerId);
+    expect(test.products.findByIdsForUpdate).toHaveBeenCalledWith(
+      tenantId,
+      cart.items.map((item) => item.productId),
+    );
+    expect(test.orders.createPlaced).toHaveBeenCalledWith(
+      tenantId,
+      buyerId,
+      now,
+    );
+
+    const expectedItems = [
+      {
+        tenantId,
+        order: order._id,
+        product: products[0]._id,
+        seller: sellerId,
+        productName: products[0].name,
+        quantity: 2,
+      },
+      {
+        tenantId,
+        order: order._id,
+        product: products[1]._id,
+        seller: sellerId,
+        productName: products[1].name,
+        quantity: 1,
+      },
+    ];
+    expect(test.orderItems.createMany).toHaveBeenCalledWith(expectedItems, now);
+    expect(test.products.decrementAvailableInventory.mock.calls).toEqual([
+      [tenantId, products[0]._id, 2],
+      [tenantId, products[1]._id, 1],
+    ]);
+    expect(test.audits.appendMany).toHaveBeenCalledWith([
+      {
+        tenantId,
+        eventType: 'order.placed',
+        actorId: buyerId,
+        resourceType: 'order',
+        resourceId: order._id,
+        metadata: { itemCount: 2 },
+        occurredAt: now,
+      },
+      {
+        tenantId,
+        eventType: 'inventory.decremented',
+        actorId: buyerId,
+        resourceType: 'product',
+        resourceId: products[0]._id,
+        metadata: {
+          orderId: order._id,
+          quantity: 2,
+          previousInventory: 5,
+          nextInventory: 3,
+        },
+        occurredAt: now,
+      },
+      {
+        tenantId,
+        eventType: 'inventory.decremented',
+        actorId: buyerId,
+        resourceType: 'product',
+        resourceId: products[1]._id,
+        metadata: {
+          orderId: order._id,
+          quantity: 1,
+          previousInventory: 3,
+          nextInventory: 2,
+        },
+        occurredAt: now,
+      },
+    ]);
+    expect(test.carts.clear).toHaveBeenCalledWith(tenantId, cart.id);
+    expect(test.notifications.create).toHaveBeenCalledWith(
+      {
+        tenantId,
+        userId: buyerId,
+        message: `Order ${order._id} created`,
+      },
+      now,
+    );
+    expect(test.notifications.createMany).toHaveBeenCalledWith(
+      [
+        {
+          tenantId,
+          userId: sellerId,
+          message: `New order ${order._id}`,
+        },
+      ],
+      now,
+    );
+    expect(created).toEqual({ ...order, items: expectedItems });
+  });
+
+  it('rejects an empty cart before loading products', async () => {
+    const test = harness({ cart: null });
+
+    await expect(test.createOrder(buyerId, tenantId)).rejects.toMatchObject({
+      statusCode: 400,
+      code: 'EMPTY_CART',
+    });
+    expect(test.products.findByIdsForUpdate).not.toHaveBeenCalled();
+    expect(test.orders.createPlaced).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['missing', []],
+    ['inactive', [{ ...products[0], status: 'paused' as const }]],
+    ['understocked', [{ ...products[0], inventory: 1 }]],
+  ])('rejects a %s cart product before creating an order', async (_, found) => {
+    const oneItemCart = { ...cart, items: [cart.items[0]] };
+    const test = harness({ cart: oneItemCart, products: found });
+
+    await expect(test.createOrder(buyerId, tenantId)).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'INSUFFICIENT_INVENTORY',
+    });
+    expect(test.orders.createPlaced).not.toHaveBeenCalled();
+  });
+
+  it('rejects a lost conditional inventory update before side effects', async () => {
+    const test = harness({ inventoryUpdated: false });
+
+    await expect(test.createOrder(buyerId, tenantId)).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'INSUFFICIENT_INVENTORY',
+    });
+    expect(test.audits.appendMany).not.toHaveBeenCalled();
+    expect(test.carts.clear).not.toHaveBeenCalled();
+    expect(test.notifications.create).not.toHaveBeenCalled();
+    expect(test.notifications.createMany).not.toHaveBeenCalled();
+  });
+});

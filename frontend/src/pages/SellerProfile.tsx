@@ -1,4 +1,3 @@
-/* v8 ignore file -- demo-local seller profile page is covered by integration smoke tests. */
 import { Link, useParams } from 'react-router';
 
 import Header from '@/pages/header';

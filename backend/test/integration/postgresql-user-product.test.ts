@@ -61,9 +61,9 @@ import { createAccountManagementService } from '@/services/accountManagementServ
 import { createEmailChangeService } from '@/services/emailChangeService';
 import { createAccountDeactivationService } from '@/services/accountDeactivationService';
 import type { AccountMessage } from '@/services/accountMessageSender';
+import { createCheckoutService } from '@/services/checkoutService';
 import {
   createCartCommerceService,
-  createCommerceProductService,
   createNotificationCommerceService,
   createOrderCommerceService,
   createReviewCommerceService,
@@ -94,10 +94,7 @@ const productService = createProductService(
   userService,
   transactionCoordinator,
 );
-const checkoutService = createCommerceProductService(
-  productRepository,
-  transactionCoordinator,
-);
+const checkoutService = createCheckoutService(transactionCoordinator);
 const cartService = createCartCommerceService(
   new PostgresCartRepository(db),
   productRepository,

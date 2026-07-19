@@ -124,9 +124,9 @@ export const defaultBrand: BrandConfig = {
     sellerPages: true,
     productCreation: true,
     publicCatalog: true,
-    checkout: false,
-    reviews: false,
-    favorites: false,
+    checkout: true,
+    reviews: true,
+    favorites: true,
     inventory: true,
   },
 };

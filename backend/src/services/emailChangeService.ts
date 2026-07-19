@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import bcrypt from 'bcryptjs';
 import {
   getAccountSecurityConfig,
   getAccountTokenHashKeyRing,
@@ -7,16 +6,22 @@ import {
   type SecretKeyRing,
 } from '@/config/security';
 import AppError from '@/errors/AppError';
-import type { AccountTokenRecord } from '@/repositories/accountTokenRepository';
 import type { CheckoutTransactionCoordinator } from '@/repositories/checkoutTransaction';
 import { DuplicatePendingEmailError } from '@/repositories/pendingEmailChangeRepository';
 import { DuplicateUserEmailError } from '@/repositories/userRepository';
 import type { AccountMessageSender } from '@/services/accountMessageSender';
 import {
-  accountTokenMatches,
   createAccountToken,
   getAccountTokenSelector,
 } from '@/services/accountTokenSecurityService';
+import {
+  accountStateChangedError,
+  dispatchAccountMessage,
+  getPasswordComparer,
+  invalidAccountTokenError,
+  type PasswordComparer,
+  verifyAccountToken,
+} from '@/services/accountServiceSupport';
 import { defaultTenantId } from '@/tenants';
 import {
   type AccountTokenConfirmationBody,
@@ -35,32 +40,13 @@ export const EMAIL_CHANGE_REQUEST_RESPONSE = {
 } as const;
 
 type EmailChangeDependencies = {
-  comparePassword?: (
-    password: string,
-    passwordHash: string,
-  ) => Promise<boolean>;
+  comparePassword?: PasswordComparer;
   config?: () => AccountSecurityConfig;
   keyRing?: () => SecretKeyRing;
 };
 
-function accountStateChanged() {
-  return new AppError(
-    409,
-    'ACCOUNT_STATE_CHANGED',
-    'Account state changed; authenticate again',
-  );
-}
-
 function emailUnavailable() {
   return new AppError(409, 'EMAIL_UNAVAILABLE', 'Email is unavailable');
-}
-
-function invalidAccountToken() {
-  return new AppError(
-    400,
-    'INVALID_OR_EXPIRED_ACCOUNT_TOKEN',
-    'Invalid or expired account token',
-  );
 }
 
 function mapEmailConflict(error: unknown): never {
@@ -72,43 +58,12 @@ function mapEmailConflict(error: unknown): never {
   throw error;
 }
 
-function resolveEmailChangeToken(
-  token: string,
-  tenantId: string,
-  record: AccountTokenRecord | null,
-  ring: SecretKeyRing,
-) {
-  if (
-    !record ||
-    record.purpose !== 'email_change' ||
-    !accountTokenMatches(
-      token,
-      tenantId,
-      'email_change',
-      record.tokenHash,
-      record.tokenHashSecretVersion,
-      ring,
-    )
-  )
-    throw invalidAccountToken();
-  return record;
-}
-
-function dispatch(
-  sender: AccountMessageSender,
-  message: Parameters<AccountMessageSender['enqueue']>[0],
-) {
-  void Promise.resolve()
-    .then(() => sender.enqueue(message))
-    .catch(() => undefined);
-}
-
 export function createEmailChangeService(
   transactions: CheckoutTransactionCoordinator,
   sender: AccountMessageSender,
   dependencies: EmailChangeDependencies = {},
 ) {
-  const comparePassword = dependencies.comparePassword ?? bcrypt.compare;
+  const comparePassword = getPasswordComparer(dependencies.comparePassword);
   const getConfig = dependencies.config ?? getAccountSecurityConfig;
   const getKeyRing = dependencies.keyRing ?? getAccountTokenHashKeyRing;
 
@@ -122,7 +77,7 @@ export function createEmailChangeService(
     const snapshot = await transactions.run(({ users }) =>
       users.findAccountSecurityById(tenantId, userId),
     );
-    if (!snapshot || snapshot.deactivatedAt) throw accountStateChanged();
+    if (!snapshot || snapshot.deactivatedAt) throw accountStateChangedError();
     if (snapshot.email.toLowerCase() === data.email)
       throw new AppError(
         400,
@@ -159,7 +114,7 @@ export function createEmailChangeService(
             locked.passwordHash !== snapshot.passwordHash ||
             locked.tokenVersion !== snapshot.tokenVersion
           )
-            throw accountStateChanged();
+            throw accountStateChangedError();
           if (locked.email.toLowerCase() === data.email)
             throw new AppError(
               400,
@@ -219,7 +174,7 @@ export function createEmailChangeService(
       mapEmailConflict(error);
     }
 
-    dispatch(sender, message);
+    dispatchAccountMessage(sender, message);
     return EMAIL_CHANGE_REQUEST_RESPONSE;
   }
 
@@ -230,7 +185,7 @@ export function createEmailChangeService(
   ) {
     const { token } = validateAccountTokenConfirmation(body);
     const selector = getAccountTokenSelector(token);
-    if (!selector) throw invalidAccountToken();
+    if (!selector) throw invalidAccountTokenError();
     const ring = getKeyRing();
 
     try {
@@ -242,9 +197,10 @@ export function createEmailChangeService(
           sessions,
           audits,
         }) => {
-          const record = resolveEmailChangeToken(
+          const record = verifyAccountToken(
             token,
             tenantId,
+            'email_change',
             await accountTokens.findById(tenantId, selector),
             ring,
           );
@@ -265,7 +221,7 @@ export function createEmailChangeService(
             user.emailVersion !== record.emailVersion ||
             pending.expiresAt.getTime() <= now.getTime()
           )
-            throw invalidAccountToken();
+            throw invalidAccountTokenError();
 
           const consumed = await accountTokens.consume({
             tenantId,
@@ -286,7 +242,7 @@ export function createEmailChangeService(
             })) ||
             !(await pendingEmailChanges.deleteByUser(tenantId, record.userId))
           )
-            throw invalidAccountToken();
+            throw invalidAccountTokenError();
 
           await sessions.revokeAll(
             tenantId,

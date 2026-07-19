@@ -26,11 +26,9 @@ export function createAuthService(
     const { email, password } = validateLoginPayload(body);
     const user = await userRepository.findForAuthentication(tenantId, email);
 
-    /* v8 ignore else */
     if (!user || user.deactivatedAt)
       throw new AppError(401, 'INVALID_CREDENTIALS', 'Invalid credentials');
 
-    /* v8 ignore else */
     if (!(await bcrypt.compare(password, user.passwordHash)))
       throw new AppError(401, 'INVALID_CREDENTIALS', 'Invalid credentials');
 
@@ -54,7 +52,6 @@ export function createAuthService(
       userId,
     );
 
-    /* v8 ignore else */
     if (!updated)
       throw new AppError(
         401,
@@ -75,7 +72,6 @@ export function createAuthService(
       userRepository.findPublicById(tenantId, userId),
     ]);
 
-    /* v8 ignore next */
     if (!user)
       throw new AppError(
         401,

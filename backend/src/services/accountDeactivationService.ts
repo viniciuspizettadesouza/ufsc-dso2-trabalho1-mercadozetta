@@ -1,7 +1,13 @@
 import { randomUUID } from 'node:crypto';
-import bcrypt from 'bcryptjs';
 import AppError from '@/errors/AppError';
 import type { CheckoutTransactionCoordinator } from '@/repositories/checkoutTransaction';
+import {
+  accountStateChangedError,
+  getPasswordComparer,
+  getPasswordHasher,
+  type PasswordComparer,
+  type PasswordHasher,
+} from '@/services/accountServiceSupport';
 import { defaultTenantId } from '@/tenants';
 import {
   type AccountDeactivationData,
@@ -10,20 +16,9 @@ import {
 } from '@/validators/accountManagementValidator';
 
 type AccountDeactivationDependencies = {
-  comparePassword?: (
-    password: string,
-    passwordHash: string,
-  ) => Promise<boolean>;
-  hashPassword?: (password: string) => Promise<string>;
+  comparePassword?: PasswordComparer;
+  hashPassword?: PasswordHasher;
 };
-
-function accountStateChanged() {
-  return new AppError(
-    409,
-    'ACCOUNT_STATE_CHANGED',
-    'Account state changed; authenticate again',
-  );
-}
 
 function deactivationBlocked() {
   return new AppError(
@@ -37,10 +32,8 @@ export function createAccountDeactivationService(
   transactions: CheckoutTransactionCoordinator,
   dependencies: AccountDeactivationDependencies = {},
 ) {
-  const comparePassword = dependencies.comparePassword ?? bcrypt.compare;
-  const hashPassword =
-    dependencies.hashPassword ??
-    ((password: string) => bcrypt.hash(password, 10));
+  const comparePassword = getPasswordComparer(dependencies.comparePassword);
+  const hashPassword = getPasswordHasher(dependencies.hashPassword);
 
   async function deactivateAccount(
     body: AccountDeactivationRequestBody | AccountDeactivationData,
@@ -52,7 +45,7 @@ export function createAccountDeactivationService(
     const snapshot = await transactions.run(({ users }) =>
       users.findAccountSecurityById(tenantId, userId),
     );
-    if (!snapshot || snapshot.deactivatedAt) throw accountStateChanged();
+    if (!snapshot || snapshot.deactivatedAt) throw accountStateChangedError();
     if (
       !data.currentPassword ||
       !(await comparePassword(data.currentPassword, snapshot.passwordHash))
@@ -84,7 +77,7 @@ export function createAccountDeactivationService(
           locked.passwordHash !== snapshot.passwordHash ||
           locked.tokenVersion !== snapshot.tokenVersion
         )
-          throw accountStateChanged();
+          throw accountStateChangedError();
         if (await accountLifecycle.hasActiveOrders(tenantId, userId))
           throw deactivationBlocked();
 
@@ -96,7 +89,7 @@ export function createAccountDeactivationService(
           passwordHash: unusablePasswordHash,
           now,
         });
-        if (!deactivated) throw accountStateChanged();
+        if (!deactivated) throw accountStateChangedError();
 
         await sessions.revokeAll(tenantId, userId, 'account_deactivated', now);
         for (const purpose of [

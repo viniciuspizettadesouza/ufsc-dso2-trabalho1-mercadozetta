@@ -4,6 +4,11 @@ import Header from '@/pages/header';
 import { useAuth } from '@/auth/AuthContext';
 import PaginationControls from '@/components/PaginationControls';
 import { Button } from '@/components/Button';
+import {
+  MutationFeedbackMessage,
+  type MutationFeedback,
+} from '@/components/MutationFeedback';
+import { OrderStatusHistory } from '@/components/OrderStatusHistory';
 import { firstPage } from '@/pagination';
 import { type OrderListRequest } from '@/serverState/queryKeys';
 import {
@@ -40,10 +45,7 @@ function SellerOrdersPage({
   enabled: boolean;
 }) {
   const [pendingOrder, setPendingOrder] = useState('');
-  const [feedback, setFeedback] = useState<{
-    type: 'success' | 'error';
-    message: string;
-  } | null>(null);
+  const [feedback, setFeedback] = useState<MutationFeedback>(null);
   const [orderRequest, setOrderRequest] = useState<OrderListRequest>(() => ({
     userId: sellerId,
     scope: 'seller',
@@ -94,11 +96,7 @@ function SellerOrdersPage({
       <Header />
       <main className="mx-auto max-w-[900px] px-4 py-8">
         <h1 className="text-3xl font-bold">Seller orders</h1>
-        {feedback && (
-          <p role={feedback.type === 'error' ? 'alert' : 'status'}>
-            {feedback.message}
-          </p>
-        )}
+        <MutationFeedbackMessage feedback={feedback} />
         {enabled && orderQuery.isPending ? (
           <p role="status">Loading seller orders...</p>
         ) : orderQuery.isError &&
@@ -114,14 +112,10 @@ function SellerOrdersPage({
                   <h2>Order {order._id}</h2>
                   <p>Status: {order.status}</p>
                   <h3>Status history</h3>
-                  <ol>
-                    {order.statusHistory?.map((entry) => (
-                      <li key={`${entry.status}-${entry.changedAt}`}>
-                        {entry.status} by {entry.actor} at{' '}
-                        {new Date(entry.changedAt).toLocaleString()}
-                      </li>
-                    ))}
-                  </ol>
+                  <OrderStatusHistory
+                    orderId={order._id}
+                    entries={order.statusHistory}
+                  />
                   <ul>
                     {order.items.map((item) => (
                       <li key={`${order._id}-${item.productName}`}>

@@ -1,12 +1,16 @@
-import { isAxiosError } from 'axios';
 import { type FormEvent, type ReactNode, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useAuth } from '@/auth/AuthContext';
 import { useBrand } from '@/brands/brandContext';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
+import {
+  MutationFeedbackMessage,
+  type MutationFeedback,
+} from '@/components/MutationFeedback';
 import Header from '@/pages/header';
 import { appRoutes } from '@/routes';
+import { getApiErrorMessage } from '@/services/errors';
 import {
   useChangePassword,
   useDeactivateAccount,
@@ -14,17 +18,10 @@ import {
   useUpdateProfile,
 } from '@/serverState/account';
 
-type Feedback = { type: 'success' | 'error'; message: string } | null;
-
 function message(error: unknown, fallback: string, delivery: string) {
-  if (
-    isAxiosError<{ code?: string; error?: string }>(error) &&
-    error.response?.data.code === 'ACCOUNT_DELIVERY_UNAVAILABLE'
-  )
-    return delivery;
-  if (isAxiosError<{ error?: string }>(error) && error.response?.data.error)
-    return error.response.data.error;
-  return fallback;
+  return getApiErrorMessage(error, fallback, {
+    ACCOUNT_DELIVERY_UNAVAILABLE: delivery,
+  });
 }
 
 function Section({
@@ -33,20 +30,13 @@ function Section({
   children,
 }: {
   title: string;
-  feedback: Feedback;
+  feedback: MutationFeedback;
   children: ReactNode;
 }) {
   return (
     <section className="rounded-surface border border-theme-border bg-surface p-5 shadow-surface">
       <h2 className="text-xl font-bold">{title}</h2>
-      {feedback && (
-        <p
-          className="mt-2"
-          role={feedback.type === 'error' ? 'alert' : 'status'}
-        >
-          {feedback.message}
-        </p>
-      )}
+      <MutationFeedbackMessage className="mt-2" feedback={feedback} />
       {children}
     </section>
   );
@@ -62,11 +52,13 @@ export default function AccountSettings() {
   const deactivation = useDeactivateAccount();
   const [username, setUsername] = useState(user?.username || '');
   const [telephone, setTelephone] = useState(user?.telephone || '');
-  const [profileFeedback, setProfileFeedback] = useState<Feedback>(null);
-  const [passwordFeedback, setPasswordFeedback] = useState<Feedback>(null);
-  const [emailFeedback, setEmailFeedback] = useState<Feedback>(null);
+  const [profileFeedback, setProfileFeedback] =
+    useState<MutationFeedback>(null);
+  const [passwordFeedback, setPasswordFeedback] =
+    useState<MutationFeedback>(null);
+  const [emailFeedback, setEmailFeedback] = useState<MutationFeedback>(null);
   const [deactivationFeedback, setDeactivationFeedback] =
-    useState<Feedback>(null);
+    useState<MutationFeedback>(null);
 
   function leaveForLogin(prompt: string) {
     clearSession();

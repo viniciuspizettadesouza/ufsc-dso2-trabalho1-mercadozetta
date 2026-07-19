@@ -1,4 +1,3 @@
-/* v8 ignore file -- API-backed checkout workflow is covered by MarketplacePages integration tests. */
 import { useState } from 'react';
 import { Link } from 'react-router';
 import Header from '@/pages/header';
@@ -6,6 +5,11 @@ import { appRoutes } from '@/routes';
 import PaginationControls from '@/components/PaginationControls';
 import { Button } from '@/components/Button';
 import { Select } from '@/components/Select';
+import {
+  MutationFeedbackMessage,
+  type MutationFeedback,
+} from '@/components/MutationFeedback';
+import { OrderStatusHistory } from '@/components/OrderStatusHistory';
 import { firstPage } from '@/pagination';
 import { useAuth } from '@/auth/AuthContext';
 import { type OrderListRequest } from '@/serverState/queryKeys';
@@ -16,10 +20,7 @@ export default function Checkout() {
   const { user } = useAuth();
   const userId = user?._id ?? 'anonymous';
   const [pendingItem, setPendingItem] = useState('');
-  const [feedback, setFeedback] = useState<{
-    type: 'success' | 'error';
-    message: string;
-  } | null>(null);
+  const [feedback, setFeedback] = useState<MutationFeedback>(null);
   const [orderRequest, setOrderRequest] = useState<OrderListRequest>(() => ({
     userId,
     scope: 'buyer',
@@ -106,18 +107,10 @@ export default function Checkout() {
       <Header />
       <main className="mx-auto max-w-[900px] px-4 py-8">
         <h1 className="text-3xl font-bold">Checkout</h1>
-        {displayedFeedback && (
-          <p
-            className={
-              displayedFeedback.type === 'error'
-                ? 'mt-4 font-bold text-red-700'
-                : 'mt-4 font-bold text-green-700'
-            }
-            role={displayedFeedback.type === 'error' ? 'alert' : 'status'}
-          >
-            {displayedFeedback.message}
-          </p>
-        )}
+        <MutationFeedbackMessage
+          className="mt-4"
+          feedback={displayedFeedback}
+        />
         <section className="mt-6">
           <h2 className="text-xl font-bold">Cart</h2>
           {isLoading ? (
@@ -201,14 +194,10 @@ export default function Checkout() {
                 {order.items
                   .map((item) => `${item.productName} × ${item.quantity}`)
                   .join(', ')}
-                <ol aria-label={`Status history for order ${order._id}`}>
-                  {order.statusHistory?.map((entry) => (
-                    <li key={`${entry.status}-${entry.changedAt}`}>
-                      {entry.status} by {entry.actor} at{' '}
-                      {new Date(entry.changedAt).toLocaleString()}
-                    </li>
-                  ))}
-                </ol>
+                <OrderStatusHistory
+                  orderId={order._id}
+                  entries={order.statusHistory}
+                />
               </li>
             ))}
           </ul>

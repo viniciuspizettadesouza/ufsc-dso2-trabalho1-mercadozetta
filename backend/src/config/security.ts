@@ -1,5 +1,10 @@
 import type { CorsOptions } from 'cors';
 import type { CookieOptions } from 'express';
+import {
+  parseEnvironmentList as parseList,
+  readBoundedInteger as readBoundedDuration,
+  readPositiveInteger,
+} from '@/config/environment';
 
 const DEFAULT_DEV_JWT_SECRET = 'mercadozetta-dev-secret';
 const DEFAULT_DEV_REFRESH_TOKEN_HASH_SECRET =
@@ -59,13 +64,6 @@ export function getNodeEnv() {
 
 export function isLocalEnv() {
   return ['development', 'test'].includes(getNodeEnv());
-}
-
-function parseList(value: string | undefined) {
-  return String(value || '')
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
 }
 
 function parseSecretMap(name: string) {
@@ -166,26 +164,6 @@ export function validateSecurityConfig() {
   getAccountSecurityConfig();
 }
 
-function readBoundedDuration(
-  name: string,
-  fallback: number,
-  minimum: number,
-  maximum: number,
-) {
-  const configured = process.env[name]?.trim();
-  /* v8 ignore else */
-  if (!configured) return fallback;
-
-  const value = Number(configured);
-  if (!Number.isInteger(value) || value < minimum || value > maximum) {
-    throw new Error(
-      `${name} must be an integer between ${minimum} and ${maximum}`,
-    );
-  }
-
-  return value;
-}
-
 export function getSessionSecurityConfig(): SessionSecurityConfig {
   const refreshIdleTtlMs = readBoundedDuration(
     'SESSION_REFRESH_IDLE_TTL_MS',
@@ -200,7 +178,6 @@ export function getSessionSecurityConfig(): SessionSecurityConfig {
     90 * DAY_MS,
   );
 
-  /* v8 ignore else */
   if (absoluteTtlMs < refreshIdleTtlMs) {
     throw new Error(
       'SESSION_ABSOLUTE_TTL_MS must be greater than or equal to SESSION_REFRESH_IDLE_TTL_MS',
@@ -318,7 +295,6 @@ export function isTenantHeaderRequired() {
 
   if (configured === 'true') return true;
 
-  /* v8 ignore else */
   if (configured === 'false') return false;
 
   return !isLocalEnv();
@@ -339,18 +315,11 @@ export function getCorsOptions(): CorsOptions {
     credentials: true,
     allowedHeaders: ['Content-Type', 'X-Tenant-Id', 'X-CSRF-Token'],
     origin(origin, callback) {
-      /* v8 ignore else */
       if (!origin) return callback(null, true);
 
       return callback(null, allowedOrigins.includes(origin));
     },
   };
-}
-
-function readPositiveInteger(name: string, fallback: number) {
-  const value = Number.parseInt(process.env[name] || '', 10);
-
-  return Number.isInteger(value) && value > 0 ? value : fallback;
 }
 
 export type RateLimitScope =

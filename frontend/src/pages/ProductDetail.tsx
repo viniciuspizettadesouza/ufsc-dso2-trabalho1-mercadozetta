@@ -1,4 +1,3 @@
-/* v8 ignore file -- API-backed marketplace workflow is covered by MarketplacePages integration tests. */
 import { FormEvent, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import Header from '@/pages/header';
@@ -9,6 +8,10 @@ import PaginationControls from '@/components/PaginationControls';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Select } from '@/components/Select';
+import {
+  MutationFeedbackMessage,
+  type MutationFeedback,
+} from '@/components/MutationFeedback';
 import { firstPage } from '@/pagination';
 import type { ReviewListRequest } from '@/serverState/queryKeys';
 import { useProductCollection } from '@/serverState/productCollections';
@@ -18,7 +21,6 @@ import {
   useCreateReview,
   useReviewList,
 } from '@/serverState/reviews';
-type ActionFeedback = { type: 'success' | 'error'; message: string } | null;
 const noReviews: Review[] = [];
 
 export default function ProductDetail() {
@@ -38,7 +40,7 @@ function ProductDetailPage({ productId }: { productId?: string }) {
   const [rating, setRating] = useState('5');
   const [comment, setComment] = useState('');
   const [pendingAction, setPendingAction] = useState('');
-  const [actionFeedback, setActionFeedback] = useState<ActionFeedback>(null);
+  const [actionFeedback, setActionFeedback] = useState<MutationFeedback>(null);
   const [reviewRequest, setReviewRequest] = useState<ReviewListRequest>(() => ({
     productId: productId ?? 'missing-product',
     limit: null,
@@ -206,18 +208,10 @@ function ProductDetailPage({ productId }: { productId?: string }) {
                 </Button>
                 <Link to={appRoutes.checkout}>Checkout</Link>
               </div>
-              {actionFeedback && (
-                <p
-                  className={
-                    actionFeedback.type === 'error'
-                      ? 'mt-3 font-bold text-red-700'
-                      : 'mt-3 font-bold text-green-700'
-                  }
-                  role={actionFeedback.type === 'error' ? 'alert' : 'status'}
-                >
-                  {actionFeedback.message}
-                </p>
-              )}
+              <MutationFeedbackMessage
+                className="mt-3"
+                feedback={actionFeedback}
+              />
               <section className="mt-8">
                 <h2 className="text-xl font-bold">Reviews and rating</h2>
                 <form

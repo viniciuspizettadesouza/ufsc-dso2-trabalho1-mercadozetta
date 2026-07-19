@@ -1,25 +1,26 @@
-import bcrypt from 'bcryptjs';
 import {
   getAccountSecurityConfig,
   getAccountTokenHashKeyRing,
   type AccountSecurityConfig,
   type SecretKeyRing,
 } from '@/config/security';
-import AppError from '@/errors/AppError';
-import type {
-  AccountTokenPurpose,
-  AccountTokenRecord,
-} from '@/repositories/accountTokenRepository';
+import type { AccountTokenPurpose } from '@/repositories/accountTokenRepository';
 import type { CheckoutTransactionCoordinator } from '@/repositories/checkoutTransaction';
 import type {
   AccountMessage,
   AccountMessageSender,
 } from '@/services/accountMessageSender';
 import {
-  accountTokenMatches,
   createAccountToken,
   getAccountTokenSelector,
 } from '@/services/accountTokenSecurityService';
+import {
+  dispatchAccountMessage,
+  getPasswordHasher,
+  invalidAccountTokenError,
+  type PasswordHasher,
+  verifyAccountToken,
+} from '@/services/accountServiceSupport';
 import { defaultTenantId } from '@/tenants';
 import {
   type AccountRequestBody,
@@ -40,51 +41,14 @@ export const GENERIC_ACCOUNT_REQUEST_RESPONSE = {
 type AccountSecurityDependencies = {
   config?: () => AccountSecurityConfig;
   keyRing?: () => SecretKeyRing;
-  hashPassword?: (password: string) => Promise<string>;
+  hashPassword?: PasswordHasher;
 };
-
-function invalidAccountToken(): AppError {
-  return new AppError(
-    400,
-    'INVALID_OR_EXPIRED_ACCOUNT_TOKEN',
-    'Invalid or expired account token',
-  );
-}
-
-function dispatch(sender: AccountMessageSender, message: AccountMessage) {
-  void Promise.resolve()
-    .then(() => sender.enqueue(message))
-    .catch(() => undefined);
-}
 
 function tokenTtl(config: AccountSecurityConfig, purpose: AccountTokenPurpose) {
   if (purpose === 'email_verification')
     return config.emailVerificationTokenTtlMs;
   if (purpose === 'email_change') return config.emailChangeTokenTtlMs;
   return config.passwordResetTokenTtlMs;
-}
-
-function resolveAndVerifyToken(
-  token: string,
-  tenantId: string,
-  purpose: AccountTokenPurpose,
-  record: AccountTokenRecord | null,
-  ring: SecretKeyRing,
-) {
-  if (
-    !record ||
-    record.purpose !== purpose ||
-    !accountTokenMatches(
-      token,
-      tenantId,
-      purpose,
-      record.tokenHash,
-      record.tokenHashSecretVersion,
-      ring,
-    )
-  )
-    throw invalidAccountToken();
-  return record;
 }
 
 export function createAccountSecurityService(
@@ -94,9 +58,7 @@ export function createAccountSecurityService(
 ) {
   const getConfig = dependencies.config ?? getAccountSecurityConfig;
   const getKeyRing = dependencies.keyRing ?? getAccountTokenHashKeyRing;
-  const hashPassword =
-    dependencies.hashPassword ??
-    ((password: string) => bcrypt.hash(password, 10));
+  const hashPassword = getPasswordHasher(dependencies.hashPassword);
 
   async function requestToken(
     purpose: AccountTokenPurpose,
@@ -163,7 +125,7 @@ export function createAccountSecurityService(
       } satisfies AccountMessage;
     });
 
-    if (message) dispatch(sender, message);
+    if (message) dispatchAccountMessage(sender, message);
     return GENERIC_ACCOUNT_REQUEST_RESPONSE;
   }
 
@@ -200,11 +162,11 @@ export function createAccountSecurityService(
   ) {
     const { token } = validateAccountTokenConfirmation(body);
     const selector = getAccountTokenSelector(token);
-    if (!selector) throw invalidAccountToken();
+    if (!selector) throw invalidAccountTokenError();
     const ring = getKeyRing();
 
     await transactions.run(async ({ accountTokens, users, audits }) => {
-      const record = resolveAndVerifyToken(
+      const record = verifyAccountToken(
         token,
         tenantId,
         'email_verification',
@@ -229,7 +191,7 @@ export function createAccountSecurityService(
           now,
         ))
       )
-        throw invalidAccountToken();
+        throw invalidAccountTokenError();
 
       await audits.append({
         tenantId,
@@ -248,7 +210,7 @@ export function createAccountSecurityService(
   ) {
     const { token, password } = validatePasswordResetConfirmation(body);
     const selector = getAccountTokenSelector(token);
-    if (!selector) throw invalidAccountToken();
+    if (!selector) throw invalidAccountTokenError();
     const [ring, passwordHash] = await Promise.all([
       Promise.resolve(getKeyRing()),
       hashPassword(password),
@@ -256,7 +218,7 @@ export function createAccountSecurityService(
 
     const notice = await transactions.run(
       async ({ accountTokens, users, sessions, audits }) => {
-        const record = resolveAndVerifyToken(
+        const record = verifyAccountToken(
           token,
           tenantId,
           'password_reset',
@@ -267,7 +229,7 @@ export function createAccountSecurityService(
           tenantId,
           record.userId,
         );
-        if (!user) throw invalidAccountToken();
+        if (!user) throw invalidAccountTokenError();
 
         const consumed = await accountTokens.consume({
           tenantId,
@@ -285,7 +247,7 @@ export function createAccountSecurityService(
             now,
           ))
         )
-          throw invalidAccountToken();
+          throw invalidAccountTokenError();
 
         await sessions.revokeAll(
           tenantId,
@@ -329,7 +291,7 @@ export function createAccountSecurityService(
       },
     );
 
-    dispatch(sender, notice);
+    dispatchAccountMessage(sender, notice);
   }
 
   return {

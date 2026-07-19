@@ -18,7 +18,6 @@ export function valuesMatch(left: string, right: string) {
 
 export function getRequestOrigin(req: Request) {
   const origin = req.get('origin');
-  /* v8 ignore else */
   if (origin) return origin;
 
   const referer = req.get('referer');
@@ -41,7 +40,6 @@ export function requireAllowedOrigin(
   res: Response,
   next: NextFunction,
 ) {
-  /* v8 ignore else */
   if (!hasAllowedOrigin(req)) {
     return next(
       new AppError(403, 'INVALID_ORIGIN', 'Request origin is invalid'),

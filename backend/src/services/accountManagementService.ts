@@ -1,6 +1,12 @@
-import bcrypt from 'bcryptjs';
 import AppError from '@/errors/AppError';
 import type { CheckoutTransactionCoordinator } from '@/repositories/checkoutTransaction';
+import {
+  accountStateChangedError,
+  getPasswordComparer,
+  getPasswordHasher,
+  type PasswordComparer,
+  type PasswordHasher,
+} from '@/services/accountServiceSupport';
 import { defaultTenantId } from '@/tenants';
 import {
   type PasswordChangeData,
@@ -12,29 +18,16 @@ import {
 } from '@/validators/accountManagementValidator';
 
 type AccountManagementDependencies = {
-  comparePassword?: (
-    password: string,
-    passwordHash: string,
-  ) => Promise<boolean>;
-  hashPassword?: (password: string) => Promise<string>;
+  comparePassword?: PasswordComparer;
+  hashPassword?: PasswordHasher;
 };
-
-function accountStateChanged() {
-  return new AppError(
-    409,
-    'ACCOUNT_STATE_CHANGED',
-    'Account state changed; authenticate again',
-  );
-}
 
 export function createAccountManagementService(
   transactions: CheckoutTransactionCoordinator,
   dependencies: AccountManagementDependencies = {},
 ) {
-  const comparePassword = dependencies.comparePassword ?? bcrypt.compare;
-  const hashPassword =
-    dependencies.hashPassword ??
-    ((password: string) => bcrypt.hash(password, 10));
+  const comparePassword = getPasswordComparer(dependencies.comparePassword);
+  const hashPassword = getPasswordHasher(dependencies.hashPassword);
 
   async function updateProfile(
     body: ProfileUpdateRequestBody | ProfileUpdateData,
@@ -45,7 +38,7 @@ export function createAccountManagementService(
     const data = validateProfileUpdate(body);
     return transactions.run(async ({ users, audits }) => {
       const updated = await users.updateProfile(tenantId, userId, data, now);
-      if (!updated) throw accountStateChanged();
+      if (!updated) throw accountStateChangedError();
 
       await audits.append({
         tenantId,
@@ -70,7 +63,7 @@ export function createAccountManagementService(
     const snapshot = await transactions.run(({ users }) =>
       users.findAccountSecurityById(tenantId, userId),
     );
-    if (!snapshot || snapshot.deactivatedAt) throw accountStateChanged();
+    if (!snapshot || snapshot.deactivatedAt) throw accountStateChangedError();
 
     if (!(await comparePassword(data.currentPassword, snapshot.passwordHash))) {
       throw new AppError(
@@ -98,7 +91,7 @@ export function createAccountManagementService(
           passwordHash,
           now,
         });
-        if (!replaced) throw accountStateChanged();
+        if (!replaced) throw accountStateChangedError();
 
         await sessions.revokeAll(tenantId, userId, 'password_change', now);
         await accountTokens.invalidateActive(

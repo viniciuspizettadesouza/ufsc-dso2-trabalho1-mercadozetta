@@ -13,15 +13,15 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - TypeScript 7 is deferred until `typescript-eslint` publishes a compatible
   release; version 8.63.0 and its current canary support TypeScript only through
   versions earlier than 6.1.0.
-- Backend has 217 focused tests across 44 files and passes its coverage
-  thresholds with 87.98% branches and 89.59% functions. Frontend has 171 tests
-  across 35 files and passes its thresholds with 90.12% branches and 96.68%
-  functions. Type checks, tests, lint, formatting, generated-contract parity,
-  coverage, and the production build pass.
+- Backend has 243 focused tests across 48 files and passes coverage with 91.08%
+  branches and 97.72% functions. Frontend has 186 tests across 38 files and
+  passes coverage with 91.69% branches and 96.39% functions. Type checks, tests,
+  lint, formatting, generated-contract parity, coverage, and the production
+  build pass.
 - Checkout commits order creation, items, conditional inventory decrements, cart
   clearing, and notifications in one PostgreSQL transaction.
 - A separate `npm run test:integration` lane builds ephemeral PostgreSQL 18,
-  applies committed migrations, runs 11 database-backed scenarios across two
+  applies committed migrations, runs 28 database-backed scenarios across three
   files against the real Express composition and Drizzle adapters, and cleans up
   its isolated Compose project and database deterministically.
 - Database-backed tests verify atomic checkout and rollback, cart and
@@ -65,7 +65,7 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - Focused unit and contract tests pass for cookie flags, login response safety,
   access validation, Origin/CSRF rejection, expiry, rotation, replay,
   concurrency, tenant scoping, revocation, and failed frontend renewal. The
-  database-backed integration lane passes all 11 scenarios and cleans up its
+  database-backed integration lane passes all 28 scenarios and cleans up its
   containers and isolated network successfully.
 - The root `npm run test:e2e` lane builds isolated, deterministically seeded
   PostgreSQL backend/frontend stacks and runs Chromium through protected-route
@@ -772,10 +772,33 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   lint, formatting, generated-contract parity, Drizzle history checks, all 28
   PostgreSQL scenarios, the production-image smoke, and recovery rehearsal pass.
   Step 12 is complete.
-- Next action: begin Step 13 with a focused idempotent-checkout contract. Define
-  request-key scope, tenant/buyer binding, payload fingerprinting, concurrent
-  duplicate behavior, stored response/error semantics, expiry, cleanup, and
-  audit/notification interaction before changing checkout persistence.
+- The roadmap after Step 13 now separates the monetary, payment, fulfillment,
+  post-sale, asynchronous-delivery, administration, and advanced-production
+  concerns into explicit phases. Libraries may be introduced whenever they
+  solve a concrete problem more safely or maintainably than project-owned code;
+  selection must still account for security, maintenance, compatibility,
+  operational impact, testing, and ownership of core domain rules.
+- Step 12.5 is complete. Checkout orchestration is isolated in
+  `checkoutService.ts`; account services share only their common token, error,
+  password-dependency, and best-effort delivery support; configuration modules
+  share environment parsing; and password-change/reset validators share narrow
+  refinement helpers without merging domain schemas or public contracts.
+- Focused session-service tests now cover creation, rotation, replay,
+  concurrency, expiry, credential revocation, and session revocation. Production
+  V8 exclusions were removed except for one tenant-qualified foreign-key branch
+  that is structurally unreachable. The three previously excluded marketplace
+  pages are measured again, production backend source rejects explicit `any`, and
+  the brand capability flags match the implemented commerce workflows.
+- Buyer and seller order history now shares a tested accessible component, and
+  forms share mutation feedback and safe Axios error extraction while retaining
+  domain-specific behavior. The tenant logos retain their visual identity at
+  158.22 KB and 175.23 KB in the production build, down from approximately 719 KB
+  and 773 KB.
+- Final verification passes generated-contract parity, typecheck, 243 backend
+  tests, 186 frontend tests, lint, formatting, both coverage gates, the frontend
+  production build, all 28 PostgreSQL scenarios, and both Chromium workflows.
+  Next action: start Step 13 with idempotency for checkout and other
+  retry-sensitive mutations.
 
 ## Recommended Order
 
@@ -948,7 +971,7 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - [x] Preserve existing pending, success, API-error, and previous-state behavior
       while removing duplicated request state from pages.
 
-### 9. Improve API consistency and frontend contract safety
+### 9. Improve API consistency and frontend contract safety (completed)
 
 - [x] Define consistent error, list, pagination, and mutation response shapes in
       Zod and OpenAPI before migrating list consumers.
@@ -971,7 +994,7 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - [x] Add append-only audit events for session, inventory, order, and privileged
       mutations without treating ordinary application logs as the audit record.
 
-### 11. Add account verification, recovery, and management
+### 11. Add account verification, recovery, and management (completed)
 
 - [x] Add email verification and password-reset flows using hashed, expiring,
       single-use tokens and non-enumerating responses.
@@ -997,22 +1020,175 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - [x] Document backup and restore procedures and rehearse a migration and
       restore using production-like, non-personal data.
 
-### 13. Add later marketplace capabilities only after the baseline is stable
+### 12.5. Stabilize code-quality boundaries before Step 13 (completed)
+
+- [x] Extract checkout orchestration from the multi-domain
+      `backend/src/services/commerceService.ts` into a focused service while
+      preserving the existing controller contract, repository boundaries,
+      transaction scope, inventory rules, notifications, audits, and API behavior.
+- [x] Extract narrowly scoped account-domain support for the identical
+      account-state and invalid-token errors, tenant/purpose/hash token
+      verification, best-effort `AccountMessageSender` dispatch, and default
+      password comparison/hashing dependencies used across account management,
+      deactivation, verification/recovery, and email change. Preserve each
+      service's transaction boundaries, public error contract, and test injection
+      points.
+- [x] Centralize bounded integer, boolean, list, and related environment parsing
+      under a small configuration utility. Preserve every existing variable,
+      fallback, accepted range, production validation, and user-visible startup
+      error while removing the repeated parsers from runtime, security, and data
+      cleanup configuration.
+- [x] Share password-strength and confirmation refinement building blocks between
+      password change and password reset without merging their operation-specific
+      Zod schemas, required fields, application error codes, or OpenAPI metadata.
+- [x] Add focused unit coverage for `backend/src/services/sessionService.ts`,
+      especially access creation, refresh rotation, replay/concurrency outcomes,
+      expiry, and revocation. Keep the PostgreSQL scenarios authoritative for
+      transactional behavior rather than duplicating database implementation in
+      unit tests.
+- [x] Audit every production `v8 ignore` directive. Remove exclusions for paths
+      already exercised, add focused tests for reachable untested behavior, and
+      retain an exclusion only when the path is structurally unreachable or
+      cannot be measured reliably, with a narrow explanation beside it.
+- [x] Bring `ProductDetail.tsx`, `Checkout.tsx`, and `SellerProfile.tsx` back into
+      measured frontend coverage without replacing their existing integration
+      behavior tests with coverage-only aggregate tests.
+- [x] Enable the explicit-`any` lint rule for backend production source while
+      allowing narrowly scoped test-double exceptions where Express or library
+      test typing would otherwise add noise. Keep strict TypeScript authoritative.
+- [x] Correct or remove stale brand capability flags so configuration does not
+      claim that implemented checkout, review, or favorite workflows are disabled.
+- [x] Extract a tested `OrderStatusHistory` presentation component shared by
+      buyer checkout history and seller orders so actor, timestamp, semantics,
+      and accessibility remain consistent.
+- [x] Centralize the small mutation-feedback type, accessible alert/status
+      presentation, and safe Axios error-message extraction used by frontend
+      forms. Keep domain-specific fallback messages, code overrides, pending
+      state, navigation, and cache behavior in their owning pages and hooks.
+- [x] Optimize the two tenant logo assets to a reasonable production transfer
+      size without changing their visual identity, accessibility, or tenant
+      fallback behavior.
+- [x] Do not split declarative OpenAPI/schema files or large frontend components
+      solely to satisfy a line-count target. Extract them only when cohesion,
+      reuse, testing, or an active change provides a concrete boundary.
+- [x] Do not replace explicit domain Axios services, React Query hooks,
+      tenant-qualified repository predicates, audit payloads, Zod/OpenAPI
+      operation metadata, or distinct product/inventory errors with generic
+      abstractions merely because their structure is similar.
+- [x] Re-run generated-contract parity, typecheck, focused tests, lint,
+      formatting, coverage, frontend production build, PostgreSQL integration,
+      and any browser workflow affected by the refactor before starting Step 13.
+
+### 13. Complete the operational marketplace baseline
 
 - [ ] Make checkout and other retry-sensitive mutations idempotent so retries
       cannot create duplicate orders or side effects.
 - [ ] Add seller inventory history, low-stock warnings, order search and
-      filtering, and basic tenant-scoped sales summaries.
+      filtering, and basic tenant-scoped quantity and order summaries. Defer
+      revenue summaries until Step 14 introduces authoritative monetary data.
 - [ ] Replace uncontrolled free-text categories with managed taxonomy only if
       catalog requirements need consistent discovery.
-- [ ] Model delivery addresses, returns, refunds, and disputes as distinct
-      domain workflows when the marketplace scope includes physical fulfillment;
-      do not keep extending the order-status enum to represent unrelated processes.
-- [ ] Add notification preferences and asynchronous email delivery before
-      introducing Redis or a job queue.
+
+### 14. Add an authoritative monetary model
+
+- [ ] Define tenant currency and represent money without binary floating-point
+      arithmetic, using integer minor units or another explicitly accepted exact
+      representation.
+- [ ] Add tenant-scoped product prices and immutable unit-price snapshots on
+      order lines so later catalog edits cannot rewrite commerce history.
+- [ ] Calculate subtotal, discounts, shipping, and total on the backend with
+      explicit rounding and validation rules; never trust client-calculated totals.
+- [ ] Record price history when product pricing changes and add focused,
+      database-backed, contract, and frontend tests for monetary boundaries.
+- [ ] Extend sales summaries to revenue only after the stored monetary invariants
+      and historical snapshots are verified.
+
+### 15. Model payments as a separate domain
+
+- [ ] Accept a provider-neutral payment contract before selecting or activating
+      a payment provider SDK. Define attempts, authorization, capture, failure,
+      cancellation, refund linkage, reconciliation, and audit behavior.
+- [ ] Keep payment state separate from order and fulfillment state; do not extend
+      the order-status enum to represent payment processing.
+- [ ] Authenticate provider callbacks, make webhook processing idempotent, and
+      handle duplicate, delayed, and out-of-order events safely.
+- [ ] Add reconciliation, operational visibility, tenant isolation, and tests for
+      failed, concurrent, retried, and partially completed payment workflows.
+
+### 16. Add physical fulfillment when product scope requires it
+
+- [ ] Model delivery addresses with an immutable order-time snapshot and an
+      explicit personal-data retention policy.
+- [ ] Model shipments separately from orders, including carrier, tracking,
+      fulfillment state, timestamps, and optional partial shipment only when a
+      concrete requirement justifies it.
+- [ ] Define cancellation and inventory-replenishment rules for every relevant
+      order, payment, and fulfillment boundary.
+- [ ] Keep authorization tenant-scoped and cover buyer, seller, cross-tenant,
+      concurrency, audit, and notification behavior.
+
+### 17. Add post-sale workflows
+
+- [ ] Model returns, refunds, and disputes as distinct domain workflows with
+      reasons, evidence, deadlines, actors, and explicit state transitions.
+- [ ] Coordinate refund records with the payment domain without rewriting
+      immutable order, payment, inventory, or audit history.
+- [ ] Define seller, buyer, and future support permissions in backend services
+      and cover denial, retry, concurrency, and partial-failure behavior.
+
+### 18. Add asynchronous communication and delivery
+
+- [ ] Add tenant-aware user notification preferences and explicit transactional,
+      security, and optional-message categories.
+- [ ] Add a transactional outbox so committed domain mutations cannot lose their
+      corresponding asynchronous messages.
+- [ ] Activate provider adapters for account and marketplace email only after
+      delivery configuration, secret management, retry, suppression, and
+      observability requirements are defined.
+- [ ] Introduce a queue, Redis, or a managed equivalent when retryable background
+      work exists; define idempotency, retry bounds, dead-letter handling, cleanup,
+      and operational ownership before production activation.
+
+### 19. Add administration and support only for concrete workflows
+
+- [ ] Define support and privileged administration use cases before introducing
+      roles or a privileged surface.
+- [ ] Enforce tenant-scoped permissions and ownership in backend services and
+      invalidate stale sessions when privilege changes require it.
+- [ ] Audit all privileged mutations and add negative authorization,
+      cross-tenant, stale-session, and browser-level workflow tests.
+
+### 20. Complete advanced production operations
+
+- [ ] Add service metrics, distributed tracing where it answers a measured need,
+      service-level objectives, dashboards, and actionable alerts.
+- [ ] Replace process-local rate limiting when horizontal deployment requires a
+      shared abuse-control boundary.
+- [ ] Provision and verify production scheduling for cleanup and backups,
+      encrypted backup storage, database authentication, secret management, and
+      provider-specific recovery automation.
+- [ ] Add an explicit frontend Content Security Policy, explicit request-size
+      limits, dependency and secret scanning, container-image scanning, and a
+      documented vulnerability-response process.
+- [ ] Add representative load, capacity, failure, deployment, and recovery tests
+      before increasing production scale.
 
 ## Dependency and Security Guardrails
 
+- Libraries are allowed whenever they address a concrete requirement more
+  safely, clearly, or maintainably than project-owned code. Before adding one,
+  evaluate maintenance activity, security history, transitive dependencies,
+  runtime and bundle impact, license, compatibility, deployment requirements,
+  and whether the project can test and operate the resulting boundary.
+- Prefer established libraries and provider SDKs for generic infrastructure such
+  as exact monetary arithmetic, payment protocols, queues, telemetry, metrics,
+  email delivery, and security primitives. Keep tenant isolation, authorization,
+  order, inventory, idempotency, and lifecycle rules explicit in project-owned
+  domain services and database constraints.
+- Pin accepted versions through the lockfile, place packages in the correct
+  runtime or development dependency set, audit them, and add focused tests for
+  the integration boundary. Record an ADR when a dependency materially affects
+  persistence, security, deployment, or operational ownership.
 - Do not add Redux Toolkit or Zustand unless substantial client-only shared
   state appears; remote marketplace state belongs in TanStack Query.
 - Do not migrate to Next.js, NestJS, or Fastify without a measured product or

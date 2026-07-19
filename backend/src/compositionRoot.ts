@@ -26,6 +26,7 @@ import { createAccountSecurityService } from '@/services/accountSecurityService'
 import { createAccountManagementService } from '@/services/accountManagementService';
 import { createAccountDeactivationService } from '@/services/accountDeactivationService';
 import { createEmailChangeService } from '@/services/emailChangeService';
+import { createCheckoutService } from '@/services/checkoutService';
 import type { CartRepository } from '@/repositories/cartRepository';
 import type { NotificationRepository } from '@/repositories/notificationRepository';
 import type { OrderItemRepository } from '@/repositories/orderItemRepository';
@@ -38,7 +39,6 @@ import type { WatchlistRepository } from '@/repositories/watchlistRepository';
 import { createAuthService } from '@/services/authService';
 import {
   createCartCommerceService,
-  createCommerceProductService,
   createNotificationCommerceService,
   createOrderCommerceService,
   createReviewCommerceService,
@@ -78,10 +78,7 @@ function createComposition(
   const auth = createAuthService(repositories.users, sessions);
   const commerce = {
     ...createCartCommerceService(repositories.carts, repositories.products),
-    ...createCommerceProductService(
-      repositories.products,
-      repositories.checkout,
-    ),
+    ...createCheckoutService(repositories.checkout),
     ...createOrderCommerceService(
       repositories.orders,
       repositories.orderItems,

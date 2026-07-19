@@ -1,6 +1,5 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { isAxiosError } from 'axios';
 
 import Header from '@/pages/header';
 import { useBrand } from '@/brands/brandContext';
@@ -8,6 +7,7 @@ import { appRoutes } from '@/routes';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { useCreateUser } from '@/serverState/users';
+import { getApiErrorMessage } from '@/services/errors';
 
 export default function AddUser() {
   const brand = useBrand();
@@ -34,13 +34,10 @@ export default function AddUser() {
       });
 
       navigate(appRoutes.home);
-    } catch (err) {
-      if (isAxiosError<{ error?: string }>(err) && err.response?.data.error) {
-        setError(err.response.data.error);
-        return;
-      }
-
-      setError(brand.copy.validation.accountCreateError);
+    } catch (error) {
+      setError(
+        getApiErrorMessage(error, brand.copy.validation.accountCreateError),
+      );
     }
   }
 

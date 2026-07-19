@@ -214,6 +214,80 @@ describe('marketplace pages', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
+  it('removes products already present in authenticated collections', async () => {
+    vi.mocked(api.get).mockImplementation(async (url) => {
+      if (url === '/products/product-1') return { data: product };
+      if (url === '/cart') {
+        return { data: { items: [{ product, quantity: 1 }] } };
+      }
+      if (url === '/watchlist') {
+        return {
+          data: [
+            {
+              _id: 'watch-1',
+              product,
+              createdAt: '2026-07-19T15:00:00.000Z',
+            },
+          ],
+        };
+      }
+      if (url === '/notifications/unread-count') return { data: { count: 0 } };
+      return { data: paginatedResponse([]) };
+    });
+    vi.mocked(api.delete).mockResolvedValue({ data: { items: [] } });
+
+    renderAt('/products/product-1', '/products/:productId', <ProductDetail />, {
+      _id: 'user-1',
+    });
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Watching' }),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'In cart' }));
+
+    expect(api.delete).toHaveBeenCalledWith('/watchlist/product-1');
+    expect(api.delete).toHaveBeenCalledWith('/cart/items/product-1');
+  });
+
+  it('renders safe product fallbacks for optional catalog details', async () => {
+    vi.mocked(api.get).mockImplementation(async (url) => {
+      if (url === '/products/product-1') {
+        return {
+          data: {
+            ...product,
+            description: null,
+            category: null,
+            inventory: undefined,
+            seller: '',
+            sellerProfile: undefined,
+          },
+        };
+      }
+      return { data: paginatedResponse([]) };
+    });
+
+    renderAt('/products/product-1', '/products/:productId', <ProductDetail />);
+
+    expect(
+      await screen.findByRole('heading', { name: 'Coffee' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('general')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Seller store' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Disponível:')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Store profile' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not start detail queries when the product route has no id', () => {
+    renderAt('/', '/', <ProductDetail />);
+
+    expect(screen.getByRole('status')).toHaveTextContent('Loading product...');
+    expect(api.get).not.toHaveBeenCalledWith('/products/missing-product');
+  });
+
   it('keeps the previous review page visible while the next page loads', async () => {
     let resolveNextPage!: (value: unknown) => void;
     vi.mocked(api.get).mockImplementation((url) => {
@@ -425,5 +499,39 @@ describe('marketplace pages', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Unable to load seller profile.',
     );
+  });
+
+  it('renders seller fallbacks without optional contact or products', async () => {
+    vi.mocked(api.get)
+      .mockResolvedValueOnce({
+        data: {
+          _id: 'seller-1',
+          username: null,
+          telephone: null,
+          email: null,
+          storeName: null,
+        },
+      })
+      .mockResolvedValueOnce({ data: paginatedResponse([]) });
+
+    renderAt(
+      '/sellers/seller-1/profile',
+      '/sellers/:sellerId/profile',
+      <SellerProfile />,
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Seller store' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Seller')).toBeInTheDocument();
+    expect(screen.queryByText(/Contact:/)).not.toBeInTheDocument();
+    expect(screen.getByRole('list')).toBeEmptyDOMElement();
+  });
+
+  it('does not start seller queries when the route has no id', () => {
+    renderAt('/', '/', <SellerProfile />);
+
+    expect(screen.getByRole('status')).toHaveTextContent('Loading seller...');
+    expect(api.get).not.toHaveBeenCalledWith('/sellers/missing-seller');
   });
 });

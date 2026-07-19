@@ -1,8 +1,13 @@
 import type { RequestFieldValue } from '@/types/request';
 import { z } from 'zod';
 import { parseAppSchema, requestString } from '@/validators/parseSchema';
-import { isStrongPassword } from '@/validators/userValidator';
 import { isValidEmail } from '@/validators/userValidator';
+import {
+  passwordConfirmationMismatchIssue,
+  passwordIsStrongWhenPresent,
+  passwordsMatchWhenPresent,
+  weakPasswordIssue,
+} from '@/validators/passwordValidator';
 
 export const emailChangeRequestResponseSchema = z
   .object({
@@ -137,18 +142,8 @@ export const passwordChangeSchema = z
       params: { appCode: 'MISSING_PASSWORD_CHANGE_FIELDS', statusCode: 400 },
     },
   )
-  .refine(
-    ({ password, passwordConfirmation }) =>
-      !password || !passwordConfirmation || password === passwordConfirmation,
-    {
-      message: 'Password confirmation does not match',
-      params: { appCode: 'PASSWORD_CONFIRMATION_MISMATCH', statusCode: 400 },
-    },
-  )
-  .refine(({ password }) => !password || isStrongPassword(password), {
-    message: 'Password must be at least 8 characters long',
-    params: { appCode: 'WEAK_PASSWORD', statusCode: 400 },
-  })
+  .refine(passwordsMatchWhenPresent, passwordConfirmationMismatchIssue)
+  .refine(passwordIsStrongWhenPresent, weakPasswordIssue)
   .meta({
     id: 'PasswordChangeRequest',
     description: 'Current credential and matching replacement password.',

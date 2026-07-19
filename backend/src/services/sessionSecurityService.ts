@@ -36,7 +36,6 @@ function safeEqual(left: string, right: string) {
 }
 
 export function createRefreshToken(sessionId: string) {
-  /* v8 ignore next */
   if (!isUuid(sessionId)) throw new Error('Invalid session id');
   return `${sessionId}.${randomBytes(32).toString('base64url')}`;
 }
@@ -98,7 +97,6 @@ export function versionedRefreshTokenMatches(
 }
 
 export function createCsrfToken(sessionId: string, secret?: string) {
-  /* v8 ignore next */
   if (!isUuid(sessionId)) throw new Error('Invalid session id');
   const nonce = randomBytes(32).toString('base64url');
   if (secret) return `${nonce}.${hmac(`${sessionId}.${nonce}`, secret)}`;
@@ -115,7 +113,6 @@ export function verifyCsrfToken(
   sessionId: string,
   secret?: string,
 ) {
-  /* v8 ignore else */
   if (!isUuid(sessionId)) return false;
 
   const parts = csrfToken.split('.');
@@ -128,7 +125,6 @@ export function verifyCsrfToken(
     : version
       ? getCsrfSecretKeyRing().keys[version]
       : getCsrfSecretKeyRing().keys.legacy;
-  /* v8 ignore next */
   if (
     (parts.length !== 2 && parts.length !== 3) ||
     (versioned && (!version || !SECRET_VERSION_PATTERN.test(version))) ||

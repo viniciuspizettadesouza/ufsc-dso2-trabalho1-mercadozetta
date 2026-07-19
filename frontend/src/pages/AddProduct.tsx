@@ -1,6 +1,5 @@
 import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { isAxiosError } from 'axios';
 
 import Header from '@/pages/header';
 import { useBrand } from '@/brands/brandContext';
@@ -10,6 +9,7 @@ import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Select } from '@/components/Select';
 import { type ProductStatus, useCreateProduct } from '@/serverState/products';
+import { getApiErrorMessage } from '@/services/errors';
 
 const productStatusOptions: ProductStatus[] = [
   'draft',
@@ -55,13 +55,10 @@ export default function AddProduct() {
       });
 
       navigate(appRoutes.sellerProducts(user._id));
-    } catch (err) {
-      if (isAxiosError<{ error?: string }>(err) && err.response?.data.error) {
-        setError(err.response.data.error);
-        return;
-      }
-
-      setError(brand.copy.validation.productCreateError);
+    } catch (error) {
+      setError(
+        getApiErrorMessage(error, brand.copy.validation.productCreateError),
+      );
     }
   }
 

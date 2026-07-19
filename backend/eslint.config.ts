@@ -12,7 +12,7 @@ export default [
   ...(tsPlugin.configs['flat/recommended'] as object[]),
   {
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-require-imports': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
@@ -51,6 +51,7 @@ export default [
   {
     files: ['test/**/*.ts'],
     rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
       'no-restricted-imports': [
         'error',
         {

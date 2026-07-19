@@ -173,7 +173,6 @@ async function revokeReusedFamily(
 }
 
 function isInsideConcurrencyWindow(session: SessionRecord, now: Date) {
-  /* v8 ignore else */
   if (!session.rotatedAt) return false;
   return (
     now.getTime() - session.rotatedAt.getTime() <=
@@ -199,7 +198,6 @@ async function handlePreviousRefreshToken(
     throw invalidRefreshToken();
   }
 
-  /* v8 ignore next */
   if (isInsideConcurrencyWindow(session, now)) {
     throw new AppError(
       409,
@@ -220,11 +218,9 @@ async function rotateSessionWithRepository(
   now: Date,
 ) {
   const sessionId = getRefreshTokenSessionId(refreshToken);
-  /* v8 ignore next */
   if (!sessionId) throw invalidRefreshToken();
 
   let session = await sessions.findRefreshById(tenantId, sessionId);
-  /* v8 ignore next */
   if (!session) throw invalidRefreshToken();
 
   if (!isSessionActive(session, now)) {
@@ -235,7 +231,6 @@ async function rotateSessionWithRepository(
     tenantId,
     String(session.userId),
   );
-  /* v8 ignore else */
   if (tokenVersion === null || tokenVersion !== session.tokenVersion) {
     await sessions.revokeById(
       tenantId,
@@ -287,10 +282,8 @@ async function rotateSessionWithRepository(
     expiresAt,
   });
 
-  /* v8 ignore else */
   if (!rotated) {
     session = await sessions.findRefreshById(tenantId, sessionId);
-    /* v8 ignore else */
     if (!session) throw invalidRefreshToken();
     return handlePreviousRefreshToken(
       sessions,
@@ -433,7 +426,6 @@ async function getSessionWithRepository(
 ) {
   const session = await sessions.findOwned(tenantId, userId, sessionId);
 
-  /* v8 ignore next */
   if (!session || !isSessionActive(session, now)) {
     throw new AppError(
       401,
@@ -473,7 +465,6 @@ async function revokeSessionWithRepository(
     now,
   );
 
-  /* v8 ignore else */
   if (!revoked) {
     throw new AppError(404, 'SESSION_NOT_FOUND', 'Session not found');
   }

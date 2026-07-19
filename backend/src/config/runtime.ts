@@ -1,4 +1,5 @@
 import { getAllowedCorsOrigins, isLocalEnv } from '@/config/security';
+import { readBoundedInteger as parseBoundedInteger } from '@/config/environment';
 
 const DEFAULT_PORT = 3333;
 const DEFAULT_POSTGRES_POOL_MAX = 10;
@@ -6,24 +7,6 @@ const DEFAULT_POSTGRES_CONNECTION_TIMEOUT_MS = 5000;
 const DEFAULT_POSTGRES_IDLE_TIMEOUT_MS = 30000;
 const DEFAULT_POSTGRES_STATEMENT_TIMEOUT_MS = 10000;
 const DEFAULT_POSTGRES_IDLE_TRANSACTION_TIMEOUT_MS = 10000;
-function parseBoundedInteger(
-  name: string,
-  defaultValue: number,
-  minimum: number,
-  maximum: number,
-) {
-  const configured = process.env[name]?.trim();
-  if (!configured) return defaultValue;
-
-  const value = Number(configured);
-  if (!Number.isInteger(value) || value < minimum || value > maximum) {
-    throw new Error(
-      `${name} must be an integer between ${minimum} and ${maximum}`,
-    );
-  }
-
-  return value;
-}
 
 export type PostgresRuntimeConfig = {
   connectionString: string;

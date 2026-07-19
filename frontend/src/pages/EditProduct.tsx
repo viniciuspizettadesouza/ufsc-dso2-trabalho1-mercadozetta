@@ -5,6 +5,10 @@ import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Select } from '@/components/Select';
 import { Textarea } from '@/components/Textarea';
+import {
+  MutationFeedbackMessage,
+  type MutationFeedback,
+} from '@/components/MutationFeedback';
 import Header from '@/pages/header';
 import { appRoutes } from '@/routes';
 import {
@@ -81,10 +85,7 @@ function EditProductForm({
     initialProduct.status ?? 'draft',
   );
   const [pending, setPending] = useState('');
-  const [feedback, setFeedback] = useState<{
-    type: 'success' | 'error';
-    message: string;
-  } | null>(null);
+  const [feedback, setFeedback] = useState<MutationFeedback>(null);
   const updateDetails = useUpdateProductDetails(productId);
   const updateInventory = useUpdateProductInventory(productId);
   const updateStatus = useUpdateProductStatus(productId);
@@ -115,11 +116,7 @@ function EditProductForm({
 
   return (
     <>
-      {feedback && (
-        <p role={feedback.type === 'error' ? 'alert' : 'status'}>
-          {feedback.message}
-        </p>
-      )}
+      <MutationFeedbackMessage feedback={feedback} />
       <form
         className="mt-6 grid gap-3"
         onSubmit={(event: FormEvent) => {

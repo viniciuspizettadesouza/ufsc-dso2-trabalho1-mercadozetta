@@ -8,12 +8,14 @@ import PaginationControls from '@/components/PaginationControls';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Select } from '@/components/Select';
+import {
+  MutationFeedbackMessage,
+  type MutationFeedback,
+} from '@/components/MutationFeedback';
 import { firstPage } from '@/pagination';
 import type { ProductListRequest } from '@/serverState/queryKeys';
 import { useProductCollection } from '@/serverState/productCollections';
 import { type Product, useProductList } from '@/serverState/products';
-
-type ActionFeedback = { type: 'success' | 'error'; message: string } | null;
 
 const productSkeletons = [
   'skeleton-1',
@@ -39,7 +41,7 @@ function ProductCatalog({ sellerId }: { sellerId?: string }) {
   const [availability, setAvailability] = useState('');
   const [sort, setSort] = useState('created_desc');
   const [pendingAction, setPendingAction] = useState('');
-  const [actionFeedback, setActionFeedback] = useState<ActionFeedback>(null);
+  const [actionFeedback, setActionFeedback] = useState<MutationFeedback>(null);
   const [productRequest, setProductRequest] = useState<ProductListRequest>(() =>
     initialProductRequest(sellerId),
   );
@@ -213,18 +215,11 @@ function ProductCatalog({ sellerId }: { sellerId?: string }) {
         </Button>
       </form>
 
-      {actionFeedback && (
-        <p
-          className={`mt-4 rounded-surface border p-3 font-bold ${
-            actionFeedback.type === 'error'
-              ? 'border-red-200 bg-red-50 text-red-700'
-              : 'border-green-200 bg-green-50 text-green-700'
-          }`}
-          role={actionFeedback.type === 'error' ? 'alert' : 'status'}
-        >
-          {actionFeedback.message}
-        </p>
-      )}
+      <MutationFeedbackMessage
+        className="mt-4"
+        feedback={actionFeedback}
+        variant="surface"
+      />
 
       <div className="py-8">
         {productQuery.isPending ? (

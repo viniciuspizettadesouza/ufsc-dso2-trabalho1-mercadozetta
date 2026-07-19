@@ -125,4 +125,19 @@ describe('BrandProvider', () => {
   ])('keeps %s text and actions at WCAG AA contrast', (_, theme) => {
     expectReadableTheme(theme);
   });
+
+  it.each([
+    ['MercadoZetta', defaultBrand],
+    ['CampusMarket', campusMarketBrand],
+  ])('advertises the implemented %s marketplace capabilities', (_, brand) => {
+    expect(brand.features).toMatchObject({
+      sellerPages: true,
+      productCreation: true,
+      publicCatalog: true,
+      checkout: true,
+      reviews: true,
+      favorites: true,
+      inventory: true,
+    });
+  });
 });

@@ -34,9 +34,7 @@ export function createAuthController(
         session: result.session,
       });
     },
-    /* v8 ignore next */
     async session(req: Request, res: Response) {
-      /* v8 ignore else */
       if (!req.sessionId)
         throw new AppError(
           401,
@@ -64,7 +62,6 @@ export function createAuthController(
         setAuthCookies(res, result);
         return res.status(204).send();
       } catch (error) {
-        /* v8 ignore next */
         if (error instanceof AppError && error.statusCode === 401) {
           clearAuthCookies(res);
         }
@@ -88,12 +85,10 @@ export function createAuthController(
         'user_revoked',
         new Date(),
       );
-      /* v8 ignore else */
       if (sessionId === req.sessionId) clearAuthCookies(res);
       return res.status(204).send();
     },
     async logoutCurrent(req: Request, res: Response) {
-      /* v8 ignore next */
       if (!req.sessionId)
         throw new AppError(
           401,
