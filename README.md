@@ -99,6 +99,12 @@ cp frontend/.env.example frontend/.env
 | `JWT_SIGNING_KEYS` / `JWT_ACTIVE_KID`                                    | JSON JWT verification ring and active signer           | Retain old keys only through the bounded access-token overlap                                      |
 | `REFRESH_TOKEN_HASH_SECRETS` / `REFRESH_TOKEN_HASH_ACTIVE_VERSION`       | JSON refresh-hash ring and active version              | Keep a version until sessions using it expire or are revoked                                       |
 | `CSRF_SECRETS` / `CSRF_ACTIVE_VERSION`                                   | JSON CSRF signing ring and active version              | Keep old versions through their cookie/session overlap                                             |
+| `ACCOUNT_TOKEN_HASH_SECRETS` / `ACCOUNT_TOKEN_HASH_ACTIVE_VERSION`       | JSON account-token HMAC ring and active version        | Keep old versions until verification and recovery tokens using them expire                         |
+| `EMAIL_VERIFICATION_TOKEN_TTL_MS` / `PASSWORD_RESET_TOKEN_TTL_MS`        | Verification and recovery token lifetimes              | `28800000` (8 hours) / `1800000` (30 minutes)                                                      |
+| `EMAIL_CHANGE_TOKEN_TTL_MS`                                              | Pending email-change token lifetime                    | `1800000` (30 minutes)                                                                             |
+| `ACCOUNT_TOKEN_ISSUE_COOLDOWN_MS` / `ACCOUNT_TOKEN_ISSUE_WINDOW_MS`      | Hidden per-account issuance cooldown and window        | `60000` / `3600000`                                                                                |
+| `ACCOUNT_TOKEN_ISSUE_MAX`                                                | Hidden per-account issues allowed in the window        | `3`                                                                                                |
+| `ACCOUNT_REQUEST_RESPONSE_FLOOR_MS`                                      | Minimum account-request response duration              | `500`                                                                                              |
 | `SESSION_ACCESS_TOKEN_TTL_MS`                                            | Cookie access-token lifetime                           | `300000` (5 minutes)                                                                               |
 | `SESSION_REFRESH_IDLE_TTL_MS`                                            | Rotating refresh idle lifetime                         | `604800000` (7 days)                                                                               |
 | `SESSION_ABSOLUTE_TTL_MS`                                                | Maximum session-family lifetime                        | `2592000000` (30 days)                                                                             |
@@ -110,6 +116,10 @@ cp frontend/.env.example frontend/.env
 | `PRODUCT_IMAGE_HOSTS`                                                    | Comma-separated hosts allowed for HTTPS product images | `example.com,images.unsplash.com`                                                                  |
 | `RATE_LIMIT_AUTH_WINDOW_MS` / `RATE_LIMIT_AUTH_MAX`                      | Login rate-limit window and maximum                    | `900000` / `5`                                                                                     |
 | `RATE_LIMIT_REGISTER_WINDOW_MS` / `RATE_LIMIT_REGISTER_MAX`              | Registration rate-limit window and maximum             | `900000` / `10`                                                                                    |
+| `RATE_LIMIT_EMAIL_VERIFICATION_REQUEST_*` / `...CONFIRMATION_*`          | Independent verification request/confirmation limits   | `900000` / `5` and `900000` / `10`                                                                 |
+| `RATE_LIMIT_PASSWORD_RESET_REQUEST_*` / `...CONFIRMATION_*`              | Independent recovery request/confirmation limits       | `900000` / `5` and `900000` / `10`                                                                 |
+| `RATE_LIMIT_PASSWORD_CHANGE_*` / `...EMAIL_CHANGE_REQUEST_*`             | Independent authenticated sensitive-operation limits   | `900000` / `5`                                                                                     |
+| `RATE_LIMIT_EMAIL_CHANGE_CONFIRMATION_*` / `...ACCOUNT_DEACTIVATION_*`   | Email confirmation and deactivation limits             | `900000` / `10` and `900000` / `5`                                                                 |
 
 When strict tenant-header mode is enabled, the global tenant middleware also
 requires `X-Tenant-Id` on `/`, `/health`, and `/ready`.

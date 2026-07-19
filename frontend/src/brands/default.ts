@@ -108,6 +108,17 @@ export const defaultBrand: BrandConfig = {
       productCreateError: 'Não foi possível criar o anúncio. Tente novamente.',
       invalidCredentials: 'E-mail ou senha inválidos',
     },
+    account: {
+      navigationAction: 'Minha conta',
+      title: 'Configurações da conta',
+      profileTitle: 'Perfil',
+      passwordTitle: 'Alterar senha',
+      emailTitle: 'Alterar e-mail',
+      deactivationTitle: 'Desativar conta',
+      deliveryUnavailable:
+        'A confirmação por e-mail ainda não está disponível.',
+      confirmationTitle: 'Confirmar alteração de e-mail',
+    },
   },
   features: {
     sellerPages: true,

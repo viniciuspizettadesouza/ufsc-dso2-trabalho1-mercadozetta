@@ -26,6 +26,8 @@ services:
       REFRESH_TOKEN_HASH_ACTIVE_VERSION: current
       CSRF_SECRETS: '{"current":"e2e-csrf-current","previous":"e2e-csrf-previous"}'
       CSRF_ACTIVE_VERSION: current
+      ACCOUNT_TOKEN_HASH_SECRETS: '{"current":"e2e-account-token-current","previous":"e2e-account-token-previous"}'
+      ACCOUNT_TOKEN_HASH_ACTIVE_VERSION: current
       PORT: 3333
       CORS_ORIGIN: http://localhost:6173
       RATE_LIMIT_AUTH_MAX: 100

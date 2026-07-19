@@ -1,5 +1,6 @@
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { AuthUser } from '@/auth/AuthContext';
 import { paginatedResponse } from '@/test/paginatedResponse';
 
 const apiGet = vi.fn();
@@ -42,7 +43,9 @@ describe('App', () => {
     );
   });
 
-  function authenticate(user = { _id: 'user-1', username: 'Seller' }) {
+  function authenticate(
+    user: AuthUser = { _id: 'user-1', username: 'Seller' },
+  ) {
     apiGet.mockImplementation((url) => {
       if (url === '/auth/session') {
         return Promise.resolve({
@@ -105,6 +108,7 @@ describe('App', () => {
     ['/checkout', 'Entre para acessar o checkout.'],
     ['/notifications', 'Entre para acessar suas notificações.'],
     ['/seller/orders', 'Entre para acessar os pedidos de vendedor.'],
+    ['/account', 'Entre para gerenciar sua conta.'],
   ])('requires authentication for %s', async (path, prompt) => {
     await renderAppAt(path);
 
@@ -185,5 +189,21 @@ describe('App', () => {
     await waitFor(() =>
       expect(apiGet).toHaveBeenCalledWith('/notifications?limit=20&offset=0'),
     );
+  });
+
+  it('renders account settings for authenticated users', async () => {
+    authenticate({
+      _id: 'user-1',
+      username: 'Seller',
+      email: 'seller@example.com',
+      telephone: '123',
+    });
+
+    await renderAppAt('/account');
+
+    expect(
+      await screen.findByRole('heading', { name: 'Configurações da conta' }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Nome')).toHaveValue('Seller');
   });
 });

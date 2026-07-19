@@ -6,7 +6,14 @@ export type AuditEventType =
   | 'inventory.set'
   | 'inventory.decremented'
   | 'order.placed'
-  | 'order.status_changed';
+  | 'order.status_changed'
+  | 'user.email_verified'
+  | 'user.password_reset'
+  | 'user.profile_updated'
+  | 'user.password_changed'
+  | 'user.email_change_requested'
+  | 'user.email_changed'
+  | 'user.deactivated';
 
 export type AuditResourceType = 'session' | 'user' | 'product' | 'order';
 

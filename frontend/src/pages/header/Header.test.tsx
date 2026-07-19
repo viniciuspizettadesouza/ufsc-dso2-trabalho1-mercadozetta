@@ -120,6 +120,10 @@ describe('Header', () => {
     expect(screen.getByText('Seller')).toBeInTheDocument();
     expect(screen.getByText('seller@example.com')).toBeInTheDocument();
     expect(screen.getByText('123')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Minha conta' })).toHaveAttribute(
+      'href',
+      '/account',
+    );
 
     await userEvent.click(screen.getByRole('button', { name: 'Sair' }));
 

@@ -1,5 +1,7 @@
 import type { Database } from '@/database/postgres';
 import { createAuthController } from '@/controller/authController';
+import { createAccountSecurityController } from '@/controller/accountSecurityController';
+import { createAccountManagementController } from '@/controller/accountManagementController';
 import { createCommerceController } from '@/controller/commerceController';
 import { createProductController } from '@/controller/productController';
 import { createUserController } from '@/controller/userController';
@@ -19,6 +21,11 @@ import {
 import { PostgresProductRepository } from '@/repositories/postgres/productRepository';
 import { PostgresSessionRepository } from '@/repositories/postgres/sessionRepository';
 import { PostgresUserRepository } from '@/repositories/postgres/userRepository';
+import type { AccountMessageSender } from '@/services/accountMessageSender';
+import { createAccountSecurityService } from '@/services/accountSecurityService';
+import { createAccountManagementService } from '@/services/accountManagementService';
+import { createAccountDeactivationService } from '@/services/accountDeactivationService';
+import { createEmailChangeService } from '@/services/emailChangeService';
 import type { CartRepository } from '@/repositories/cartRepository';
 import type { NotificationRepository } from '@/repositories/notificationRepository';
 import type { OrderItemRepository } from '@/repositories/orderItemRepository';
@@ -54,7 +61,10 @@ type PersistenceRepositories = {
   checkout: CheckoutTransactionCoordinator;
 };
 
-function createComposition(repositories: PersistenceRepositories) {
+function createComposition(
+  repositories: PersistenceRepositories,
+  accountMessageSender?: AccountMessageSender,
+) {
   const users = createUserService(repositories.users);
   const products = createProductService(
     repositories.products,
@@ -91,6 +101,21 @@ function createComposition(repositories: PersistenceRepositories) {
   };
 
   return {
+    accountManagementController: createAccountManagementController(
+      createAccountManagementService(repositories.checkout),
+      createAccountDeactivationService(repositories.checkout),
+      accountMessageSender
+        ? createEmailChangeService(repositories.checkout, accountMessageSender)
+        : undefined,
+    ),
+    accountSecurityController: createAccountSecurityController(
+      accountMessageSender
+        ? createAccountSecurityService(
+            repositories.checkout,
+            accountMessageSender,
+          )
+        : undefined,
+    ),
     authController: createAuthController(auth, sessions),
     authMiddleware: createAuthMiddleware(
       repositories.users,
@@ -106,21 +131,25 @@ export type ApplicationComposition = ReturnType<typeof createComposition>;
 
 export function createPostgresComposition(
   db: Database,
+  accountMessageSender?: AccountMessageSender,
 ): ApplicationComposition {
   const users = new PostgresUserRepository(db);
   const products = new PostgresProductRepository(db);
   const sessions = new PostgresSessionRepository(db);
   const notifications = new PostgresNotificationRepository(db);
-  return createComposition({
-    users,
-    products,
-    sessions,
-    carts: new PostgresCartRepository(db),
-    orders: new PostgresOrderRepository(db),
-    orderItems: new PostgresOrderItemRepository(db),
-    notifications,
-    watchlists: new PostgresWatchlistRepository(db),
-    reviews: new PostgresReviewRepository(db),
-    checkout: new PostgresCheckoutTransactionCoordinator(db),
-  });
+  return createComposition(
+    {
+      users,
+      products,
+      sessions,
+      carts: new PostgresCartRepository(db),
+      orders: new PostgresOrderRepository(db),
+      orderItems: new PostgresOrderItemRepository(db),
+      notifications,
+      watchlists: new PostgresWatchlistRepository(db),
+      reviews: new PostgresReviewRepository(db),
+      checkout: new PostgresCheckoutTransactionCoordinator(db),
+    },
+    accountMessageSender,
+  );
 }

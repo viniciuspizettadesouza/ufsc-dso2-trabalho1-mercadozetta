@@ -76,6 +76,9 @@ const Header = ({ hideLoginAction = false }: HeaderProps) => {
               </span>
             )}
           </Link>
+          <Link className="font-bold" to={appRoutes.account}>
+            {brand.copy.account.navigationAction}
+          </Link>
           <div className="flex flex-col items-end leading-[1.3] max-[700px]:items-start">
             <strong className="text-base">
               {user.username || brand.copy.header.loggedUserFallback}

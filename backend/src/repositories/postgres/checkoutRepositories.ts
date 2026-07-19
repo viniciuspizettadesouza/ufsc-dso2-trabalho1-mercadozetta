@@ -37,8 +37,11 @@ import type {
 import type { OrderRepository } from '@/repositories/orderRepository';
 import { PostgresProductRepository } from '@/repositories/postgres/productRepository';
 import { PostgresAuditEventRepository } from '@/repositories/postgres/auditEventRepository';
+import { PostgresAccountTokenRepository } from '@/repositories/postgres/accountTokenRepository';
 import { PostgresSessionRepository } from '@/repositories/postgres/sessionRepository';
+import { PostgresPendingEmailChangeRepository } from '@/repositories/postgres/pendingEmailChangeRepository';
 import { PostgresUserRepository } from '@/repositories/postgres/userRepository';
+import { PostgresAccountLifecycleRepository } from '@/repositories/postgres/accountLifecycleRepository';
 import { mapProductRow } from '@/repositories/mappers';
 import { paginated } from '@/pagination';
 import type { Pagination } from '@/pagination';
@@ -515,6 +518,9 @@ export class PostgresNotificationRepository implements NotificationRepository {
 
 function repositories(db: TransactionDatabase): MutationRepositories {
   return {
+    accountLifecycle: new PostgresAccountLifecycleRepository(db),
+    accountTokens: new PostgresAccountTokenRepository(db),
+    pendingEmailChanges: new PostgresPendingEmailChangeRepository(db),
     audits: new PostgresAuditEventRepository(db),
     carts: new PostgresCartRepository(db),
     notifications: new PostgresNotificationRepository(db),

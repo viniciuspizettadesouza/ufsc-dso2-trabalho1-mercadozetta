@@ -4,8 +4,11 @@ import type { OrderItemRepository } from '@/repositories/orderItemRepository';
 import type { OrderRepository } from '@/repositories/orderRepository';
 import type { ProductRepository } from '@/repositories/productRepository';
 import type { AuditEventRepository } from '@/repositories/auditEventRepository';
+import type { AccountTokenRepository } from '@/repositories/accountTokenRepository';
 import type { SessionRepository } from '@/repositories/sessionRepository';
+import type { PendingEmailChangeRepository } from '@/repositories/pendingEmailChangeRepository';
 import type { UserRepository } from '@/repositories/userRepository';
+import type { AccountLifecycleRepository } from '@/repositories/accountLifecycleRepository';
 
 export type CheckoutRepositories = {
   audits: AuditEventRepository;
@@ -17,6 +20,9 @@ export type CheckoutRepositories = {
 };
 
 export type MutationRepositories = CheckoutRepositories & {
+  accountLifecycle: AccountLifecycleRepository;
+  accountTokens: AccountTokenRepository;
+  pendingEmailChanges: PendingEmailChangeRepository;
   sessions: SessionRepository;
   users: UserRepository;
 };

@@ -104,11 +104,11 @@ export const createUserSchema = z
 
 export type CreateUserData = z.infer<typeof createUserSchema>;
 
-function isValidEmail(email: string) {
+export function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function isStrongPassword(password: string) {
+export function isStrongPassword(password: string) {
   return password.length >= 8;
 }
 

@@ -13,9 +13,9 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - TypeScript 7 is deferred until `typescript-eslint` publishes a compatible
   release; version 8.63.0 and its current canary support TypeScript only through
   versions earlier than 6.1.0.
-- Backend has 142 focused tests across 29 files and passes its coverage
-  thresholds with 87.95% branches and 86.48% functions. Frontend has 133 tests
-  across 24 files and passes its thresholds with 91.11% branches and 96.18%
+- Backend has 217 focused tests across 44 files and passes its coverage
+  thresholds with 87.98% branches and 89.59% functions. Frontend has 171 tests
+  across 35 files and passes its thresholds with 90.12% branches and 96.68%
   functions. Type checks, tests, lint, formatting, generated-contract parity,
   coverage, and the production build pass.
 - Checkout commits order creation, items, conditional inventory decrements, cart
@@ -537,13 +537,209 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   tests, coverage thresholds (86.99% backend and 91.11% frontend branches),
   typecheck, lint, formatting, Drizzle schema checks, and all 11 PostgreSQL
   integration scenarios pass. Step 10 is complete.
-- Next action: begin Step 11 by defining the email-verification and
-  password-reset contract before implementation. Inspect
-  `backend/src/services/authService.ts`, `backend/src/validators/`, the user and
-  session repository boundaries, and the cookie-session ADR; specify
-  non-enumerating request responses, hashed single-use token records, expiry,
-  successful-reset token-version increment/all-session revocation, and
-  dedicated abuse limits before selecting an email provider.
+- The email-verification and password-recovery contract is accepted in
+  `docs/decisions/0004-account-verification-recovery.md`. It defines
+  non-enumerating request responses, provider-neutral delivery, purpose- and
+  tenant-bound hashed single-use token records, 8-hour verification and
+  30-minute reset lifetimes, email-version binding, dedicated public and hidden
+  account abuse limits, existing-user verification backfill, and atomic reset
+  token consumption, password replacement, token-version increment,
+  all-session revocation, and audit insertion. No email provider is selected.
+- The first Step 11 persistence slice is implemented. Reviewed migration
+  `0003_famous_miek.sql` adds nullable verification time and non-negative email
+  version to users, backfills existing users as verified, and creates the
+  tenant-qualified account-token table with purpose, email-version, expiry,
+  lifecycle, invalidation-reason, one-active-token, issuance, and cleanup
+  constraints/indexes. Database-neutral and PostgreSQL repositories support
+  lookup, issuance accounting, conditional single-use consumption,
+  invalidation, cleanup, verification, and password/token-version updates; the
+  mutation coordinator exposes them for future atomic services. A fourth
+  versioned secret ring is validated and documented for account-token HMACs.
+  The two user-security audit event types are constrained for the subsequent
+  domain service.
+  All 156 focused backend tests across 32 files, 154 frontend tests, backend
+  coverage thresholds (87.55% branches and 87.05% functions), typecheck, lint,
+  formatting, Drizzle schema checks, all 12 PostgreSQL integration scenarios,
+  generated-contract parity, and the PostgreSQL production-image smoke lane
+  pass.
+- The provider-independent Step 11 domain slice is implemented. Account tokens
+  use a random UUID selector, 256-bit secret, and tenant/purpose-bound
+  HMAC-SHA-256 with retained-key verification; only the selector and hash reach
+  persistence. Zod validators normalize non-enumerating requests and validate
+  confirmation/password policy before mutation. Independently configurable
+  public request/confirmation limits and hidden per-account cooldown/hourly
+  issuance limits match ADR 0004. The `AccountMessageSender` port keeps raw
+  tokens inside the delivery boundary and capturing test senders prove message
+  shape and safe delivery failure. Request services lock the tenant/user before
+  replacement and always return the generic response for absent, verified, and
+  suppressed accounts. Confirmation services conditionally consume one token;
+  email verification and audit insertion commit together, while password reset,
+  token-version increment, all-session revocation, peer-token invalidation, and
+  both audit events share one transaction. PostgreSQL tests prove one concurrent
+  verification winner and complete rollback on forced audit failure. No public
+  routes, frontend flow, login enforcement, or provider SDK is added yet. All
+  174 focused backend tests across 35 files, 154 frontend tests, backend coverage
+  thresholds (88.39% branches and 88.46% functions), typecheck, lint, formatting,
+  Drizzle schema checks, all 14 PostgreSQL integration scenarios,
+  generated-contract parity, and the PostgreSQL production-image smoke lane
+  pass.
+- The provider-independent Step 11 HTTP boundary is implemented. Four explicit
+  email-verification and password-reset request/confirmation routes enforce the
+  allowed Origin, dedicated public limits, Zod validation, and documented
+  OpenAPI response/error contracts. Request routes return the same accepted
+  response after a configurable common timing floor. Composition exposes
+  delivery readiness explicitly: without an injected `AccountMessageSender`,
+  every route returns `503 ACCOUNT_DELIVERY_UNAVAILABLE`; a PostgreSQL request
+  test injects a capturing sender and completes verification and reset through
+  the real Express composition. Successful reset clears browser auth cookies in
+  addition to the existing atomic session revocation. Production delivery,
+  registration/login verification enforcement, frontend flows, and provider
+  selection remain disabled. All 177 backend tests across 36 files, 154 frontend
+  tests, backend coverage thresholds (87.87% branches and 87.95% functions),
+  typecheck, lint, formatting, Drizzle schema checks, generated OpenAPI/frontend
+  contract parity, all 15 PostgreSQL integration scenarios, and the production
+  image smoke lane pass with deterministic cleanup.
+- The authenticated account-management contract is accepted in
+  `docs/decisions/0005-authenticated-account-management.md`. It limits profile
+  edits to explicit username/telephone fields; requires current-password
+  reauthentication for password change, email-change initiation, and
+  deactivation; and revokes every session after credential or confirmed
+  identity changes. Email changes use a 30-minute, purpose-bound two-stage flow
+  that preserves the current verified login until the new mailbox is confirmed.
+  Soft deactivation is blocked by active buyer/seller orders, then archives
+  listings, removes disposable cart/watchlist/notification state, hides public
+  identity, and preserves products, reviews, orders, history, UUID/email
+  reservation, and immutable audit evidence. Hard deletion, reactivation,
+  provider selection, and frontend activation remain deliberately out of scope.
+- The first ADR 0005 persistence slice is implemented. Reviewed migration
+  `0004_melted_nekra.sql` adds `users.deactivated_at` and the tenant/user-scoped
+  `pending_email_changes` table with case-insensitive tenant email uniqueness,
+  email-version and expiry checks, tenant-qualified foreign keys, replacement
+  uniqueness, and cleanup indexing. Account tokens now constrain the
+  `email_change` purpose plus `password_change` and `account_deactivated`
+  invalidation reasons, while audit events constrain all five accepted
+  account-management types. Database-neutral and PostgreSQL repositories expose
+  pending-change replacement/locking/deletion/cleanup and conditional profile,
+  password, email-promotion, and deactivation writes; the transaction
+  coordinator exposes the pending-change repository. Focused and PostgreSQL
+  tests prove tenant isolation, case-insensitive pending-address conflicts,
+  replacement, invalid-expiry rejection, stale-write rejection, lifecycle
+  mapping, new token/audit constraints, and migration application. All 183
+  backend tests across 37 files, 154 frontend tests, backend coverage thresholds
+  (88.11% branches and 88.58% functions), typecheck, lint, formatting, Drizzle
+  schema checks, generated-contract parity, all 16 PostgreSQL integration
+  scenarios, and the production-image migration/startup smoke lane pass with
+  deterministic cleanup.
+- The ADR 0005 provider-independent profile/password domain slice is
+  implemented. Strict Zod schemas reject unknown or empty profile fields and
+  preserve password bytes without trimming. Profile updates allow only
+  normalized username/telephone changes and atomically append an audit event
+  containing field names but no values. Password change reads a short
+  credential/version snapshot, performs current-password comparison, reuse
+  comparison, and replacement hashing outside the mutation transaction, then
+  conditionally replaces the password, increments token version, revokes every
+  session, invalidates active reset tokens, and appends sanitized password and
+  session audit events atomically. PostgreSQL tests synchronize two changes to
+  prove one conditional winner and force audit failure to prove complete
+  profile/password/session/token rollback. No controller, route, OpenAPI,
+  email-change/deactivation service, frontend flow, or provider activation is
+  added. All 193 backend tests across 39 files, 154 frontend tests, backend
+  coverage thresholds (88.42% branches and 88.81% functions), typecheck, lint,
+  formatting, Drizzle schema checks, generated-contract parity, frontend
+  production build, and all 18 PostgreSQL integration scenarios pass.
+- The ADR 0005 provider-independent two-stage email-change domain slice is
+  implemented. Strict validation normalizes only the destination email and
+  preserves current-password bytes. Initiation reauthenticates outside a short
+  mutation transaction, then conditionally replaces the tenant/user pending
+  destination and purpose-bound 30-minute token, appends a sanitized audit, and
+  dispatches through the provider-neutral sender only after commit. Confirmation
+  accepts only a tenant- and purpose-bound token at the current email version,
+  promotes and verifies the pending email, increments email and token versions,
+  removes pending state, revokes sessions, invalidates verification, reset, and
+  peer email-change tokens, and appends actor-free sanitized audits atomically.
+  Focused tests cover validation, conflicts, delivery failure, generic token
+  denial, and side effects; PostgreSQL tests prove replacement, tenant isolation,
+  a uniqueness race, one-winner confirmation, and complete audit-failure
+  rollback. No controller, route, OpenAPI, deactivation service, frontend flow,
+  or provider activation is added. All 201 backend tests across 40 files, 154
+  frontend tests across 32 files, backend coverage thresholds (88.28% branches
+  and 89.13% functions), frontend coverage thresholds (91.11% branches and
+  96.42% functions), typecheck, lint, formatting, Drizzle schema checks,
+  generated-contract parity, frontend production build, and all 21 PostgreSQL
+  integration scenarios pass.
+- The ADR 0005 provider-independent soft-deactivation persistence/domain slice
+  is implemented. A tenant-scoped lifecycle repository detects active buyer or
+  seller orders, archives owned non-archived listings, and deletes cart,
+  watchlist, and notification state inside the shared mutation transaction.
+  Strict confirmation validation and current-password reauthentication precede
+  a locked conditional mutation that clears public profile fields, installs a
+  discarded random credential hash, increments token version, revokes sessions
+  and all account-token purposes, removes pending email state, applies commerce
+  cleanup, and appends sanitized user/session audits atomically. Authentication,
+  refresh, access-token validation, session restoration, and public seller reads
+  now treat deactivated users as unavailable while tenant/email identity remains
+  reserved. Focused tests cover validation, active-order denial, stale state,
+  cleanup boundaries, audit safety, and repository behavior. PostgreSQL tests
+  prove buyer and seller blocking, one concurrent winner, tenant isolation,
+  listing/inventory and historical product/review/order/history retention,
+  disposable-state removal, login/public/session denial, email reservation, and
+  complete audit-failure rollback. No controller, route, OpenAPI, frontend flow,
+  or provider activation is added. All 210 backend tests across 42 files, 154
+  frontend tests across 32 files, backend coverage thresholds (88.32% branches
+  and 89.28% functions), frontend coverage thresholds (91.11% branches and
+  96.42% functions), typecheck, lint, formatting, Drizzle schema checks,
+  generated-contract parity, frontend production build, and all 24 PostgreSQL
+  integration scenarios pass.
+- The ADR 0005 HTTP boundary is implemented for all completed account-management
+  services. Controllers and routes expose authenticated, Origin/CSRF-protected
+  profile update, password change, email-change initiation, and deactivation,
+  plus public Origin-checked email-change confirmation. Password change, email
+  initiation, and deactivation have independent tenant/user/normalized-client-IP
+  limits; email confirmation has its own public limit. Email routes use the
+  provider-neutral delivery readiness boundary, and password change, confirmed
+  email change, and deactivation clear all auth cookies only after commit. Zod
+  request/response schemas, exact reachable error examples, OpenAPI operations,
+  and generated frontend types are updated. Focused tests cover controller
+  delegation, cookie clearing, readiness, limiter scoping, configuration, and
+  route/contract parity. A PostgreSQL HTTP workflow proves authentication and
+  CSRF denial, profile response safety, reauthentication, password/session
+  invalidation, unavailable delivery, two-stage email login continuity and
+  promotion, cookie clearing, and terminal public/login denial. The integration
+  lane raises only its isolated login limit to keep the expanded workflow from
+  throttling unrelated scenarios. No frontend page, browser workflow, provider
+  selection, or delivery-adapter activation is added. All 217 backend tests
+  across 44 files, 154 frontend tests across 32 files, backend coverage
+  thresholds (87.98% branches and 89.59% functions), frontend coverage
+  thresholds (91.11% branches and 96.42% functions), typecheck, lint,
+  formatting, Drizzle schema checks, deterministic OpenAPI/generated-type
+  parity, frontend production build, and all 25 PostgreSQL integration scenarios
+  pass.
+- The provider-neutral account-management frontend is implemented. A protected
+  `/account` page exposes profile, password, email-change, and deactivation forms
+  through centralized routes, generated request types, domain services, and
+  React Query mutations. Each operation has independent pending, success, and
+  error state; failed requests preserve inputs and identity, delivery-unavailable
+  errors are explicit, and password change or deactivation clears in-memory
+  identity before returning to login. The public email-change confirmation page
+  consumes its token only from the URL fragment, removes the fragment before
+  paint, never persists it, and clears the old identity after success. Header
+  navigation and all tenant-sensitive account headings/copy use the typed brand
+  configuration. Focused tests cover route/API mapping, route protection,
+  profile identity refresh, delivery failure, pending controls, credential and
+  deactivation session clearing, local destructive confirmation, fragment
+  removal, and confirmation success/failure. All 217 backend tests across 44
+  files and 171 frontend tests across 35 files pass; backend coverage is 87.98%
+  branches and 89.59% functions, frontend coverage is 90.12% branches and
+  96.68% functions, and generated-type parity, typecheck, lint, formatting, and
+  the frontend production build pass. Provider selection, adapter activation,
+  and browser-stack expansion remain deferred. Step 11 is complete.
+- Next action: begin Step 12 by documenting application/schema compatibility and
+  rollback rules for the existing versioned Drizzle migrations. Audit migrations
+  `0000` through `0004` and the migrate-before-start Compose topology; define
+  expand/contract expectations, supported old/new application overlap, backfill
+  validation, deployment abort criteria, and when rollback means application
+  rollback, a compensating forward migration, or database restore. Do not change
+  the schema until that policy is accepted.
 
 ## Recommended Order
 
@@ -741,13 +937,13 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 
 ### 11. Add account verification, recovery, and management
 
-- [ ] Add email verification and password-reset flows using hashed, expiring,
+- [x] Add email verification and password-reset flows using hashed, expiring,
       single-use tokens and non-enumerating responses.
-- [ ] Invalidate existing sessions after password reset and apply dedicated rate
+- [x] Invalidate existing sessions after password reset and apply dedicated rate
       limits to recovery and verification endpoints.
-- [ ] Add authenticated password change, profile update, sensitive-operation
+- [x] Add authenticated password change, profile update, sensitive-operation
       reauthentication, email change and reverification, and account deactivation.
-- [ ] Define and test what happens to listings, reviews, orders, audit history,
+- [x] Define and test what happens to listings, reviews, orders, audit history,
       and personal data when an account is deactivated or deleted.
 - Choose an email provider SDK only when deployment requirements are known;
   use `nodemailer` only when generic SMTP or local email testing is explicitly
@@ -755,7 +951,7 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 
 ### 12. Manage database evolution and data lifecycle
 
-- [ ] Establish versioned, repeatable migrations for schema changes, data
+- [x] Establish versioned, repeatable migrations for schema changes, data
       backfills, and index creation instead of relying on implicit startup changes.
 - [ ] Document compatibility and rollback rules for deployments that span old
       and new application versions.

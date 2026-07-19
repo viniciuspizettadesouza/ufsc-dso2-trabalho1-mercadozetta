@@ -19,6 +19,9 @@
       "name": "Authentication"
     },
     {
+      "name": "Account"
+    },
+    {
       "name": "Users"
     },
     {
@@ -341,6 +344,2345 @@
                     "value": {
                       "error": "Too many login attempts, please try again later",
                       "code": "AUTH_RATE_LIMITED"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/email-verification/requests": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Request email-verification instructions",
+        "description": "Always returns the same accepted response for eligible and unknown accounts. Delivery must be configured by the deployment.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "email": "seller@example.com"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/AccountRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Request accepted without disclosing account state",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "If an eligible account exists, instructions will be sent."
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AccountRequestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid tenant or request payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "TENANT_HEADER_REQUIRED",
+                        "INVALID_TENANT",
+                        "INVALID_REQUEST",
+                        "MISSING_EMAIL",
+                        "INVALID_EMAIL"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "TENANT_HEADER_REQUIRED": {
+                    "summary": "TENANT_HEADER_REQUIRED",
+                    "value": {
+                      "error": "X-Tenant-Id header is required",
+                      "code": "TENANT_HEADER_REQUIRED"
+                    }
+                  },
+                  "INVALID_TENANT": {
+                    "summary": "INVALID_TENANT",
+                    "value": {
+                      "error": "Invalid tenant",
+                      "code": "INVALID_TENANT"
+                    }
+                  },
+                  "INVALID_REQUEST": {
+                    "summary": "INVALID_REQUEST",
+                    "value": {
+                      "error": "Invalid input: expected object, received string",
+                      "code": "INVALID_REQUEST"
+                    }
+                  },
+                  "MISSING_EMAIL": {
+                    "summary": "MISSING_EMAIL",
+                    "value": {
+                      "error": "Email is required",
+                      "code": "MISSING_EMAIL"
+                    }
+                  },
+                  "INVALID_EMAIL": {
+                    "summary": "INVALID_EMAIL",
+                    "value": {
+                      "error": "Invalid email",
+                      "code": "INVALID_EMAIL"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_ORIGIN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "INVALID_ORIGIN": {
+                    "summary": "INVALID_ORIGIN",
+                    "value": {
+                      "error": "Request origin is invalid",
+                      "code": "INVALID_ORIGIN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Email-verification request rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "EMAIL_VERIFICATION_REQUEST_RATE_LIMITED"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "EMAIL_VERIFICATION_REQUEST_RATE_LIMITED": {
+                    "summary": "EMAIL_VERIFICATION_REQUEST_RATE_LIMITED",
+                    "value": {
+                      "error": "Too many email verification requests, please try again later",
+                      "code": "EMAIL_VERIFICATION_REQUEST_RATE_LIMITED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account-message delivery is not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "ACCOUNT_DELIVERY_UNAVAILABLE"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "ACCOUNT_DELIVERY_UNAVAILABLE": {
+                    "summary": "ACCOUNT_DELIVERY_UNAVAILABLE",
+                    "value": {
+                      "error": "Account message delivery is unavailable",
+                      "code": "ACCOUNT_DELIVERY_UNAVAILABLE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/email-verification/confirmations": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Confirm an email address",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "token": "selector.secret"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/AccountTokenConfirmation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Email address verified"
+          },
+          "400": {
+            "description": "Invalid tenant, payload, or account token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "TENANT_HEADER_REQUIRED",
+                        "INVALID_TENANT",
+                        "INVALID_REQUEST",
+                        "INVALID_OR_EXPIRED_ACCOUNT_TOKEN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "TENANT_HEADER_REQUIRED": {
+                    "summary": "TENANT_HEADER_REQUIRED",
+                    "value": {
+                      "error": "X-Tenant-Id header is required",
+                      "code": "TENANT_HEADER_REQUIRED"
+                    }
+                  },
+                  "INVALID_TENANT": {
+                    "summary": "INVALID_TENANT",
+                    "value": {
+                      "error": "Invalid tenant",
+                      "code": "INVALID_TENANT"
+                    }
+                  },
+                  "INVALID_REQUEST": {
+                    "summary": "INVALID_REQUEST",
+                    "value": {
+                      "error": "Invalid input: expected object, received string",
+                      "code": "INVALID_REQUEST"
+                    }
+                  },
+                  "INVALID_OR_EXPIRED_ACCOUNT_TOKEN": {
+                    "summary": "INVALID_OR_EXPIRED_ACCOUNT_TOKEN",
+                    "value": {
+                      "error": "Invalid or expired account token",
+                      "code": "INVALID_OR_EXPIRED_ACCOUNT_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_ORIGIN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "INVALID_ORIGIN": {
+                    "summary": "INVALID_ORIGIN",
+                    "value": {
+                      "error": "Request origin is invalid",
+                      "code": "INVALID_ORIGIN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Email-verification confirmation rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "EMAIL_VERIFICATION_CONFIRMATION_RATE_LIMITED"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "EMAIL_VERIFICATION_CONFIRMATION_RATE_LIMITED": {
+                    "summary": "EMAIL_VERIFICATION_CONFIRMATION_RATE_LIMITED",
+                    "value": {
+                      "error": "Too many email verification attempts, please try again later",
+                      "code": "EMAIL_VERIFICATION_CONFIRMATION_RATE_LIMITED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account-message delivery is not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "ACCOUNT_DELIVERY_UNAVAILABLE"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "ACCOUNT_DELIVERY_UNAVAILABLE": {
+                    "summary": "ACCOUNT_DELIVERY_UNAVAILABLE",
+                    "value": {
+                      "error": "Account message delivery is unavailable",
+                      "code": "ACCOUNT_DELIVERY_UNAVAILABLE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/password-reset/requests": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Request password-reset instructions",
+        "description": "Always returns the same accepted response for eligible and unknown accounts. Delivery must be configured by the deployment.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "email": "seller@example.com"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/AccountRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Request accepted without disclosing account state",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "If an eligible account exists, instructions will be sent."
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/AccountRequestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid tenant or request payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "TENANT_HEADER_REQUIRED",
+                        "INVALID_TENANT",
+                        "INVALID_REQUEST",
+                        "MISSING_EMAIL",
+                        "INVALID_EMAIL"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "TENANT_HEADER_REQUIRED": {
+                    "summary": "TENANT_HEADER_REQUIRED",
+                    "value": {
+                      "error": "X-Tenant-Id header is required",
+                      "code": "TENANT_HEADER_REQUIRED"
+                    }
+                  },
+                  "INVALID_TENANT": {
+                    "summary": "INVALID_TENANT",
+                    "value": {
+                      "error": "Invalid tenant",
+                      "code": "INVALID_TENANT"
+                    }
+                  },
+                  "INVALID_REQUEST": {
+                    "summary": "INVALID_REQUEST",
+                    "value": {
+                      "error": "Invalid input: expected object, received string",
+                      "code": "INVALID_REQUEST"
+                    }
+                  },
+                  "MISSING_EMAIL": {
+                    "summary": "MISSING_EMAIL",
+                    "value": {
+                      "error": "Email is required",
+                      "code": "MISSING_EMAIL"
+                    }
+                  },
+                  "INVALID_EMAIL": {
+                    "summary": "INVALID_EMAIL",
+                    "value": {
+                      "error": "Invalid email",
+                      "code": "INVALID_EMAIL"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_ORIGIN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "INVALID_ORIGIN": {
+                    "summary": "INVALID_ORIGIN",
+                    "value": {
+                      "error": "Request origin is invalid",
+                      "code": "INVALID_ORIGIN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Password-reset request rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "PASSWORD_RESET_REQUEST_RATE_LIMITED"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "PASSWORD_RESET_REQUEST_RATE_LIMITED": {
+                    "summary": "PASSWORD_RESET_REQUEST_RATE_LIMITED",
+                    "value": {
+                      "error": "Too many password reset requests, please try again later",
+                      "code": "PASSWORD_RESET_REQUEST_RATE_LIMITED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account-message delivery is not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "ACCOUNT_DELIVERY_UNAVAILABLE"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "ACCOUNT_DELIVERY_UNAVAILABLE": {
+                    "summary": "ACCOUNT_DELIVERY_UNAVAILABLE",
+                    "value": {
+                      "error": "Account message delivery is unavailable",
+                      "code": "ACCOUNT_DELIVERY_UNAVAILABLE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/password-reset/confirmations": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Confirm a password reset",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "token": "selector.secret",
+                "password": "new-password123",
+                "passwordConfirmation": "new-password123"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetConfirmation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Password replaced, sessions revoked, and auth cookies cleared"
+          },
+          "400": {
+            "description": "Invalid tenant, payload, or account token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "TENANT_HEADER_REQUIRED",
+                        "INVALID_TENANT",
+                        "INVALID_REQUEST",
+                        "INVALID_OR_EXPIRED_ACCOUNT_TOKEN",
+                        "MISSING_PASSWORD_FIELDS",
+                        "PASSWORD_CONFIRMATION_MISMATCH",
+                        "WEAK_PASSWORD"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "TENANT_HEADER_REQUIRED": {
+                    "summary": "TENANT_HEADER_REQUIRED",
+                    "value": {
+                      "error": "X-Tenant-Id header is required",
+                      "code": "TENANT_HEADER_REQUIRED"
+                    }
+                  },
+                  "INVALID_TENANT": {
+                    "summary": "INVALID_TENANT",
+                    "value": {
+                      "error": "Invalid tenant",
+                      "code": "INVALID_TENANT"
+                    }
+                  },
+                  "INVALID_REQUEST": {
+                    "summary": "INVALID_REQUEST",
+                    "value": {
+                      "error": "Invalid input: expected object, received string",
+                      "code": "INVALID_REQUEST"
+                    }
+                  },
+                  "INVALID_OR_EXPIRED_ACCOUNT_TOKEN": {
+                    "summary": "INVALID_OR_EXPIRED_ACCOUNT_TOKEN",
+                    "value": {
+                      "error": "Invalid or expired account token",
+                      "code": "INVALID_OR_EXPIRED_ACCOUNT_TOKEN"
+                    }
+                  },
+                  "MISSING_PASSWORD_FIELDS": {
+                    "summary": "MISSING_PASSWORD_FIELDS",
+                    "value": {
+                      "error": "Password and confirmation are required",
+                      "code": "MISSING_PASSWORD_FIELDS"
+                    }
+                  },
+                  "PASSWORD_CONFIRMATION_MISMATCH": {
+                    "summary": "PASSWORD_CONFIRMATION_MISMATCH",
+                    "value": {
+                      "error": "Password confirmation does not match",
+                      "code": "PASSWORD_CONFIRMATION_MISMATCH"
+                    }
+                  },
+                  "WEAK_PASSWORD": {
+                    "summary": "WEAK_PASSWORD",
+                    "value": {
+                      "error": "Password must be at least 8 characters long",
+                      "code": "WEAK_PASSWORD"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_ORIGIN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "INVALID_ORIGIN": {
+                    "summary": "INVALID_ORIGIN",
+                    "value": {
+                      "error": "Request origin is invalid",
+                      "code": "INVALID_ORIGIN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Password-reset confirmation rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "PASSWORD_RESET_CONFIRMATION_RATE_LIMITED"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "PASSWORD_RESET_CONFIRMATION_RATE_LIMITED": {
+                    "summary": "PASSWORD_RESET_CONFIRMATION_RATE_LIMITED",
+                    "value": {
+                      "error": "Too many password reset attempts, please try again later",
+                      "code": "PASSWORD_RESET_CONFIRMATION_RATE_LIMITED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account-message delivery is not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "ACCOUNT_DELIVERY_UNAVAILABLE"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "ACCOUNT_DELIVERY_UNAVAILABLE": {
+                    "summary": "ACCOUNT_DELIVERY_UNAVAILABLE",
+                    "value": {
+                      "error": "Account message delivery is unavailable",
+                      "code": "ACCOUNT_DELIVERY_UNAVAILABLE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/email-change/confirmations": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Confirm a pending login-email change",
+        "description": "Consumes a tenant-bound token, promotes and verifies the pending address, revokes every session, and clears authentication cookies.",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "token": "selector.secret"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/AccountTokenConfirmation"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Email changed, sessions revoked, and auth cookies cleared"
+          },
+          "400": {
+            "description": "Invalid tenant, payload, or account token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "TENANT_HEADER_REQUIRED",
+                        "INVALID_TENANT",
+                        "INVALID_REQUEST",
+                        "INVALID_OR_EXPIRED_ACCOUNT_TOKEN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "TENANT_HEADER_REQUIRED": {
+                    "summary": "TENANT_HEADER_REQUIRED",
+                    "value": {
+                      "error": "X-Tenant-Id header is required",
+                      "code": "TENANT_HEADER_REQUIRED"
+                    }
+                  },
+                  "INVALID_TENANT": {
+                    "summary": "INVALID_TENANT",
+                    "value": {
+                      "error": "Invalid tenant",
+                      "code": "INVALID_TENANT"
+                    }
+                  },
+                  "INVALID_REQUEST": {
+                    "summary": "INVALID_REQUEST",
+                    "value": {
+                      "error": "Invalid input: expected object, received string",
+                      "code": "INVALID_REQUEST"
+                    }
+                  },
+                  "INVALID_OR_EXPIRED_ACCOUNT_TOKEN": {
+                    "summary": "INVALID_OR_EXPIRED_ACCOUNT_TOKEN",
+                    "value": {
+                      "error": "Invalid or expired account token",
+                      "code": "INVALID_OR_EXPIRED_ACCOUNT_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_ORIGIN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "INVALID_ORIGIN": {
+                    "summary": "INVALID_ORIGIN",
+                    "value": {
+                      "error": "Request origin is invalid",
+                      "code": "INVALID_ORIGIN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email is unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "EMAIL_UNAVAILABLE"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "EMAIL_UNAVAILABLE": {
+                    "summary": "EMAIL_UNAVAILABLE",
+                    "value": {
+                      "error": "Email is unavailable",
+                      "code": "EMAIL_UNAVAILABLE"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Email-change confirmation rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "EMAIL_CHANGE_CONFIRMATION_RATE_LIMITED"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "EMAIL_CHANGE_CONFIRMATION_RATE_LIMITED": {
+                    "summary": "EMAIL_CHANGE_CONFIRMATION_RATE_LIMITED",
+                    "value": {
+                      "error": "Too many email change confirmations, please try again later",
+                      "code": "EMAIL_CHANGE_CONFIRMATION_RATE_LIMITED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account-message delivery is not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "ACCOUNT_DELIVERY_UNAVAILABLE"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "ACCOUNT_DELIVERY_UNAVAILABLE": {
+                    "summary": "ACCOUNT_DELIVERY_UNAVAILABLE",
+                    "value": {
+                      "error": "Account message delivery is unavailable",
+                      "code": "ACCOUNT_DELIVERY_UNAVAILABLE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/profile": {
+      "patch": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Update the authenticated account profile",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "username": "Updated Seller",
+                "telephone": null
+              },
+              "schema": {
+                "$ref": "#/components/schemas/ProfileUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated public user",
+            "content": {
+              "application/json": {
+                "example": {
+                  "_id": "507f1f77-bcf8-4ecd-8994-390110000001",
+                  "tenantId": "mercadozetta",
+                  "email": "seller@example.com",
+                  "username": "Updated Seller",
+                  "telephone": null,
+                  "createdAt": "2026-01-15T12:00:00.000Z",
+                  "updatedAt": "2026-01-15T12:00:00.000Z"
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid tenant or profile payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "TENANT_HEADER_REQUIRED",
+                        "INVALID_TENANT",
+                        "INVALID_REQUEST",
+                        "MISSING_PROFILE_UPDATE_FIELDS"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "TENANT_HEADER_REQUIRED": {
+                    "summary": "TENANT_HEADER_REQUIRED",
+                    "value": {
+                      "error": "X-Tenant-Id header is required",
+                      "code": "TENANT_HEADER_REQUIRED"
+                    }
+                  },
+                  "INVALID_TENANT": {
+                    "summary": "INVALID_TENANT",
+                    "value": {
+                      "error": "Invalid tenant",
+                      "code": "INVALID_TENANT"
+                    }
+                  },
+                  "INVALID_REQUEST": {
+                    "summary": "INVALID_REQUEST",
+                    "value": {
+                      "error": "Invalid input: expected object, received string",
+                      "code": "INVALID_REQUEST"
+                    }
+                  },
+                  "MISSING_PROFILE_UPDATE_FIELDS": {
+                    "summary": "MISSING_PROFILE_UPDATE_FIELDS",
+                    "value": {
+                      "error": "At least one editable profile field is required",
+                      "code": "MISSING_PROFILE_UPDATE_FIELDS"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "AUTH_TOKEN_REQUIRED",
+                        "INVALID_AUTH_TOKEN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "AUTH_TOKEN_REQUIRED": {
+                    "summary": "AUTH_TOKEN_REQUIRED",
+                    "value": {
+                      "error": "Authorization token is required",
+                      "code": "AUTH_TOKEN_REQUIRED"
+                    }
+                  },
+                  "INVALID_AUTH_TOKEN": {
+                    "summary": "INVALID_AUTH_TOKEN",
+                    "value": {
+                      "error": "Invalid authorization token",
+                      "code": "INVALID_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin or CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_ORIGIN",
+                        "INVALID_CSRF_TOKEN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "INVALID_ORIGIN": {
+                    "summary": "INVALID_ORIGIN",
+                    "value": {
+                      "error": "Request origin is invalid",
+                      "code": "INVALID_ORIGIN"
+                    }
+                  },
+                  "INVALID_CSRF_TOKEN": {
+                    "summary": "INVALID_CSRF_TOKEN",
+                    "value": {
+                      "error": "CSRF token is invalid",
+                      "code": "INVALID_CSRF_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Account state changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "ACCOUNT_STATE_CHANGED"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "ACCOUNT_STATE_CHANGED": {
+                    "summary": "ACCOUNT_STATE_CHANGED",
+                    "value": {
+                      "error": "Account state changed; authenticate again",
+                      "code": "ACCOUNT_STATE_CHANGED"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/password-changes": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Change the authenticated account password",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "currentPassword": "current-password-placeholder",
+                "password": "replacement-password-placeholder",
+                "passwordConfirmation": "replacement-password-placeholder"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Password changed, sessions revoked, and auth cookies cleared"
+          },
+          "400": {
+            "description": "Invalid tenant or password-change payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "TENANT_HEADER_REQUIRED",
+                        "INVALID_TENANT",
+                        "INVALID_REQUEST",
+                        "MISSING_PASSWORD_CHANGE_FIELDS",
+                        "PASSWORD_CONFIRMATION_MISMATCH",
+                        "WEAK_PASSWORD",
+                        "PASSWORD_REUSE_NOT_ALLOWED"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "TENANT_HEADER_REQUIRED": {
+                    "summary": "TENANT_HEADER_REQUIRED",
+                    "value": {
+                      "error": "X-Tenant-Id header is required",
+                      "code": "TENANT_HEADER_REQUIRED"
+                    }
+                  },
+                  "INVALID_TENANT": {
+                    "summary": "INVALID_TENANT",
+                    "value": {
+                      "error": "Invalid tenant",
+                      "code": "INVALID_TENANT"
+                    }
+                  },
+                  "INVALID_REQUEST": {
+                    "summary": "INVALID_REQUEST",
+                    "value": {
+                      "error": "Invalid input: expected object, received string",
+                      "code": "INVALID_REQUEST"
+                    }
+                  },
+                  "MISSING_PASSWORD_CHANGE_FIELDS": {
+                    "summary": "MISSING_PASSWORD_CHANGE_FIELDS",
+                    "value": {
+                      "error": "Current password, password and confirmation are required",
+                      "code": "MISSING_PASSWORD_CHANGE_FIELDS"
+                    }
+                  },
+                  "PASSWORD_CONFIRMATION_MISMATCH": {
+                    "summary": "PASSWORD_CONFIRMATION_MISMATCH",
+                    "value": {
+                      "error": "Password confirmation does not match",
+                      "code": "PASSWORD_CONFIRMATION_MISMATCH"
+                    }
+                  },
+                  "WEAK_PASSWORD": {
+                    "summary": "WEAK_PASSWORD",
+                    "value": {
+                      "error": "Password must be at least 8 characters long",
+                      "code": "WEAK_PASSWORD"
+                    }
+                  },
+                  "PASSWORD_REUSE_NOT_ALLOWED": {
+                    "summary": "PASSWORD_REUSE_NOT_ALLOWED",
+                    "value": {
+                      "error": "New password must differ from the current password",
+                      "code": "PASSWORD_REUSE_NOT_ALLOWED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "AUTH_TOKEN_REQUIRED",
+                        "INVALID_AUTH_TOKEN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "AUTH_TOKEN_REQUIRED": {
+                    "summary": "AUTH_TOKEN_REQUIRED",
+                    "value": {
+                      "error": "Authorization token is required",
+                      "code": "AUTH_TOKEN_REQUIRED"
+                    }
+                  },
+                  "INVALID_AUTH_TOKEN": {
+                    "summary": "INVALID_AUTH_TOKEN",
+                    "value": {
+                      "error": "Invalid authorization token",
+                      "code": "INVALID_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Reauthentication, Origin, or CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_ORIGIN",
+                        "INVALID_CSRF_TOKEN",
+                        "REAUTHENTICATION_FAILED"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "INVALID_ORIGIN": {
+                    "summary": "INVALID_ORIGIN",
+                    "value": {
+                      "error": "Request origin is invalid",
+                      "code": "INVALID_ORIGIN"
+                    }
+                  },
+                  "INVALID_CSRF_TOKEN": {
+                    "summary": "INVALID_CSRF_TOKEN",
+                    "value": {
+                      "error": "CSRF token is invalid",
+                      "code": "INVALID_CSRF_TOKEN"
+                    }
+                  },
+                  "REAUTHENTICATION_FAILED": {
+                    "summary": "REAUTHENTICATION_FAILED",
+                    "value": {
+                      "error": "Current password is incorrect",
+                      "code": "REAUTHENTICATION_FAILED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Account state changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "ACCOUNT_STATE_CHANGED"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "ACCOUNT_STATE_CHANGED": {
+                    "summary": "ACCOUNT_STATE_CHANGED",
+                    "value": {
+                      "error": "Account state changed; authenticate again",
+                      "code": "ACCOUNT_STATE_CHANGED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Password-change rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "PASSWORD_CHANGE_RATE_LIMITED"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "PASSWORD_CHANGE_RATE_LIMITED": {
+                    "summary": "PASSWORD_CHANGE_RATE_LIMITED",
+                    "value": {
+                      "error": "Too many password change attempts, please try again later",
+                      "code": "PASSWORD_CHANGE_RATE_LIMITED"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/email-changes": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Request a login-email change",
+        "description": "Keeps the current verified login until the proposed address is confirmed. Delivery must be configured by the deployment.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "email": "new-address@example.invalid",
+                "currentPassword": "current-password-placeholder"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/EmailChangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Email-change confirmation request accepted",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message": "If the address can be used, confirmation instructions will be sent."
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/EmailChangeRequestResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid tenant or email-change payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "TENANT_HEADER_REQUIRED",
+                        "INVALID_TENANT",
+                        "INVALID_REQUEST",
+                        "MISSING_EMAIL_CHANGE_FIELDS",
+                        "INVALID_EMAIL"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "TENANT_HEADER_REQUIRED": {
+                    "summary": "TENANT_HEADER_REQUIRED",
+                    "value": {
+                      "error": "X-Tenant-Id header is required",
+                      "code": "TENANT_HEADER_REQUIRED"
+                    }
+                  },
+                  "INVALID_TENANT": {
+                    "summary": "INVALID_TENANT",
+                    "value": {
+                      "error": "Invalid tenant",
+                      "code": "INVALID_TENANT"
+                    }
+                  },
+                  "INVALID_REQUEST": {
+                    "summary": "INVALID_REQUEST",
+                    "value": {
+                      "error": "Invalid input: expected object, received string",
+                      "code": "INVALID_REQUEST"
+                    }
+                  },
+                  "MISSING_EMAIL_CHANGE_FIELDS": {
+                    "summary": "MISSING_EMAIL_CHANGE_FIELDS",
+                    "value": {
+                      "error": "Email and current password are required",
+                      "code": "MISSING_EMAIL_CHANGE_FIELDS"
+                    }
+                  },
+                  "INVALID_EMAIL": {
+                    "summary": "INVALID_EMAIL",
+                    "value": {
+                      "error": "Invalid email",
+                      "code": "INVALID_EMAIL"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "AUTH_TOKEN_REQUIRED",
+                        "INVALID_AUTH_TOKEN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "AUTH_TOKEN_REQUIRED": {
+                    "summary": "AUTH_TOKEN_REQUIRED",
+                    "value": {
+                      "error": "Authorization token is required",
+                      "code": "AUTH_TOKEN_REQUIRED"
+                    }
+                  },
+                  "INVALID_AUTH_TOKEN": {
+                    "summary": "INVALID_AUTH_TOKEN",
+                    "value": {
+                      "error": "Invalid authorization token",
+                      "code": "INVALID_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Reauthentication, Origin, or CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_ORIGIN",
+                        "INVALID_CSRF_TOKEN",
+                        "REAUTHENTICATION_FAILED"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "INVALID_ORIGIN": {
+                    "summary": "INVALID_ORIGIN",
+                    "value": {
+                      "error": "Request origin is invalid",
+                      "code": "INVALID_ORIGIN"
+                    }
+                  },
+                  "INVALID_CSRF_TOKEN": {
+                    "summary": "INVALID_CSRF_TOKEN",
+                    "value": {
+                      "error": "CSRF token is invalid",
+                      "code": "INVALID_CSRF_TOKEN"
+                    }
+                  },
+                  "REAUTHENTICATION_FAILED": {
+                    "summary": "REAUTHENTICATION_FAILED",
+                    "value": {
+                      "error": "Current password is incorrect",
+                      "code": "REAUTHENTICATION_FAILED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Account state or email conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "ACCOUNT_STATE_CHANGED",
+                        "EMAIL_UNCHANGED",
+                        "EMAIL_UNAVAILABLE"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "ACCOUNT_STATE_CHANGED": {
+                    "summary": "ACCOUNT_STATE_CHANGED",
+                    "value": {
+                      "error": "Account state changed; authenticate again",
+                      "code": "ACCOUNT_STATE_CHANGED"
+                    }
+                  },
+                  "EMAIL_UNCHANGED": {
+                    "summary": "EMAIL_UNCHANGED",
+                    "value": {
+                      "error": "New email must differ from the current email",
+                      "code": "EMAIL_UNCHANGED"
+                    }
+                  },
+                  "EMAIL_UNAVAILABLE": {
+                    "summary": "EMAIL_UNAVAILABLE",
+                    "value": {
+                      "error": "Email is unavailable",
+                      "code": "EMAIL_UNAVAILABLE"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Email-change request rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "EMAIL_CHANGE_REQUEST_RATE_LIMITED"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "EMAIL_CHANGE_REQUEST_RATE_LIMITED": {
+                    "summary": "EMAIL_CHANGE_REQUEST_RATE_LIMITED",
+                    "value": {
+                      "error": "Too many email change attempts, please try again later",
+                      "code": "EMAIL_CHANGE_REQUEST_RATE_LIMITED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Account-message delivery is not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "ACCOUNT_DELIVERY_UNAVAILABLE"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "ACCOUNT_DELIVERY_UNAVAILABLE": {
+                    "summary": "ACCOUNT_DELIVERY_UNAVAILABLE",
+                    "value": {
+                      "error": "Account message delivery is unavailable",
+                      "code": "ACCOUNT_DELIVERY_UNAVAILABLE"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/deactivation": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Soft-deactivate the authenticated account",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "currentPassword": "current-password-placeholder",
+                "confirmation": "DEACTIVATE"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/AccountDeactivationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Account deactivated, sessions revoked, and auth cookies cleared"
+          },
+          "400": {
+            "description": "Invalid tenant or deactivation payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "TENANT_HEADER_REQUIRED",
+                        "INVALID_TENANT",
+                        "INVALID_REQUEST",
+                        "DEACTIVATION_CONFIRMATION_MISMATCH"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "TENANT_HEADER_REQUIRED": {
+                    "summary": "TENANT_HEADER_REQUIRED",
+                    "value": {
+                      "error": "X-Tenant-Id header is required",
+                      "code": "TENANT_HEADER_REQUIRED"
+                    }
+                  },
+                  "INVALID_TENANT": {
+                    "summary": "INVALID_TENANT",
+                    "value": {
+                      "error": "Invalid tenant",
+                      "code": "INVALID_TENANT"
+                    }
+                  },
+                  "INVALID_REQUEST": {
+                    "summary": "INVALID_REQUEST",
+                    "value": {
+                      "error": "Invalid input: expected object, received string",
+                      "code": "INVALID_REQUEST"
+                    }
+                  },
+                  "DEACTIVATION_CONFIRMATION_MISMATCH": {
+                    "summary": "DEACTIVATION_CONFIRMATION_MISMATCH",
+                    "value": {
+                      "error": "Confirmation must equal DEACTIVATE",
+                      "code": "DEACTIVATION_CONFIRMATION_MISMATCH"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "AUTH_TOKEN_REQUIRED",
+                        "INVALID_AUTH_TOKEN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "AUTH_TOKEN_REQUIRED": {
+                    "summary": "AUTH_TOKEN_REQUIRED",
+                    "value": {
+                      "error": "Authorization token is required",
+                      "code": "AUTH_TOKEN_REQUIRED"
+                    }
+                  },
+                  "INVALID_AUTH_TOKEN": {
+                    "summary": "INVALID_AUTH_TOKEN",
+                    "value": {
+                      "error": "Invalid authorization token",
+                      "code": "INVALID_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Reauthentication, Origin, or CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_ORIGIN",
+                        "INVALID_CSRF_TOKEN",
+                        "REAUTHENTICATION_FAILED"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "INVALID_ORIGIN": {
+                    "summary": "INVALID_ORIGIN",
+                    "value": {
+                      "error": "Request origin is invalid",
+                      "code": "INVALID_ORIGIN"
+                    }
+                  },
+                  "INVALID_CSRF_TOKEN": {
+                    "summary": "INVALID_CSRF_TOKEN",
+                    "value": {
+                      "error": "CSRF token is invalid",
+                      "code": "INVALID_CSRF_TOKEN"
+                    }
+                  },
+                  "REAUTHENTICATION_FAILED": {
+                    "summary": "REAUTHENTICATION_FAILED",
+                    "value": {
+                      "error": "Current password is incorrect",
+                      "code": "REAUTHENTICATION_FAILED"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Account state changed or active orders remain",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "ACCOUNT_STATE_CHANGED",
+                        "ACCOUNT_DEACTIVATION_BLOCKED_ACTIVE_ORDERS"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "ACCOUNT_STATE_CHANGED": {
+                    "summary": "ACCOUNT_STATE_CHANGED",
+                    "value": {
+                      "error": "Account state changed; authenticate again",
+                      "code": "ACCOUNT_STATE_CHANGED"
+                    }
+                  },
+                  "ACCOUNT_DEACTIVATION_BLOCKED_ACTIVE_ORDERS": {
+                    "summary": "ACCOUNT_DEACTIVATION_BLOCKED_ACTIVE_ORDERS",
+                    "value": {
+                      "error": "Account cannot be deactivated while active orders remain",
+                      "code": "ACCOUNT_DEACTIVATION_BLOCKED_ACTIVE_ORDERS"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Account-deactivation rate limit exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "ACCOUNT_DEACTIVATION_RATE_LIMITED"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "ACCOUNT_DEACTIVATION_RATE_LIMITED": {
+                    "summary": "ACCOUNT_DEACTIVATION_RATE_LIMITED",
+                    "value": {
+                      "error": "Too many account deactivation attempts, please try again later",
+                      "code": "ACCOUNT_DEACTIVATION_RATE_LIMITED"
                     }
                   }
                 }
@@ -6522,6 +8864,140 @@
           "password"
         ]
       },
+      "AccountRequest": {
+        "description": "Email used for a non-enumerating account-security request.",
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "AccountTokenConfirmation": {
+        "description": "Opaque single-use account-security token.",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "PasswordResetConfirmation": {
+        "description": "Single-use reset token and matching replacement password.",
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8
+          },
+          "passwordConfirmation": {
+            "type": "string",
+            "minLength": 8
+          }
+        },
+        "required": [
+          "token",
+          "password",
+          "passwordConfirmation"
+        ]
+      },
+      "ProfileUpdateRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "telephone": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 32
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "description": "Explicitly editable account profile fields."
+      },
+      "PasswordChangeRequest": {
+        "description": "Current credential and matching replacement password.",
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8
+          },
+          "passwordConfirmation": {
+            "type": "string",
+            "minLength": 8
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "currentPassword",
+          "password",
+          "passwordConfirmation"
+        ]
+      },
+      "EmailChangeRequest": {
+        "description": "Proposed login email and current credential.",
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "currentPassword": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "email",
+          "currentPassword"
+        ]
+      },
+      "AccountDeactivationRequest": {
+        "description": "Current credential and explicit deactivation confirmation.",
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string"
+          },
+          "confirmation": {
+            "type": "string",
+            "enum": [
+              "DEACTIVATE"
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "currentPassword",
+          "confirmation"
+        ]
+      },
       "CreateUserRequest": {
         "description": "Details required to register a marketplace account.",
         "type": "object",
@@ -6885,6 +9361,32 @@
           "lastUsedAt",
           "expiresAt",
           "absoluteExpiresAt"
+        ],
+        "additionalProperties": false
+      },
+      "AccountRequestResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "const": "If an eligible account exists, instructions will be sent."
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "EmailChangeRequestResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "const": "If the address can be used, confirmation instructions will be sent."
+          }
+        },
+        "required": [
+          "message"
         ],
         "additionalProperties": false
       },

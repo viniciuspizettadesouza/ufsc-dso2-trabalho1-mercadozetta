@@ -9,6 +9,23 @@ import {
   authInvalidRequestExample,
 } from '@/validators/authValidator';
 import {
+  accountRequestResponseSchema,
+  accountRequestSchema,
+  accountSecurityErrorCodes,
+  accountSecurityInvalidRequestExample,
+  accountTokenConfirmationSchema,
+  passwordResetConfirmationSchema,
+} from '@/validators/accountSecurityValidator';
+import {
+  accountDeactivationSchema,
+  accountManagementErrorCodes,
+  accountManagementInvalidRequestExample,
+  emailChangeRequestResponseSchema,
+  emailChangeRequestSchema,
+  passwordChangeSchema,
+  profileUpdateSchema,
+} from '@/validators/accountManagementValidator';
+import {
   createProductSchema,
   productFiltersSchema,
   productIdSchema,
@@ -201,6 +218,7 @@ export function createOpenApiDocument() {
     tags: [
       { name: 'System' },
       { name: 'Authentication' },
+      { name: 'Account' },
       { name: 'Users' },
       { name: 'Products' },
       { name: 'Commerce' },
@@ -291,6 +309,376 @@ export function createOpenApiDocument() {
             429: appErrors(
               'Login rate limit exceeded',
               authErrorCodes.loginRateLimit,
+            ),
+          },
+        },
+      },
+      '/auth/email-verification/requests': {
+        post: {
+          tags: ['Authentication'],
+          summary: 'Request email-verification instructions',
+          description:
+            'Always returns the same accepted response for eligible and unknown accounts. Delivery must be configured by the deployment.',
+          parameters: [tenantHeader],
+          requestBody: {
+            required: true,
+            content: json(accountRequestSchema, {
+              email: 'seller@example.com',
+            }),
+          },
+          responses: {
+            202: {
+              description: 'Request accepted without disclosing account state',
+              content: json(accountRequestResponseSchema, {
+                message:
+                  'If an eligible account exists, instructions will be sent.',
+              }),
+            },
+            400: appErrors(
+              'Invalid tenant or request payload',
+              accountSecurityErrorCodes.request,
+              { INVALID_REQUEST: accountSecurityInvalidRequestExample },
+            ),
+            403: appErrors(
+              'Origin validation failed',
+              accountSecurityErrorCodes.origin,
+            ),
+            429: appErrors(
+              'Email-verification request rate limit exceeded',
+              accountSecurityErrorCodes.emailVerificationRequestRateLimit,
+            ),
+            503: appErrors(
+              'Account-message delivery is not configured',
+              accountSecurityErrorCodes.unavailable,
+            ),
+          },
+        },
+      },
+      '/auth/email-verification/confirmations': {
+        post: {
+          tags: ['Authentication'],
+          summary: 'Confirm an email address',
+          parameters: [tenantHeader],
+          requestBody: {
+            required: true,
+            content: json(accountTokenConfirmationSchema, {
+              token: 'selector.secret',
+            }),
+          },
+          responses: {
+            204: { description: 'Email address verified' },
+            400: appErrors(
+              'Invalid tenant, payload, or account token',
+              accountSecurityErrorCodes.tokenConfirmation,
+              { INVALID_REQUEST: accountSecurityInvalidRequestExample },
+            ),
+            403: appErrors(
+              'Origin validation failed',
+              accountSecurityErrorCodes.origin,
+            ),
+            429: appErrors(
+              'Email-verification confirmation rate limit exceeded',
+              accountSecurityErrorCodes.emailVerificationConfirmationRateLimit,
+            ),
+            503: appErrors(
+              'Account-message delivery is not configured',
+              accountSecurityErrorCodes.unavailable,
+            ),
+          },
+        },
+      },
+      '/auth/password-reset/requests': {
+        post: {
+          tags: ['Authentication'],
+          summary: 'Request password-reset instructions',
+          description:
+            'Always returns the same accepted response for eligible and unknown accounts. Delivery must be configured by the deployment.',
+          parameters: [tenantHeader],
+          requestBody: {
+            required: true,
+            content: json(accountRequestSchema, {
+              email: 'seller@example.com',
+            }),
+          },
+          responses: {
+            202: {
+              description: 'Request accepted without disclosing account state',
+              content: json(accountRequestResponseSchema, {
+                message:
+                  'If an eligible account exists, instructions will be sent.',
+              }),
+            },
+            400: appErrors(
+              'Invalid tenant or request payload',
+              accountSecurityErrorCodes.request,
+              { INVALID_REQUEST: accountSecurityInvalidRequestExample },
+            ),
+            403: appErrors(
+              'Origin validation failed',
+              accountSecurityErrorCodes.origin,
+            ),
+            429: appErrors(
+              'Password-reset request rate limit exceeded',
+              accountSecurityErrorCodes.passwordResetRequestRateLimit,
+            ),
+            503: appErrors(
+              'Account-message delivery is not configured',
+              accountSecurityErrorCodes.unavailable,
+            ),
+          },
+        },
+      },
+      '/auth/password-reset/confirmations': {
+        post: {
+          tags: ['Authentication'],
+          summary: 'Confirm a password reset',
+          parameters: [tenantHeader],
+          requestBody: {
+            required: true,
+            content: json(passwordResetConfirmationSchema, {
+              token: 'selector.secret',
+              password: 'new-password123',
+              passwordConfirmation: 'new-password123',
+            }),
+          },
+          responses: {
+            204: {
+              description:
+                'Password replaced, sessions revoked, and auth cookies cleared',
+            },
+            400: appErrors(
+              'Invalid tenant, payload, or account token',
+              accountSecurityErrorCodes.passwordResetConfirmation,
+              { INVALID_REQUEST: accountSecurityInvalidRequestExample },
+            ),
+            403: appErrors(
+              'Origin validation failed',
+              accountSecurityErrorCodes.origin,
+            ),
+            429: appErrors(
+              'Password-reset confirmation rate limit exceeded',
+              accountSecurityErrorCodes.passwordResetConfirmationRateLimit,
+            ),
+            503: appErrors(
+              'Account-message delivery is not configured',
+              accountSecurityErrorCodes.unavailable,
+            ),
+          },
+        },
+      },
+      '/auth/email-change/confirmations': {
+        post: {
+          tags: ['Account'],
+          summary: 'Confirm a pending login-email change',
+          description:
+            'Consumes a tenant-bound token, promotes and verifies the pending address, revokes every session, and clears authentication cookies.',
+          parameters: [tenantHeader],
+          requestBody: {
+            required: true,
+            content: json(accountTokenConfirmationSchema, {
+              token: 'selector.secret',
+            }),
+          },
+          responses: {
+            204: {
+              description:
+                'Email changed, sessions revoked, and auth cookies cleared',
+            },
+            400: appErrors(
+              'Invalid tenant, payload, or account token',
+              accountManagementErrorCodes.confirmation,
+              { INVALID_REQUEST: accountManagementInvalidRequestExample },
+            ),
+            403: appErrors(
+              'Origin validation failed',
+              accountManagementErrorCodes.origin,
+            ),
+            409: appErrors('Email is unavailable', ['EMAIL_UNAVAILABLE']),
+            429: appErrors(
+              'Email-change confirmation rate limit exceeded',
+              accountManagementErrorCodes.emailChangeConfirmationRateLimit,
+            ),
+            503: appErrors(
+              'Account-message delivery is not configured',
+              accountManagementErrorCodes.unavailable,
+            ),
+          },
+        },
+      },
+      '/account/profile': {
+        patch: {
+          tags: ['Account'],
+          summary: 'Update the authenticated account profile',
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
+          requestBody: {
+            required: true,
+            content: json(profileUpdateSchema, {
+              username: 'Updated Seller',
+              telephone: null,
+            }),
+          },
+          responses: {
+            200: {
+              description: 'Updated public user',
+              content: json(userResponseSchema, {
+                ...userExample,
+                username: 'Updated Seller',
+                telephone: null,
+              }),
+            },
+            400: appErrors(
+              'Invalid tenant or profile payload',
+              accountManagementErrorCodes.profileRequest,
+              { INVALID_REQUEST: accountManagementInvalidRequestExample },
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              accountManagementErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Origin or CSRF validation failed',
+              accountManagementErrorCodes.csrf,
+            ),
+            409: appErrors(
+              'Account state changed',
+              accountManagementErrorCodes.profileConflict,
+            ),
+          },
+        },
+      },
+      '/account/password-changes': {
+        post: {
+          tags: ['Account'],
+          summary: 'Change the authenticated account password',
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
+          requestBody: {
+            required: true,
+            content: json(passwordChangeSchema, {
+              currentPassword: 'current-password-placeholder',
+              password: 'replacement-password-placeholder',
+              passwordConfirmation: 'replacement-password-placeholder',
+            }),
+          },
+          responses: {
+            204: {
+              description:
+                'Password changed, sessions revoked, and auth cookies cleared',
+            },
+            400: appErrors(
+              'Invalid tenant or password-change payload',
+              accountManagementErrorCodes.passwordRequest,
+              { INVALID_REQUEST: accountManagementInvalidRequestExample },
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              accountManagementErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Reauthentication, Origin, or CSRF validation failed',
+              accountManagementErrorCodes.reauthentication,
+            ),
+            409: appErrors(
+              'Account state changed',
+              accountManagementErrorCodes.profileConflict,
+            ),
+            429: appErrors(
+              'Password-change rate limit exceeded',
+              accountManagementErrorCodes.passwordChangeRateLimit,
+            ),
+          },
+        },
+      },
+      '/account/email-changes': {
+        post: {
+          tags: ['Account'],
+          summary: 'Request a login-email change',
+          description:
+            'Keeps the current verified login until the proposed address is confirmed. Delivery must be configured by the deployment.',
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
+          requestBody: {
+            required: true,
+            content: json(emailChangeRequestSchema, {
+              email: 'new-address@example.invalid',
+              currentPassword: 'current-password-placeholder',
+            }),
+          },
+          responses: {
+            202: {
+              description: 'Email-change confirmation request accepted',
+              content: json(emailChangeRequestResponseSchema, {
+                message:
+                  'If the address can be used, confirmation instructions will be sent.',
+              }),
+            },
+            400: appErrors(
+              'Invalid tenant or email-change payload',
+              accountManagementErrorCodes.emailRequest,
+              { INVALID_REQUEST: accountManagementInvalidRequestExample },
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              accountManagementErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Reauthentication, Origin, or CSRF validation failed',
+              accountManagementErrorCodes.reauthentication,
+            ),
+            409: appErrors(
+              'Account state or email conflict',
+              accountManagementErrorCodes.emailConflict,
+            ),
+            429: appErrors(
+              'Email-change request rate limit exceeded',
+              accountManagementErrorCodes.emailChangeRequestRateLimit,
+            ),
+            503: appErrors(
+              'Account-message delivery is not configured',
+              accountManagementErrorCodes.unavailable,
+            ),
+          },
+        },
+      },
+      '/account/deactivation': {
+        post: {
+          tags: ['Account'],
+          summary: 'Soft-deactivate the authenticated account',
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
+          requestBody: {
+            required: true,
+            content: json(accountDeactivationSchema, {
+              currentPassword: 'current-password-placeholder',
+              confirmation: 'DEACTIVATE',
+            }),
+          },
+          responses: {
+            204: {
+              description:
+                'Account deactivated, sessions revoked, and auth cookies cleared',
+            },
+            400: appErrors(
+              'Invalid tenant or deactivation payload',
+              accountManagementErrorCodes.deactivationRequest,
+              { INVALID_REQUEST: accountManagementInvalidRequestExample },
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              accountManagementErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Reauthentication, Origin, or CSRF validation failed',
+              accountManagementErrorCodes.reauthentication,
+            ),
+            409: appErrors(
+              'Account state changed or active orders remain',
+              accountManagementErrorCodes.deactivationConflict,
+            ),
+            429: appErrors(
+              'Account-deactivation rate limit exceeded',
+              accountManagementErrorCodes.deactivationRateLimit,
             ),
           },
         },

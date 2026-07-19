@@ -27,7 +27,7 @@ export function createAuthService(
     const user = await userRepository.findForAuthentication(tenantId, email);
 
     /* v8 ignore else */
-    if (!user)
+    if (!user || user.deactivatedAt)
       throw new AppError(401, 'INVALID_CREDENTIALS', 'Invalid credentials');
 
     /* v8 ignore else */

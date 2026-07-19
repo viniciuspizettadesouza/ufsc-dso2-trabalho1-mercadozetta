@@ -5,6 +5,8 @@ const DEFAULT_DEV_JWT_SECRET = 'mercadozetta-dev-secret';
 const DEFAULT_DEV_REFRESH_TOKEN_HASH_SECRET =
   'mercadozetta-dev-refresh-token-hash-secret';
 const DEFAULT_DEV_CSRF_SECRET = 'mercadozetta-dev-csrf-secret';
+const DEFAULT_DEV_ACCOUNT_TOKEN_HASH_SECRET =
+  'mercadozetta-dev-account-token-hash-secret';
 const DEFAULT_DEV_CORS_ORIGINS = ['http://localhost:5173'];
 
 const MINUTE_MS = 60 * 1000;
@@ -21,6 +23,16 @@ export type SessionSecurityConfig = {
   refreshIdleTtlMs: number;
   absoluteTtlMs: number;
   refreshConcurrencyWindowMs: number;
+};
+
+export type AccountSecurityConfig = {
+  emailVerificationTokenTtlMs: number;
+  passwordResetTokenTtlMs: number;
+  emailChangeTokenTtlMs: number;
+  requestResponseFloorMs: number;
+  issueCooldownMs: number;
+  issueWindowMs: number;
+  issueMax: number;
 };
 
 type RateLimitConfig = {
@@ -137,11 +149,21 @@ export function getCsrfSecretKeyRing() {
   );
 }
 
+export function getAccountTokenHashKeyRing() {
+  return getVersionedSecretRing(
+    'ACCOUNT_TOKEN_HASH_SECRETS',
+    'ACCOUNT_TOKEN_HASH_ACTIVE_VERSION',
+    DEFAULT_DEV_ACCOUNT_TOKEN_HASH_SECRET,
+  );
+}
+
 export function validateSecurityConfig() {
   getJwtSigningKeyRing();
   getRefreshTokenHashKeyRing();
   getCsrfSecretKeyRing();
+  getAccountTokenHashKeyRing();
   getSessionSecurityConfig();
+  getAccountSecurityConfig();
 }
 
 function readBoundedDuration(
@@ -200,6 +222,57 @@ export function getSessionSecurityConfig(): SessionSecurityConfig {
       1000,
       10 * 1000,
     ),
+  };
+}
+
+export function getAccountSecurityConfig(): AccountSecurityConfig {
+  const issueCooldownMs = readBoundedDuration(
+    'ACCOUNT_TOKEN_ISSUE_COOLDOWN_MS',
+    MINUTE_MS,
+    1000,
+    15 * MINUTE_MS,
+  );
+  const issueWindowMs = readBoundedDuration(
+    'ACCOUNT_TOKEN_ISSUE_WINDOW_MS',
+    HOUR_MS,
+    MINUTE_MS,
+    DAY_MS,
+  );
+
+  if (issueWindowMs < issueCooldownMs) {
+    throw new Error(
+      'ACCOUNT_TOKEN_ISSUE_WINDOW_MS must be greater than or equal to ACCOUNT_TOKEN_ISSUE_COOLDOWN_MS',
+    );
+  }
+
+  return {
+    emailVerificationTokenTtlMs: readBoundedDuration(
+      'EMAIL_VERIFICATION_TOKEN_TTL_MS',
+      8 * HOUR_MS,
+      5 * MINUTE_MS,
+      DAY_MS,
+    ),
+    passwordResetTokenTtlMs: readBoundedDuration(
+      'PASSWORD_RESET_TOKEN_TTL_MS',
+      30 * MINUTE_MS,
+      5 * MINUTE_MS,
+      2 * HOUR_MS,
+    ),
+    emailChangeTokenTtlMs: readBoundedDuration(
+      'EMAIL_CHANGE_TOKEN_TTL_MS',
+      30 * MINUTE_MS,
+      5 * MINUTE_MS,
+      2 * HOUR_MS,
+    ),
+    requestResponseFloorMs: readBoundedDuration(
+      'ACCOUNT_REQUEST_RESPONSE_FLOOR_MS',
+      500,
+      100,
+      2000,
+    ),
+    issueCooldownMs,
+    issueWindowMs,
+    issueMax: readBoundedDuration('ACCOUNT_TOKEN_ISSUE_MAX', 3, 1, 10),
   };
 }
 
@@ -280,19 +353,83 @@ function readPositiveInteger(name: string, fallback: number) {
   return Number.isInteger(value) && value > 0 ? value : fallback;
 }
 
-export function getRateLimitConfig(
-  scope: 'register' | 'auth',
-): RateLimitConfig {
-  const prefix =
-    scope === 'register' ? 'RATE_LIMIT_REGISTER' : 'RATE_LIMIT_AUTH';
-  const fallbackLimit = scope === 'register' ? 10 : 5;
+export type RateLimitScope =
+  | 'register'
+  | 'auth'
+  | 'emailVerificationRequest'
+  | 'emailVerificationConfirmation'
+  | 'passwordResetRequest'
+  | 'passwordResetConfirmation'
+  | 'passwordChange'
+  | 'emailChangeRequest'
+  | 'emailChangeConfirmation'
+  | 'accountDeactivation';
+
+const rateLimitDefinitions: Record<
+  RateLimitScope,
+  { prefix: string; limit: number; message: string }
+> = {
+  register: {
+    prefix: 'RATE_LIMIT_REGISTER',
+    limit: 10,
+    message: 'Too many account creation attempts, please try again later',
+  },
+  auth: {
+    prefix: 'RATE_LIMIT_AUTH',
+    limit: 5,
+    message: 'Too many login attempts, please try again later',
+  },
+  emailVerificationRequest: {
+    prefix: 'RATE_LIMIT_EMAIL_VERIFICATION_REQUEST',
+    limit: 5,
+    message: 'Too many email verification requests, please try again later',
+  },
+  emailVerificationConfirmation: {
+    prefix: 'RATE_LIMIT_EMAIL_VERIFICATION_CONFIRMATION',
+    limit: 10,
+    message: 'Too many email verification attempts, please try again later',
+  },
+  passwordResetRequest: {
+    prefix: 'RATE_LIMIT_PASSWORD_RESET_REQUEST',
+    limit: 5,
+    message: 'Too many password reset requests, please try again later',
+  },
+  passwordResetConfirmation: {
+    prefix: 'RATE_LIMIT_PASSWORD_RESET_CONFIRMATION',
+    limit: 10,
+    message: 'Too many password reset attempts, please try again later',
+  },
+  passwordChange: {
+    prefix: 'RATE_LIMIT_PASSWORD_CHANGE',
+    limit: 5,
+    message: 'Too many password change attempts, please try again later',
+  },
+  emailChangeRequest: {
+    prefix: 'RATE_LIMIT_EMAIL_CHANGE_REQUEST',
+    limit: 5,
+    message: 'Too many email change attempts, please try again later',
+  },
+  emailChangeConfirmation: {
+    prefix: 'RATE_LIMIT_EMAIL_CHANGE_CONFIRMATION',
+    limit: 10,
+    message: 'Too many email change confirmations, please try again later',
+  },
+  accountDeactivation: {
+    prefix: 'RATE_LIMIT_ACCOUNT_DEACTIVATION',
+    limit: 5,
+    message: 'Too many account deactivation attempts, please try again later',
+  },
+};
+
+export function getRateLimitConfig(scope: RateLimitScope): RateLimitConfig {
+  const definition = rateLimitDefinitions[scope];
 
   return {
-    windowMs: readPositiveInteger(`${prefix}_WINDOW_MS`, 15 * 60 * 1000),
-    limit: readPositiveInteger(`${prefix}_MAX`, fallbackLimit),
-    message:
-      scope === 'register'
-        ? 'Too many account creation attempts, please try again later'
-        : 'Too many login attempts, please try again later',
+    windowMs: readPositiveInteger(
+      `${definition.prefix}_WINDOW_MS`,
+      15 * MINUTE_MS,
+    ),
+    limit: readPositiveInteger(`${definition.prefix}_MAX`, definition.limit),
+    message: definition.message,
   };
 }

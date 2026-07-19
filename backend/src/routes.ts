@@ -1,6 +1,8 @@
 import express from 'express';
 import type { RequestHandler } from 'express';
 import type { AuthController } from '@/controller/authController';
+import type { AccountSecurityController } from '@/controller/accountSecurityController';
+import type { AccountManagementController } from '@/controller/accountManagementController';
 import type { UserController } from '@/controller/userController';
 import type { ProductController } from '@/controller/productController';
 import type { CommerceController } from '@/controller/commerceController';
@@ -10,7 +12,18 @@ import {
   requireCsrf,
   validatePresentOrigin,
 } from '@/middleware/csrf';
-import { authRateLimiter, registerRateLimiter } from '@/middleware/rateLimit';
+import {
+  authRateLimiter,
+  emailVerificationConfirmationRateLimiter,
+  emailVerificationRequestRateLimiter,
+  passwordResetConfirmationRateLimiter,
+  passwordResetRequestRateLimiter,
+  registerRateLimiter,
+  accountDeactivationRateLimiter,
+  emailChangeConfirmationRateLimiter,
+  emailChangeRequestRateLimiter,
+  passwordChangeRateLimiter,
+} from '@/middleware/rateLimit';
 import validateRequest from '@/middleware/validateRequest';
 import {
   validateCreateProductPayload,
@@ -23,7 +36,18 @@ import {
 } from '@/validators/productValidator';
 import { validateCreateUserPayload } from '@/validators/userValidator';
 import { validateLoginPayload } from '@/validators/authValidator';
+import {
+  validateAccountRequest,
+  validateAccountTokenConfirmation,
+  validatePasswordResetConfirmation,
+} from '@/validators/accountSecurityValidator';
 import { validatePagination } from '@/validators/paginationValidator';
+import {
+  validateAccountDeactivation,
+  validateEmailChangeRequest,
+  validatePasswordChange,
+  validateProfileUpdate,
+} from '@/validators/accountManagementValidator';
 import {
   validateCartItem,
   validateNotificationRead,
@@ -34,6 +58,8 @@ import {
 } from '@/validators/commerceValidator';
 
 export type RouteDependencies = {
+  accountManagementController: AccountManagementController;
+  accountSecurityController: AccountSecurityController;
   authController: AuthController;
   userController: UserController;
   productController: ProductController;
@@ -47,6 +73,8 @@ export type RouteDependencies = {
 
 export function createRoutes(dependencies: RouteDependencies) {
   const {
+    accountManagementController: AccountManagementController,
+    accountSecurityController: AccountSecurityController,
     authController: AuthController,
     userController: UserController,
     productController: ProductController,
@@ -126,6 +154,51 @@ export function createRoutes(dependencies: RouteDependencies) {
     asyncHandler(AuthController.authenticate),
   );
 
+  routes.post(
+    '/auth/email-verification/requests',
+    requireAllowedOrigin,
+    AccountSecurityController.requireDelivery,
+    emailVerificationRequestRateLimiter,
+    validateRequest({ body: validateAccountRequest }),
+    asyncHandler(AccountSecurityController.requestEmailVerification),
+  );
+
+  routes.post(
+    '/auth/email-verification/confirmations',
+    requireAllowedOrigin,
+    AccountSecurityController.requireDelivery,
+    emailVerificationConfirmationRateLimiter,
+    validateRequest({ body: validateAccountTokenConfirmation }),
+    asyncHandler(AccountSecurityController.confirmEmailVerification),
+  );
+
+  routes.post(
+    '/auth/password-reset/requests',
+    requireAllowedOrigin,
+    AccountSecurityController.requireDelivery,
+    passwordResetRequestRateLimiter,
+    validateRequest({ body: validateAccountRequest }),
+    asyncHandler(AccountSecurityController.requestPasswordReset),
+  );
+
+  routes.post(
+    '/auth/password-reset/confirmations',
+    requireAllowedOrigin,
+    AccountSecurityController.requireDelivery,
+    passwordResetConfirmationRateLimiter,
+    validateRequest({ body: validatePasswordResetConfirmation }),
+    asyncHandler(AccountSecurityController.confirmPasswordReset),
+  );
+
+  routes.post(
+    '/auth/email-change/confirmations',
+    requireAllowedOrigin,
+    AccountManagementController.requireEmailDelivery,
+    emailChangeConfirmationRateLimiter,
+    validateRequest({ body: validateAccountTokenConfirmation }),
+    asyncHandler(AccountManagementController.confirmEmailChange),
+  );
+
   routes.get(
     '/auth/session',
     authMiddleware,
@@ -169,6 +242,39 @@ export function createRoutes(dependencies: RouteDependencies) {
     authMiddleware,
     requireCsrf,
     asyncHandler(AuthController.logout),
+  );
+
+  routes.patch(
+    '/account/profile',
+    authMiddleware,
+    requireCsrf,
+    validateRequest({ body: validateProfileUpdate }),
+    asyncHandler(AccountManagementController.updateProfile),
+  );
+  routes.post(
+    '/account/password-changes',
+    authMiddleware,
+    requireCsrf,
+    passwordChangeRateLimiter,
+    validateRequest({ body: validatePasswordChange }),
+    asyncHandler(AccountManagementController.changePassword),
+  );
+  routes.post(
+    '/account/email-changes',
+    authMiddleware,
+    requireCsrf,
+    AccountManagementController.requireEmailDelivery,
+    emailChangeRequestRateLimiter,
+    validateRequest({ body: validateEmailChangeRequest }),
+    asyncHandler(AccountManagementController.requestEmailChange),
+  );
+  routes.post(
+    '/account/deactivation',
+    authMiddleware,
+    requireCsrf,
+    accountDeactivationRateLimiter,
+    validateRequest({ body: validateAccountDeactivation }),
+    asyncHandler(AccountManagementController.deactivateAccount),
   );
 
   routes.post(

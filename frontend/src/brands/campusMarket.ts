@@ -65,5 +65,10 @@ export const campusMarketBrand: BrandConfig = {
       ...defaultBrand.copy.forms,
       createProductAction: 'Publicar oferta',
     },
+    account: {
+      ...defaultBrand.copy.account,
+      navigationAction: 'Conta CampusMarket',
+      title: 'Configurações da conta CampusMarket',
+    },
   },
 };

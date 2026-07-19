@@ -85,6 +85,95 @@ export const appErrorExamples = {
     code: 'MISSING_USER_FIELDS',
   },
   INVALID_EMAIL: { error: 'Invalid email', code: 'INVALID_EMAIL' },
+  MISSING_EMAIL: { error: 'Email is required', code: 'MISSING_EMAIL' },
+  INVALID_OR_EXPIRED_ACCOUNT_TOKEN: {
+    error: 'Invalid or expired account token',
+    code: 'INVALID_OR_EXPIRED_ACCOUNT_TOKEN',
+  },
+  MISSING_PASSWORD_FIELDS: {
+    error: 'Password and confirmation are required',
+    code: 'MISSING_PASSWORD_FIELDS',
+  },
+  PASSWORD_CONFIRMATION_MISMATCH: {
+    error: 'Password confirmation does not match',
+    code: 'PASSWORD_CONFIRMATION_MISMATCH',
+  },
+  ACCOUNT_DELIVERY_UNAVAILABLE: {
+    error: 'Account message delivery is unavailable',
+    code: 'ACCOUNT_DELIVERY_UNAVAILABLE',
+  },
+  EMAIL_VERIFICATION_REQUEST_RATE_LIMITED: {
+    error: 'Too many email verification requests, please try again later',
+    code: 'EMAIL_VERIFICATION_REQUEST_RATE_LIMITED',
+  },
+  EMAIL_VERIFICATION_CONFIRMATION_RATE_LIMITED: {
+    error: 'Too many email verification attempts, please try again later',
+    code: 'EMAIL_VERIFICATION_CONFIRMATION_RATE_LIMITED',
+  },
+  PASSWORD_RESET_REQUEST_RATE_LIMITED: {
+    error: 'Too many password reset requests, please try again later',
+    code: 'PASSWORD_RESET_REQUEST_RATE_LIMITED',
+  },
+  PASSWORD_RESET_CONFIRMATION_RATE_LIMITED: {
+    error: 'Too many password reset attempts, please try again later',
+    code: 'PASSWORD_RESET_CONFIRMATION_RATE_LIMITED',
+  },
+  MISSING_PROFILE_UPDATE_FIELDS: {
+    error: 'At least one editable profile field is required',
+    code: 'MISSING_PROFILE_UPDATE_FIELDS',
+  },
+  MISSING_PASSWORD_CHANGE_FIELDS: {
+    error: 'Current password, password and confirmation are required',
+    code: 'MISSING_PASSWORD_CHANGE_FIELDS',
+  },
+  PASSWORD_REUSE_NOT_ALLOWED: {
+    error: 'New password must differ from the current password',
+    code: 'PASSWORD_REUSE_NOT_ALLOWED',
+  },
+  MISSING_EMAIL_CHANGE_FIELDS: {
+    error: 'Email and current password are required',
+    code: 'MISSING_EMAIL_CHANGE_FIELDS',
+  },
+  EMAIL_UNCHANGED: {
+    error: 'New email must differ from the current email',
+    code: 'EMAIL_UNCHANGED',
+  },
+  EMAIL_UNAVAILABLE: {
+    error: 'Email is unavailable',
+    code: 'EMAIL_UNAVAILABLE',
+  },
+  REAUTHENTICATION_FAILED: {
+    error: 'Current password is incorrect',
+    code: 'REAUTHENTICATION_FAILED',
+  },
+  ACCOUNT_STATE_CHANGED: {
+    error: 'Account state changed; authenticate again',
+    code: 'ACCOUNT_STATE_CHANGED',
+  },
+  DEACTIVATION_CONFIRMATION_MISMATCH: {
+    error: 'Confirmation must equal DEACTIVATE',
+    code: 'DEACTIVATION_CONFIRMATION_MISMATCH',
+  },
+  ACCOUNT_DEACTIVATION_BLOCKED_ACTIVE_ORDERS: {
+    error: 'Account cannot be deactivated while active orders remain',
+    code: 'ACCOUNT_DEACTIVATION_BLOCKED_ACTIVE_ORDERS',
+  },
+  PASSWORD_CHANGE_RATE_LIMITED: {
+    error: 'Too many password change attempts, please try again later',
+    code: 'PASSWORD_CHANGE_RATE_LIMITED',
+  },
+  EMAIL_CHANGE_REQUEST_RATE_LIMITED: {
+    error: 'Too many email change attempts, please try again later',
+    code: 'EMAIL_CHANGE_REQUEST_RATE_LIMITED',
+  },
+  EMAIL_CHANGE_CONFIRMATION_RATE_LIMITED: {
+    error: 'Too many email change confirmations, please try again later',
+    code: 'EMAIL_CHANGE_CONFIRMATION_RATE_LIMITED',
+  },
+  ACCOUNT_DEACTIVATION_RATE_LIMITED: {
+    error: 'Too many account deactivation attempts, please try again later',
+    code: 'ACCOUNT_DEACTIVATION_RATE_LIMITED',
+  },
   WEAK_PASSWORD: {
     error: 'Password must be at least 8 characters long',
     code: 'WEAK_PASSWORD',

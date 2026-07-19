@@ -44,6 +44,9 @@ export const users = pgTable(
     email: text().notNull(),
     passwordHash: text('password_hash').notNull(),
     tokenVersion: integer('token_version').default(0).notNull(),
+    emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
+    emailVersion: integer('email_version').default(0).notNull(),
+    deactivatedAt: timestamp('deactivated_at', { withTimezone: true }),
     username: text(),
     telephone: text(),
     ...lifecycleTimestamps(),
@@ -55,6 +58,127 @@ export const users = pgTable(
       sql`lower(${table.email})`,
     ),
     check('users_token_version_check', sql`${table.tokenVersion} >= 0`),
+    check('users_email_version_check', sql`${table.emailVersion} >= 0`),
+  ],
+);
+
+export const pendingEmailChanges = pgTable(
+  'pending_email_changes',
+  {
+    id: uuid().primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id, {
+        onDelete: 'restrict',
+        onUpdate: 'restrict',
+      }),
+    userId: uuid('user_id').notNull(),
+    email: text().notNull(),
+    emailVersion: integer('email_version').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    unique('pending_email_changes_tenant_id_id_key').on(
+      table.tenantId,
+      table.id,
+    ),
+    unique('pending_email_changes_tenant_user_key').on(
+      table.tenantId,
+      table.userId,
+    ),
+    uniqueIndex('pending_email_changes_tenant_email_key').on(
+      table.tenantId,
+      sql`lower(${table.email})`,
+    ),
+    foreignKey({
+      name: 'pending_email_changes_tenant_user_fkey',
+      columns: [table.tenantId, table.userId],
+      foreignColumns: [users.tenantId, users.id],
+    })
+      .onDelete('restrict')
+      .onUpdate('restrict'),
+    check(
+      'pending_email_changes_email_version_check',
+      sql`${table.emailVersion} >= 0`,
+    ),
+    check(
+      'pending_email_changes_expiry_check',
+      sql`${table.expiresAt} > ${table.createdAt}`,
+    ),
+    index('pending_email_changes_expiry_idx').on(table.expiresAt, table.id),
+  ],
+);
+
+export const accountTokens = pgTable(
+  'account_tokens',
+  {
+    id: uuid().primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id, {
+        onDelete: 'restrict',
+        onUpdate: 'restrict',
+      }),
+    userId: uuid('user_id').notNull(),
+    purpose: varchar({ length: 32 }).notNull(),
+    tokenHash: varchar('token_hash', { length: 64 }).notNull(),
+    tokenHashSecretVersion: varchar('token_hash_secret_version', {
+      length: 32,
+    }).notNull(),
+    emailVersion: integer('email_version'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    consumedAt: timestamp('consumed_at', { withTimezone: true }),
+    invalidatedAt: timestamp('invalidated_at', { withTimezone: true }),
+    invalidationReason: varchar('invalidation_reason', { length: 32 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    unique('account_tokens_tenant_id_id_key').on(table.tenantId, table.id),
+    foreignKey({
+      name: 'account_tokens_tenant_user_fkey',
+      columns: [table.tenantId, table.userId],
+      foreignColumns: [users.tenantId, users.id],
+    })
+      .onDelete('restrict')
+      .onUpdate('restrict'),
+    check(
+      'account_tokens_purpose_check',
+      sql`${table.purpose} in ('email_verification', 'password_reset', 'email_change')`,
+    ),
+    check(
+      'account_tokens_email_version_check',
+      sql`(${table.purpose} in ('email_verification', 'email_change') and ${table.emailVersion} is not null and ${table.emailVersion} >= 0)
+        or (${table.purpose} = 'password_reset' and ${table.emailVersion} is null)`,
+    ),
+    check(
+      'account_tokens_expiry_check',
+      sql`${table.expiresAt} > ${table.createdAt}`,
+    ),
+    check(
+      'account_tokens_lifecycle_check',
+      sql`not (${table.consumedAt} is not null and ${table.invalidatedAt} is not null)
+        and (${table.invalidatedAt} is null) = (${table.invalidationReason} is null)
+        and (${table.consumedAt} is null or ${table.consumedAt} >= ${table.createdAt})
+        and (${table.invalidatedAt} is null or ${table.invalidatedAt} >= ${table.createdAt})`,
+    ),
+    check(
+      'account_tokens_invalidation_reason_check',
+      sql`${table.invalidationReason} is null or ${table.invalidationReason} in ('replaced', 'password_reset', 'password_change', 'email_changed', 'account_deactivated')`,
+    ),
+    uniqueIndex('account_tokens_active_key')
+      .on(table.tenantId, table.userId, table.purpose)
+      .where(
+        sql`${table.consumedAt} is null and ${table.invalidatedAt} is null`,
+      ),
+    index('account_tokens_issuance_idx').on(
+      table.tenantId,
+      table.userId,
+      table.purpose,
+      table.createdAt.desc(),
+      table.id.desc(),
+    ),
+    index('account_tokens_expiry_idx').on(table.expiresAt, table.id),
   ],
 );
 
@@ -547,7 +671,7 @@ export const auditEvents = pgTable(
       .onUpdate('restrict'),
     check(
       'audit_events_event_type_check',
-      sql`${table.eventType} in ('session.created', 'session.rotated', 'session.revoked', 'session.reuse_detected', 'inventory.set', 'inventory.decremented', 'order.placed', 'order.status_changed')`,
+      sql`${table.eventType} in ('session.created', 'session.rotated', 'session.revoked', 'session.reuse_detected', 'inventory.set', 'inventory.decremented', 'order.placed', 'order.status_changed', 'user.email_verified', 'user.password_reset', 'user.profile_updated', 'user.password_changed', 'user.email_change_requested', 'user.email_changed', 'user.deactivated')`,
     ),
     check(
       'audit_events_resource_type_check',

@@ -273,6 +273,1055 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/email-verification/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request email-verification instructions
+         * @description Always returns the same accepted response for eligible and unknown accounts. Delivery must be configured by the deployment.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise. */
+                    "X-Tenant-Id"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "email": "seller@example.com"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AccountRequest"];
+                };
+            };
+            responses: {
+                /** @description Request accepted without disclosing account state */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "message": "If an eligible account exists, instructions will be sent."
+                         *     }
+                         */
+                        "application/json": components["schemas"]["AccountRequestResponse"];
+                    };
+                };
+                /** @description Invalid tenant or request payload */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "INVALID_REQUEST" | "MISSING_EMAIL" | "INVALID_EMAIL";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Origin validation failed */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "INVALID_ORIGIN";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Email-verification request rate limit exceeded */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "EMAIL_VERIFICATION_REQUEST_RATE_LIMITED";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Account-message delivery is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "ACCOUNT_DELIVERY_UNAVAILABLE";
+                            details?: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/email-verification/confirmations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm an email address */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise. */
+                    "X-Tenant-Id"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "token": "selector.secret"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AccountTokenConfirmation"];
+                };
+            };
+            responses: {
+                /** @description Email address verified */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid tenant, payload, or account token */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "INVALID_REQUEST" | "INVALID_OR_EXPIRED_ACCOUNT_TOKEN";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Origin validation failed */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "INVALID_ORIGIN";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Email-verification confirmation rate limit exceeded */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "EMAIL_VERIFICATION_CONFIRMATION_RATE_LIMITED";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Account-message delivery is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "ACCOUNT_DELIVERY_UNAVAILABLE";
+                            details?: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/password-reset/requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request password-reset instructions
+         * @description Always returns the same accepted response for eligible and unknown accounts. Delivery must be configured by the deployment.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise. */
+                    "X-Tenant-Id"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "email": "seller@example.com"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AccountRequest"];
+                };
+            };
+            responses: {
+                /** @description Request accepted without disclosing account state */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "message": "If an eligible account exists, instructions will be sent."
+                         *     }
+                         */
+                        "application/json": components["schemas"]["AccountRequestResponse"];
+                    };
+                };
+                /** @description Invalid tenant or request payload */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "INVALID_REQUEST" | "MISSING_EMAIL" | "INVALID_EMAIL";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Origin validation failed */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "INVALID_ORIGIN";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Password-reset request rate limit exceeded */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "PASSWORD_RESET_REQUEST_RATE_LIMITED";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Account-message delivery is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "ACCOUNT_DELIVERY_UNAVAILABLE";
+                            details?: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/password-reset/confirmations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm a password reset */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise. */
+                    "X-Tenant-Id"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "token": "selector.secret",
+                     *       "password": "new-password123",
+                     *       "passwordConfirmation": "new-password123"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["PasswordResetConfirmation"];
+                };
+            };
+            responses: {
+                /** @description Password replaced, sessions revoked, and auth cookies cleared */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid tenant, payload, or account token */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "INVALID_REQUEST" | "INVALID_OR_EXPIRED_ACCOUNT_TOKEN" | "MISSING_PASSWORD_FIELDS" | "PASSWORD_CONFIRMATION_MISMATCH" | "WEAK_PASSWORD";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Origin validation failed */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "INVALID_ORIGIN";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Password-reset confirmation rate limit exceeded */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "PASSWORD_RESET_CONFIRMATION_RATE_LIMITED";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Account-message delivery is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "ACCOUNT_DELIVERY_UNAVAILABLE";
+                            details?: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/email-change/confirmations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm a pending login-email change
+         * @description Consumes a tenant-bound token, promotes and verifies the pending address, revokes every session, and clears authentication cookies.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise. */
+                    "X-Tenant-Id"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "token": "selector.secret"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AccountTokenConfirmation"];
+                };
+            };
+            responses: {
+                /** @description Email changed, sessions revoked, and auth cookies cleared */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid tenant, payload, or account token */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "INVALID_REQUEST" | "INVALID_OR_EXPIRED_ACCOUNT_TOKEN";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Origin validation failed */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "INVALID_ORIGIN";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Email is unavailable */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "EMAIL_UNAVAILABLE";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Email-change confirmation rate limit exceeded */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "EMAIL_CHANGE_CONFIRMATION_RATE_LIMITED";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Account-message delivery is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "ACCOUNT_DELIVERY_UNAVAILABLE";
+                            details?: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update the authenticated account profile */
+        patch: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise. */
+                    "X-Tenant-Id"?: string;
+                    /** @description Session-bound double-submit proof required for cookie-authenticated mutations. */
+                    "X-CSRF-Token": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "username": "Updated Seller",
+                     *       "telephone": null
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ProfileUpdateRequest"];
+                };
+            };
+            responses: {
+                /** @description Updated public user */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "_id": "507f1f77-bcf8-4ecd-8994-390110000001",
+                         *       "tenantId": "mercadozetta",
+                         *       "email": "seller@example.com",
+                         *       "username": "Updated Seller",
+                         *       "telephone": null,
+                         *       "createdAt": "2026-01-15T12:00:00.000Z",
+                         *       "updatedAt": "2026-01-15T12:00:00.000Z"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["User"];
+                    };
+                };
+                /** @description Invalid tenant or profile payload */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "INVALID_REQUEST" | "MISSING_PROFILE_UPDATE_FIELDS";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Missing or invalid session */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "AUTH_TOKEN_REQUIRED" | "INVALID_AUTH_TOKEN";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Origin or CSRF validation failed */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "INVALID_ORIGIN" | "INVALID_CSRF_TOKEN";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Account state changed */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "ACCOUNT_STATE_CHANGED";
+                            details?: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        trace?: never;
+    };
+    "/account/password-changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change the authenticated account password */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise. */
+                    "X-Tenant-Id"?: string;
+                    /** @description Session-bound double-submit proof required for cookie-authenticated mutations. */
+                    "X-CSRF-Token": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "currentPassword": "current-password-placeholder",
+                     *       "password": "replacement-password-placeholder",
+                     *       "passwordConfirmation": "replacement-password-placeholder"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["PasswordChangeRequest"];
+                };
+            };
+            responses: {
+                /** @description Password changed, sessions revoked, and auth cookies cleared */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid tenant or password-change payload */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "INVALID_REQUEST" | "MISSING_PASSWORD_CHANGE_FIELDS" | "PASSWORD_CONFIRMATION_MISMATCH" | "WEAK_PASSWORD" | "PASSWORD_REUSE_NOT_ALLOWED";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Missing or invalid session */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "AUTH_TOKEN_REQUIRED" | "INVALID_AUTH_TOKEN";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Reauthentication, Origin, or CSRF validation failed */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "INVALID_ORIGIN" | "INVALID_CSRF_TOKEN" | "REAUTHENTICATION_FAILED";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Account state changed */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "ACCOUNT_STATE_CHANGED";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Password-change rate limit exceeded */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "PASSWORD_CHANGE_RATE_LIMITED";
+                            details?: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/email-changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Request a login-email change
+         * @description Keeps the current verified login until the proposed address is confirmed. Delivery must be configured by the deployment.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise. */
+                    "X-Tenant-Id"?: string;
+                    /** @description Session-bound double-submit proof required for cookie-authenticated mutations. */
+                    "X-CSRF-Token": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "email": "new-address@example.invalid",
+                     *       "currentPassword": "current-password-placeholder"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["EmailChangeRequest"];
+                };
+            };
+            responses: {
+                /** @description Email-change confirmation request accepted */
+                202: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "message": "If the address can be used, confirmation instructions will be sent."
+                         *     }
+                         */
+                        "application/json": components["schemas"]["EmailChangeRequestResponse"];
+                    };
+                };
+                /** @description Invalid tenant or email-change payload */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "INVALID_REQUEST" | "MISSING_EMAIL_CHANGE_FIELDS" | "INVALID_EMAIL";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Missing or invalid session */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "AUTH_TOKEN_REQUIRED" | "INVALID_AUTH_TOKEN";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Reauthentication, Origin, or CSRF validation failed */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "INVALID_ORIGIN" | "INVALID_CSRF_TOKEN" | "REAUTHENTICATION_FAILED";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Account state or email conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "ACCOUNT_STATE_CHANGED" | "EMAIL_UNCHANGED" | "EMAIL_UNAVAILABLE";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Email-change request rate limit exceeded */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "EMAIL_CHANGE_REQUEST_RATE_LIMITED";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Account-message delivery is not configured */
+                503: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "ACCOUNT_DELIVERY_UNAVAILABLE";
+                            details?: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/deactivation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Soft-deactivate the authenticated account */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise. */
+                    "X-Tenant-Id"?: string;
+                    /** @description Session-bound double-submit proof required for cookie-authenticated mutations. */
+                    "X-CSRF-Token": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "currentPassword": "current-password-placeholder",
+                     *       "confirmation": "DEACTIVATE"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["AccountDeactivationRequest"];
+                };
+            };
+            responses: {
+                /** @description Account deactivated, sessions revoked, and auth cookies cleared */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid tenant or deactivation payload */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "INVALID_REQUEST" | "DEACTIVATION_CONFIRMATION_MISMATCH";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Missing or invalid session */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "AUTH_TOKEN_REQUIRED" | "INVALID_AUTH_TOKEN";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Reauthentication, Origin, or CSRF validation failed */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "INVALID_ORIGIN" | "INVALID_CSRF_TOKEN" | "REAUTHENTICATION_FAILED";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Account state changed or active orders remain */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "ACCOUNT_STATE_CHANGED" | "ACCOUNT_DEACTIVATION_BLOCKED_ACTIVE_ORDERS";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Account-deactivation rate limit exceeded */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "ACCOUNT_DEACTIVATION_RATE_LIMITED";
+                            details?: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/session": {
         parameters: {
             query?: never;
@@ -3089,6 +4138,44 @@ export interface components {
             email: string;
             password: string;
         };
+        /** @description Email used for a non-enumerating account-security request. */
+        AccountRequest: {
+            /** Format: email */
+            email: string;
+        };
+        /** @description Opaque single-use account-security token. */
+        AccountTokenConfirmation: {
+            token: string;
+        };
+        /** @description Single-use reset token and matching replacement password. */
+        PasswordResetConfirmation: {
+            token: string;
+            password: string;
+            passwordConfirmation: string;
+        };
+        /** @description Explicitly editable account profile fields. */
+        ProfileUpdateRequest: {
+            username?: string;
+            telephone?: string | null;
+        };
+        /** @description Current credential and matching replacement password. */
+        PasswordChangeRequest: {
+            currentPassword: string;
+            password: string;
+            passwordConfirmation: string;
+        };
+        /** @description Proposed login email and current credential. */
+        EmailChangeRequest: {
+            /** Format: email */
+            email: string;
+            currentPassword: string;
+        };
+        /** @description Current credential and explicit deactivation confirmation. */
+        AccountDeactivationRequest: {
+            currentPassword: string;
+            /** @enum {string} */
+            confirmation: "DEACTIVATE";
+        };
         /** @description Details required to register a marketplace account. */
         CreateUserRequest: {
             /** Format: email */
@@ -3205,6 +4292,14 @@ export interface components {
             /** Format: date-time */
             absoluteExpiresAt: string;
             userAgentLabel?: string;
+        };
+        AccountRequestResponse: {
+            /** @constant */
+            message: "If an eligible account exists, instructions will be sent.";
+        };
+        EmailChangeRequestResponse: {
+            /** @constant */
+            message: "If the address can be used, confirmation instructions will be sent.";
         };
         SessionListResponse: {
             sessions: components["schemas"]["Session"][];

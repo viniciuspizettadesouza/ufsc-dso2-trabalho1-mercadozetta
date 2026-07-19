@@ -12,6 +12,16 @@ function repository(overrides: Partial<UserRepository> = {}): UserRepository {
     create: vi.fn(),
     findPublicById: vi.fn().mockResolvedValue(null),
     findForAuthentication: vi.fn().mockResolvedValue(null),
+    findForAccountSecurity: vi.fn().mockResolvedValue(null),
+    findForAccountSecurityForUpdate: vi.fn().mockResolvedValue(null),
+    findAccountSecurityById: vi.fn().mockResolvedValue(null),
+    findAccountSecurityByIdForUpdate: vi.fn().mockResolvedValue(null),
+    updateProfile: vi.fn().mockResolvedValue(null),
+    replaceAccountPassword: vi.fn().mockResolvedValue(false),
+    promoteAccountEmail: vi.fn().mockResolvedValue(false),
+    deactivateAccount: vi.fn().mockResolvedValue(false),
+    markEmailVerified: vi.fn().mockResolvedValue(false),
+    replacePasswordAndIncrementTokenVersion: vi.fn().mockResolvedValue(false),
     findTokenVersion: vi.fn().mockResolvedValue(null),
     hasTokenVersion: vi.fn().mockResolvedValue(false),
     incrementTokenVersion: vi.fn().mockResolvedValue(false),
@@ -126,6 +136,26 @@ describe('authService', () => {
       authenticate({
         email: 'seller@example.com',
         password: 'wrong-password',
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
+
+    ({ authenticate } = createAuthService(
+      repository({
+        findForAuthentication: vi.fn().mockResolvedValue({
+          _id: 'user-1',
+          tenantId: 'mercadozetta',
+          email: 'seller@example.com',
+          passwordHash: await bcrypt.hash('secret123', 4),
+          tokenVersion: 1,
+          deactivatedAt: new Date('2026-07-19T15:00:00.000Z'),
+        }),
+      }),
+      sessions(),
+    ));
+    await expect(
+      authenticate({
+        email: 'seller@example.com',
+        password: 'secret123',
       }),
     ).rejects.toMatchObject({ code: 'INVALID_CREDENTIALS' });
   });

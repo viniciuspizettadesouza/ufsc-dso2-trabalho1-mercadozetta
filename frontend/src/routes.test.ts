@@ -13,6 +13,10 @@ describe('routes', () => {
     expect(appRoutes.checkout).toBe('/checkout');
     expect(appRoutes.notifications).toBe('/notifications');
     expect(appRoutes.sellerOrders).toBe('/seller/orders');
+    expect(appRoutes.account).toBe('/account');
+    expect(appRoutes.emailChangeConfirmation).toBe(
+      '/account/email-change/confirm',
+    );
     expect(appRoutes.sellerProducts('seller-1')).toBe('/sellers/seller-1');
     expect(appRoutes.sellerProfile('seller-1')).toBe(
       '/sellers/seller-1/profile',
@@ -29,6 +33,10 @@ describe('routes', () => {
     expect(routePatterns.checkout).toBe('/checkout');
     expect(routePatterns.notifications).toBe('/notifications');
     expect(routePatterns.sellerOrders).toBe('/seller/orders');
+    expect(routePatterns.account).toBe('/account');
+    expect(routePatterns.emailChangeConfirmation).toBe(
+      '/account/email-change/confirm',
+    );
     expect(routePatterns.sellerProducts).toBe('/sellers/:sellerId');
     expect(routePatterns.sellerProfile).toBe('/sellers/:sellerId/profile');
   });
@@ -56,5 +64,12 @@ describe('routes', () => {
     expect(apiRoutes.sellerProducts('seller-1')).toBe(
       '/users/seller-1/products',
     );
+    expect(apiRoutes.accountProfile).toBe('/account/profile');
+    expect(apiRoutes.passwordChanges).toBe('/account/password-changes');
+    expect(apiRoutes.emailChanges).toBe('/account/email-changes');
+    expect(apiRoutes.emailChangeConfirmations).toBe(
+      '/auth/email-change/confirmations',
+    );
+    expect(apiRoutes.accountDeactivation).toBe('/account/deactivation');
   });
 });

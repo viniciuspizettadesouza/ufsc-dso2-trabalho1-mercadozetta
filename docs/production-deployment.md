@@ -42,11 +42,14 @@ export REFRESH_TOKEN_HASH_SECRETS='{"2026-07":"replace-with-a-different-random-s
 export REFRESH_TOKEN_HASH_ACTIVE_VERSION=2026-07
 export CSRF_SECRETS='{"2026-07":"replace-with-another-random-secret"}'
 export CSRF_ACTIVE_VERSION=2026-07
+export ACCOUNT_TOKEN_HASH_SECRETS='{"2026-07":"replace-with-a-fourth-distinct-random-secret"}'
+export ACCOUNT_TOKEN_HASH_ACTIVE_VERSION=2026-07
 ```
 
 Do not put real values in repository files or shell history. The sample above
 shows the shape only. Retain previous key-ring versions for the overlap periods
-defined in the [cookie-session ADR](decisions/0001-cookie-sessions.md).
+defined in the [cookie-session ADR](decisions/0001-cookie-sessions.md) and
+[account recovery ADR](decisions/0004-account-verification-recovery.md).
 
 The production backend refuses to start when its PostgreSQL connection string,
 port, trusted-proxy, CORS, or security-ring configuration is missing or invalid.

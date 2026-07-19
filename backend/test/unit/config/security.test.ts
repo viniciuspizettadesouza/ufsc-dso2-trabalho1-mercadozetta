@@ -31,6 +31,11 @@ describe('security config', () => {
       REFRESH_TOKEN_HASH_ACTIVE_VERSION: 'v2',
       CSRF_SECRETS: JSON.stringify({ v2: 'csrf-2', v1: 'csrf-1' }),
       CSRF_ACTIVE_VERSION: 'v2',
+      ACCOUNT_TOKEN_HASH_SECRETS: JSON.stringify({
+        v2: 'account-token-2',
+        v1: 'account-token-1',
+      }),
+      ACCOUNT_TOKEN_HASH_ACTIVE_VERSION: 'v2',
     });
 
     expect(configured.getJwtSigningKeyRing()).toEqual({
@@ -44,6 +49,10 @@ describe('security config', () => {
     expect(configured.getCsrfSecretKeyRing()).toEqual({
       activeVersion: 'v2',
       keys: { v2: 'csrf-2', v1: 'csrf-1' },
+    });
+    expect(configured.getAccountTokenHashKeyRing()).toEqual({
+      activeVersion: 'v2',
+      keys: { v2: 'account-token-2', v1: 'account-token-1' },
     });
     expect(() => configured.validateSecurityConfig()).not.toThrow();
   });
@@ -69,6 +78,13 @@ describe('security config', () => {
         REFRESH_TOKEN_HASH_ACTIVE_VERSION: 'bad.version',
       }).getRefreshTokenHashKeyRing(),
     ).toThrow('contains an invalid version or secret');
+
+    expect(() =>
+      loadSecurityWithEnv({
+        ACCOUNT_TOKEN_HASH_SECRETS: JSON.stringify({ current: 'secret' }),
+        ACCOUNT_TOKEN_HASH_ACTIVE_VERSION: 'missing',
+      }).getAccountTokenHashKeyRing(),
+    ).toThrow('ACCOUNT_TOKEN_HASH_ACTIVE_VERSION must select a key');
   });
 
   it('uses distinct local-only key-ring fallbacks', () => {
@@ -79,6 +95,7 @@ describe('security config', () => {
     });
     expect(local.getRefreshTokenHashKeyRing().activeVersion).toBe('local');
     expect(local.getCsrfSecretKeyRing().activeVersion).toBe('local');
+    expect(local.getAccountTokenHashKeyRing().activeVersion).toBe('local');
   });
 
   it('requires every versioned key ring outside local environments', () => {
@@ -91,6 +108,9 @@ describe('security config', () => {
     );
     expect(() => production.getCsrfSecretKeyRing()).toThrow(
       'CSRF_SECRETS is required',
+    );
+    expect(() => production.getAccountTokenHashKeyRing()).toThrow(
+      'ACCOUNT_TOKEN_HASH_SECRETS is required',
     );
   });
 
@@ -115,6 +135,58 @@ describe('security config', () => {
       absoluteTtlMs: 86400000,
       refreshConcurrencyWindowMs: 1000,
     });
+  });
+
+  it('provides bounded account-token lifetimes and hidden issuance limits', () => {
+    expect(loadSecurityWithEnv({}).getAccountSecurityConfig()).toEqual({
+      emailVerificationTokenTtlMs: 8 * 60 * 60 * 1000,
+      emailChangeTokenTtlMs: 30 * 60 * 1000,
+      passwordResetTokenTtlMs: 30 * 60 * 1000,
+      requestResponseFloorMs: 500,
+      issueCooldownMs: 60 * 1000,
+      issueWindowMs: 60 * 60 * 1000,
+      issueMax: 3,
+    });
+    expect(
+      loadSecurityWithEnv({
+        EMAIL_VERIFICATION_TOKEN_TTL_MS: '3600000',
+        EMAIL_CHANGE_TOKEN_TTL_MS: '900000',
+        PASSWORD_RESET_TOKEN_TTL_MS: '600000',
+        ACCOUNT_TOKEN_ISSUE_COOLDOWN_MS: '10000',
+        ACCOUNT_TOKEN_ISSUE_WINDOW_MS: '60000',
+        ACCOUNT_TOKEN_ISSUE_MAX: '2',
+        ACCOUNT_REQUEST_RESPONSE_FLOOR_MS: '100',
+      }).getAccountSecurityConfig(),
+    ).toEqual({
+      emailVerificationTokenTtlMs: 3600000,
+      emailChangeTokenTtlMs: 900000,
+      passwordResetTokenTtlMs: 600000,
+      requestResponseFloorMs: 100,
+      issueCooldownMs: 10000,
+      issueWindowMs: 60000,
+      issueMax: 2,
+    });
+  });
+
+  it('rejects invalid account-token configuration', () => {
+    expect(() =>
+      loadSecurityWithEnv({
+        EMAIL_VERIFICATION_TOKEN_TTL_MS: '1000',
+      }).getAccountSecurityConfig(),
+    ).toThrow('EMAIL_VERIFICATION_TOKEN_TTL_MS must be an integer');
+    expect(() =>
+      loadSecurityWithEnv({
+        EMAIL_CHANGE_TOKEN_TTL_MS: '1000',
+      }).getAccountSecurityConfig(),
+    ).toThrow('EMAIL_CHANGE_TOKEN_TTL_MS must be an integer');
+    expect(() =>
+      loadSecurityWithEnv({
+        ACCOUNT_TOKEN_ISSUE_COOLDOWN_MS: '120000',
+        ACCOUNT_TOKEN_ISSUE_WINDOW_MS: '60000',
+      }).getAccountSecurityConfig(),
+    ).toThrow(
+      'ACCOUNT_TOKEN_ISSUE_WINDOW_MS must be greater than or equal to ACCOUNT_TOKEN_ISSUE_COOLDOWN_MS',
+    );
   });
 
   it('rejects invalid session lifetimes and an idle window beyond the absolute lifetime', () => {
@@ -255,6 +327,58 @@ describe('security config', () => {
     });
   });
 
+  it('keeps recovery and verification rate limits independently configurable', () => {
+    const configured = loadSecurityWithEnv({
+      RATE_LIMIT_EMAIL_VERIFICATION_REQUEST_MAX: '4',
+      RATE_LIMIT_EMAIL_VERIFICATION_CONFIRMATION_MAX: '8',
+      RATE_LIMIT_PASSWORD_RESET_REQUEST_MAX: '3',
+      RATE_LIMIT_PASSWORD_RESET_CONFIRMATION_MAX: '7',
+      RATE_LIMIT_PASSWORD_RESET_CONFIRMATION_WINDOW_MS: '60000',
+    });
+
+    expect(configured.getRateLimitConfig('emailVerificationRequest')).toEqual({
+      windowMs: 15 * 60 * 1000,
+      limit: 4,
+      message: 'Too many email verification requests, please try again later',
+    });
+    expect(
+      configured.getRateLimitConfig('emailVerificationConfirmation'),
+    ).toMatchObject({ limit: 8 });
+    expect(configured.getRateLimitConfig('passwordResetRequest')).toMatchObject(
+      { limit: 3 },
+    );
+    expect(configured.getRateLimitConfig('passwordResetConfirmation')).toEqual({
+      windowMs: 60000,
+      limit: 7,
+      message: 'Too many password reset attempts, please try again later',
+    });
+  });
+
+  it('keeps authenticated account-management limits independently configurable', () => {
+    const configured = loadSecurityWithEnv({
+      RATE_LIMIT_PASSWORD_CHANGE_MAX: '2',
+      RATE_LIMIT_EMAIL_CHANGE_REQUEST_MAX: '3',
+      RATE_LIMIT_EMAIL_CHANGE_CONFIRMATION_MAX: '4',
+      RATE_LIMIT_ACCOUNT_DEACTIVATION_MAX: '1',
+      RATE_LIMIT_ACCOUNT_DEACTIVATION_WINDOW_MS: '60000',
+    });
+
+    expect(configured.getRateLimitConfig('passwordChange')).toMatchObject({
+      limit: 2,
+    });
+    expect(configured.getRateLimitConfig('emailChangeRequest')).toMatchObject({
+      limit: 3,
+    });
+    expect(
+      configured.getRateLimitConfig('emailChangeConfirmation'),
+    ).toMatchObject({ limit: 4 });
+    expect(configured.getRateLimitConfig('accountDeactivation')).toEqual({
+      windowMs: 60000,
+      limit: 1,
+      message: 'Too many account deactivation attempts, please try again later',
+    });
+  });
+
   it('covers local and production defaults through the public configuration API', () => {
     vi.stubEnv('NODE_ENV', '');
     vi.stubEnv('JWT_SIGNING_KEYS', '');
@@ -315,6 +439,7 @@ describe('security config', () => {
     vi.stubEnv('NODE_ENV', 'test');
     vi.stubEnv('REFRESH_TOKEN_HASH_SECRETS', '');
     vi.stubEnv('CSRF_SECRETS', '');
+    vi.stubEnv('ACCOUNT_TOKEN_HASH_SECRETS', '');
     vi.stubEnv('SESSION_ACCESS_TOKEN_TTL_MS', '');
     vi.stubEnv('SESSION_REFRESH_IDLE_TTL_MS', '');
     vi.stubEnv('SESSION_ABSOLUTE_TTL_MS', '');
@@ -324,6 +449,7 @@ describe('security config', () => {
 
     expect(security.getRefreshTokenHashKeyRing().activeVersion).toBe('local');
     expect(security.getCsrfSecretKeyRing().activeVersion).toBe('local');
+    expect(security.getAccountTokenHashKeyRing().activeVersion).toBe('local');
     expect(security.getSessionSecurityConfig().accessTokenTtlMs).toBe(300000);
     expect(security.getAuthCookieConfig().access.name).toBe('mz_at');
     expect(security.isTenantHeaderRequired()).toBe(false);
@@ -337,6 +463,11 @@ describe('security config', () => {
     vi.stubEnv('REFRESH_TOKEN_HASH_ACTIVE_VERSION', 'current');
     vi.stubEnv('CSRF_SECRETS', '{"current":"csrf-configured"}');
     vi.stubEnv('CSRF_ACTIVE_VERSION', 'current');
+    vi.stubEnv(
+      'ACCOUNT_TOKEN_HASH_SECRETS',
+      '{"current":"account-token-configured"}',
+    );
+    vi.stubEnv('ACCOUNT_TOKEN_HASH_ACTIVE_VERSION', 'current');
     vi.stubEnv('SESSION_ACCESS_TOKEN_TTL_MS', '60000');
     vi.stubEnv('SESSION_REFRESH_IDLE_TTL_MS', '3600000');
     vi.stubEnv('SESSION_ABSOLUTE_TTL_MS', '86400000');
@@ -346,6 +477,7 @@ describe('security config', () => {
 
     expect(security.getRefreshTokenHashKeyRing().activeVersion).toBe('current');
     expect(security.getCsrfSecretKeyRing().activeVersion).toBe('current');
+    expect(security.getAccountTokenHashKeyRing().activeVersion).toBe('current');
     expect(security.getSessionSecurityConfig()).toEqual({
       accessTokenTtlMs: 60000,
       refreshIdleTtlMs: 3600000,
@@ -375,9 +507,13 @@ describe('security config', () => {
     expect(security.getAuthCookieConfig().access.name).toBe('__Host-mz_at');
     vi.stubEnv('REFRESH_TOKEN_HASH_SECRETS', '');
     vi.stubEnv('CSRF_SECRETS', '');
+    vi.stubEnv('ACCOUNT_TOKEN_HASH_SECRETS', '');
     expect(() => security.getRefreshTokenHashKeyRing()).toThrow(
       'REFRESH_TOKEN_HASH_SECRETS',
     );
     expect(() => security.getCsrfSecretKeyRing()).toThrow('CSRF_SECRETS');
+    expect(() => security.getAccountTokenHashKeyRing()).toThrow(
+      'ACCOUNT_TOKEN_HASH_SECRETS',
+    );
   });
 });

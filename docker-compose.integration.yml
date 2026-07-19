@@ -26,6 +26,9 @@ services:
       REFRESH_TOKEN_HASH_ACTIVE_VERSION: current
       CSRF_SECRETS: '{"current":"integration-csrf-current","previous":"integration-csrf-previous"}'
       CSRF_ACTIVE_VERSION: current
+      ACCOUNT_TOKEN_HASH_SECRETS: '{"current":"integration-account-token-current","previous":"integration-account-token-previous"}'
+      ACCOUNT_TOKEN_HASH_ACTIVE_VERSION: current
+      RATE_LIMIT_AUTH_MAX: 100
       POSTGRESQL_URL: postgresql://mercadozetta:integration-only@postgres-integration:5432/mercadozetta_integration
     depends_on:
       postgres-integration:

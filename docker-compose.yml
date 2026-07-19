@@ -30,6 +30,8 @@ services:
       REFRESH_TOKEN_HASH_ACTIVE_VERSION: current
       CSRF_SECRETS: '{"current":"local_dev_csrf_secret_please_change_later"}'
       CSRF_ACTIVE_VERSION: current
+      ACCOUNT_TOKEN_HASH_SECRETS: '{"current":"local_dev_account_token_secret_please_change_later"}'
+      ACCOUNT_TOKEN_HASH_ACTIVE_VERSION: current
       PORT: 3333
       TRUST_PROXY_HOPS: 0
       CORS_ORIGIN: http://localhost:5173

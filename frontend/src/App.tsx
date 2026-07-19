@@ -16,6 +16,8 @@ import ProductDetail from '@/pages/ProductDetail';
 import SellerProfile from '@/pages/SellerProfile';
 import SellerOrders from '@/pages/SellerOrders';
 import EditProduct from '@/pages/EditProduct';
+import AccountSettings from '@/pages/AccountSettings';
+import EmailChangeConfirmation from '@/pages/EmailChangeConfirmation';
 import { BrandProvider } from '@/brands/BrandProvider';
 import { AuthProvider } from '@/auth/AuthProvider';
 import { useAuth } from '@/auth/AuthContext';
@@ -68,6 +70,18 @@ const router = createBrowserRouter([
   {
     path: routePatterns.register,
     element: <AddUser />,
+  },
+  {
+    path: routePatterns.emailChangeConfirmation,
+    element: <EmailChangeConfirmation />,
+  },
+  {
+    path: routePatterns.account,
+    element: (
+      <AuthenticatedRoute prompt="Entre para gerenciar sua conta.">
+        <AccountSettings />
+      </AuthenticatedRoute>
+    ),
   },
   {
     path: routePatterns.newProduct,

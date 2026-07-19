@@ -20,6 +20,8 @@ const handler = () => undefined;
 const controller = new Proxy({}, { get: () => handler });
 const authMiddleware: RequestHandler = (_req, _res, next) => next();
 const routes = createRoutes({
+  accountManagementController: controller,
+  accountSecurityController: controller,
   authController: controller,
   userController: controller,
   productController: controller,
@@ -77,6 +79,27 @@ describe('OpenAPI contract', () => {
     expect(document.paths['/auth/login'].post).toHaveProperty(
       'responses.200.content.application/json.example',
     );
+    expect(
+      document.paths['/auth/email-verification/requests'].post,
+    ).toHaveProperty('requestBody.content.application/json.example');
+    expect(
+      document.paths['/auth/email-verification/requests'].post,
+    ).toHaveProperty('responses.202.content.application/json.example');
+    expect(
+      document.paths['/auth/password-reset/confirmations'].post,
+    ).toHaveProperty('requestBody.content.application/json.example');
+    expect(document.paths['/account/profile'].patch).toHaveProperty(
+      'requestBody.content.application/json.example',
+    );
+    expect(document.paths['/account/profile'].patch).toHaveProperty(
+      'responses.200.content.application/json.example',
+    );
+    expect(document.paths['/account/email-changes'].post).toHaveProperty(
+      'responses.202.content.application/json.example',
+    );
+    expect(
+      document.paths['/auth/email-change/confirmations'].post,
+    ).toHaveProperty('requestBody.content.application/json.example');
     expect(document.paths['/users'].post).toHaveProperty(
       'requestBody.content.application/json.example',
     );
@@ -89,6 +112,74 @@ describe('OpenAPI contract', () => {
     expect(document.paths['/ready'].get).toHaveProperty(
       'responses.503.content.application/json.example',
     );
+  });
+
+  it('documents authenticated account management, cookie clearing, and exact errors', () => {
+    const paths = document.paths as any;
+    const operations = [
+      paths['/account/profile'].patch,
+      paths['/account/password-changes'].post,
+      paths['/account/email-changes'].post,
+      paths['/account/deactivation'].post,
+    ];
+    const errorResponses = [
+      paths['/account/profile'].patch.responses[400],
+      paths['/account/profile'].patch.responses[401],
+      paths['/account/profile'].patch.responses[403],
+      paths['/account/profile'].patch.responses[409],
+      paths['/account/password-changes'].post.responses[400],
+      paths['/account/password-changes'].post.responses[401],
+      paths['/account/password-changes'].post.responses[403],
+      paths['/account/password-changes'].post.responses[409],
+      paths['/account/password-changes'].post.responses[429],
+      paths['/account/email-changes'].post.responses[400],
+      paths['/account/email-changes'].post.responses[401],
+      paths['/account/email-changes'].post.responses[403],
+      paths['/account/email-changes'].post.responses[409],
+      paths['/account/email-changes'].post.responses[429],
+      paths['/account/email-changes'].post.responses[503],
+      paths['/account/deactivation'].post.responses[400],
+      paths['/account/deactivation'].post.responses[401],
+      paths['/account/deactivation'].post.responses[403],
+      paths['/account/deactivation'].post.responses[409],
+      paths['/account/deactivation'].post.responses[429],
+      paths['/auth/email-change/confirmations'].post.responses[400],
+      paths['/auth/email-change/confirmations'].post.responses[403],
+      paths['/auth/email-change/confirmations'].post.responses[409],
+      paths['/auth/email-change/confirmations'].post.responses[429],
+      paths['/auth/email-change/confirmations'].post.responses[503],
+    ];
+
+    for (const operation of operations) {
+      expect(operation.security).toEqual([{ cookieAuth: [] }]);
+      expect(
+        operation.parameters.map(({ name }: { name: string }) => name),
+      ).toEqual(expect.arrayContaining(['X-Tenant-Id', 'X-CSRF-Token']));
+    }
+    expect(
+      paths['/account/profile'].patch.responses[200].content['application/json']
+        .schema.$ref,
+    ).toBe('#/components/schemas/User');
+    expect(
+      paths['/account/password-changes'].post.responses[204].description,
+    ).toContain('cookies cleared');
+    expect(
+      paths['/auth/email-change/confirmations'].post.responses[204].description,
+    ).toContain('cookies cleared');
+    expect(
+      paths['/account/deactivation'].post.responses[204].description,
+    ).toContain('cookies cleared');
+
+    for (const response of errorResponses) {
+      const content = response.content['application/json'];
+      const codes = content.schema.properties.code.enum;
+      expect(Object.keys(content.examples).sort()).toEqual([...codes].sort());
+      for (const code of codes)
+        expect(content.examples[code].value).toMatchObject({
+          error: expect.any(String),
+          code,
+        });
+    }
   });
 
   it('documents the implemented product wire shape and shared list envelope', () => {

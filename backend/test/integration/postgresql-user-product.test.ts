@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import { randomUUID } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import request from 'supertest';
@@ -17,6 +17,7 @@ import * as schema from '@/database/schema';
 import { createApp } from '@/app';
 import { createPostgresComposition } from '@/compositionRoot';
 import {
+  accountTokens,
   cartItems,
   carts,
   auditEvents,
@@ -25,6 +26,7 @@ import {
   orders,
   orderStatusHistory,
   products,
+  pendingEmailChanges,
   reviews,
   sessions,
   users,
@@ -33,6 +35,9 @@ import {
 import { isUuid } from '@/ids';
 import type { AuditEventType } from '@/repositories/auditEventRepository';
 import { PostgresProductRepository } from '@/repositories/postgres/productRepository';
+import { PostgresAccountTokenRepository } from '@/repositories/postgres/accountTokenRepository';
+import { PostgresPendingEmailChangeRepository } from '@/repositories/postgres/pendingEmailChangeRepository';
+import { DuplicatePendingEmailError } from '@/repositories/pendingEmailChangeRepository';
 import { PostgresUserRepository } from '@/repositories/postgres/userRepository';
 import {
   PostgresCartRepository,
@@ -51,6 +56,11 @@ import {
   type AuthSessionService,
 } from '@/services/authService';
 import { createProductService } from '@/services/productService';
+import { createAccountSecurityService } from '@/services/accountSecurityService';
+import { createAccountManagementService } from '@/services/accountManagementService';
+import { createEmailChangeService } from '@/services/emailChangeService';
+import { createAccountDeactivationService } from '@/services/accountDeactivationService';
+import type { AccountMessage } from '@/services/accountMessageSender';
 import {
   createCartCommerceService,
   createCommerceProductService,
@@ -72,6 +82,10 @@ if (!connectionString)
 const pool = new Pool({ connectionString, max: 2 });
 const db = drizzle({ client: pool, schema });
 const userRepository = new PostgresUserRepository(db);
+const accountTokenRepository = new PostgresAccountTokenRepository(db);
+const pendingEmailChangeRepository = new PostgresPendingEmailChangeRepository(
+  db,
+);
 const productRepository = new PostgresProductRepository(db);
 const transactionCoordinator = new PostgresCheckoutTransactionCoordinator(db);
 const userService = createUserService(userRepository);
@@ -128,6 +142,72 @@ const userPayload = {
   telephone: '123',
 };
 const firstPage = { limit: 20, offset: 0, scope: 'all' as const };
+const accountTokenKeyRing = {
+  activeVersion: 'current',
+  keys: { current: 'integration-account-token-secret' },
+};
+const accountSecurityConfig = {
+  emailVerificationTokenTtlMs: 8 * 60 * 60 * 1000,
+  emailChangeTokenTtlMs: 30 * 60 * 1000,
+  passwordResetTokenTtlMs: 30 * 60 * 1000,
+  requestResponseFloorMs: 500,
+  issueCooldownMs: 60 * 1000,
+  issueWindowMs: 60 * 60 * 1000,
+  issueMax: 3,
+};
+
+class CapturingAccountMessageSender {
+  messages: AccountMessage[] = [];
+
+  async enqueue(message: AccountMessage) {
+    this.messages.push(message);
+  }
+}
+
+async function flushAccountMessages() {
+  await new Promise((resolve) => setImmediate(resolve));
+}
+
+function accountSecurityService(sender: CapturingAccountMessageSender) {
+  return createAccountSecurityService(transactionCoordinator, sender, {
+    config: () => accountSecurityConfig,
+    keyRing: () => accountTokenKeyRing,
+  });
+}
+
+function accountManagementService(
+  dependencies: Parameters<typeof createAccountManagementService>[1] = {},
+) {
+  return createAccountManagementService(transactionCoordinator, {
+    hashPassword: (password) => bcrypt.hash(password, 4),
+    ...dependencies,
+  });
+}
+
+function emailChangeService(sender: CapturingAccountMessageSender) {
+  return createEmailChangeService(transactionCoordinator, sender, {
+    config: () => accountSecurityConfig,
+    keyRing: () => accountTokenKeyRing,
+  });
+}
+
+function accountDeactivationService() {
+  return createAccountDeactivationService(transactionCoordinator, {
+    hashPassword: (password) => bcrypt.hash(password, 4),
+  });
+}
+
+function accountSecurityHttpApp(sender: CapturingAccountMessageSender) {
+  return createApp(
+    createRoutes({
+      ...createPostgresComposition(db, sender),
+      readiness: async () => ({
+        ready: true,
+        checks: { postgresql: 'connected' },
+      }),
+    }),
+  );
+}
 
 function authCookies(response: request.Response) {
   const values = response.headers['set-cookie'] || [];
@@ -150,6 +230,8 @@ describe('PostgreSQL user and product repositories', () => {
     await db.delete(reviews);
     await db.delete(watchlistEntries);
     await db.delete(sessions);
+    await db.delete(pendingEmailChanges);
+    await db.delete(accountTokens);
     await db.delete(orderStatusHistory);
     await db.delete(orderItems);
     await db.delete(orders);
@@ -209,6 +291,1877 @@ describe('PostgreSQL user and product repositories', () => {
     await expect(
       bcrypt.compare(userPayload.password, stored.passwordHash),
     ).resolves.toBe(true);
+  });
+
+  it('persists tenant-scoped single-use account tokens and user security state', async () => {
+    const user = await userService.createUser(userPayload, 'mercadozetta');
+    const createdAt = new Date('2026-07-18T10:00:00.000Z');
+    const firstTokenId = randomUUID();
+    const firstHash = 'a'.repeat(64);
+
+    await expect(
+      userRepository.findForAccountSecurity(
+        'mercadozetta',
+        'SELLER@EXAMPLE.COM',
+      ),
+    ).resolves.toMatchObject({
+      _id: user._id,
+      emailVerifiedAt: null,
+      emailVersion: 0,
+      tokenVersion: 0,
+    });
+
+    await expect(
+      accountTokenRepository.create({
+        _id: firstTokenId,
+        tenantId: 'mercadozetta',
+        userId: user._id,
+        purpose: 'email_verification',
+        tokenHash: firstHash,
+        tokenHashSecretVersion: 'current',
+        emailVersion: 0,
+        expiresAt: new Date('2026-07-18T18:00:00.000Z'),
+        createdAt,
+      }),
+    ).resolves.toMatchObject({
+      _id: firstTokenId,
+      emailVersion: 0,
+      tokenHash: firstHash,
+    });
+    await expect(
+      accountTokenRepository.findById('campus-market', firstTokenId),
+    ).resolves.toBeNull();
+    await expect(
+      accountTokenRepository.countIssuedSince(
+        'mercadozetta',
+        user._id,
+        'email_verification',
+        new Date('2026-07-18T09:00:00.000Z'),
+      ),
+    ).resolves.toBe(1);
+    await expect(
+      accountTokenRepository.findLatestIssuedAt(
+        'mercadozetta',
+        user._id,
+        'email_verification',
+      ),
+    ).resolves.toEqual(createdAt);
+
+    await expect(
+      accountTokenRepository.create({
+        _id: randomUUID(),
+        tenantId: 'mercadozetta',
+        userId: user._id,
+        purpose: 'email_verification',
+        tokenHash: 'b'.repeat(64),
+        tokenHashSecretVersion: 'current',
+        emailVersion: 0,
+        expiresAt: new Date('2026-07-18T18:01:00.000Z'),
+        createdAt: new Date('2026-07-18T10:01:00.000Z'),
+      }),
+    ).rejects.toMatchObject({ cause: { code: '23505' } });
+
+    await expect(
+      accountTokenRepository.consume({
+        tenantId: 'mercadozetta',
+        tokenId: firstTokenId,
+        purpose: 'email_verification',
+        tokenHash: 'c'.repeat(64),
+        emailVersion: 0,
+        now: new Date('2026-07-18T10:05:00.000Z'),
+      }),
+    ).resolves.toBeNull();
+
+    const resetTokenId = randomUUID();
+    await accountTokenRepository.create({
+      _id: resetTokenId,
+      tenantId: 'mercadozetta',
+      userId: user._id,
+      purpose: 'password_reset',
+      tokenHash: 'd'.repeat(64),
+      tokenHashSecretVersion: 'current',
+      expiresAt: new Date('2026-07-18T10:35:00.000Z'),
+      createdAt: new Date('2026-07-18T10:05:00.000Z'),
+    });
+    await expect(
+      accountTokenRepository.invalidateActive(
+        'mercadozetta',
+        user._id,
+        'password_reset',
+        'replaced',
+        new Date('2026-07-18T10:06:00.000Z'),
+        resetTokenId,
+      ),
+    ).resolves.toBe(0);
+    await expect(
+      accountTokenRepository.invalidateActive(
+        'mercadozetta',
+        user._id,
+        'password_reset',
+        'replaced',
+        new Date('2026-07-18T10:06:00.000Z'),
+      ),
+    ).resolves.toBe(1);
+    await expect(
+      accountTokenRepository.findById('mercadozetta', resetTokenId),
+    ).resolves.toMatchObject({ invalidationReason: 'replaced' });
+    await expect(
+      accountTokenRepository.consume({
+        tenantId: 'mercadozetta',
+        tokenId: firstTokenId,
+        purpose: 'email_verification',
+        tokenHash: firstHash,
+        emailVersion: 0,
+        now: new Date('2026-07-18T10:05:00.000Z'),
+      }),
+    ).resolves.toMatchObject({ consumedAt: expect.any(Date) });
+    await expect(
+      accountTokenRepository.consume({
+        tenantId: 'mercadozetta',
+        tokenId: firstTokenId,
+        purpose: 'email_verification',
+        tokenHash: firstHash,
+        emailVersion: 0,
+        now: new Date('2026-07-18T10:06:00.000Z'),
+      }),
+    ).resolves.toBeNull();
+
+    await expect(
+      userRepository.markEmailVerified(
+        'mercadozetta',
+        user._id,
+        1,
+        new Date('2026-07-18T10:07:00.000Z'),
+      ),
+    ).resolves.toBe(false);
+    await expect(
+      userRepository.markEmailVerified(
+        'mercadozetta',
+        user._id,
+        0,
+        new Date('2026-07-18T10:07:00.000Z'),
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      userRepository.replacePasswordAndIncrementTokenVersion(
+        'mercadozetta',
+        user._id,
+        'replacement-password-hash',
+        new Date('2026-07-18T10:08:00.000Z'),
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      userRepository.findForAccountSecurity(
+        'mercadozetta',
+        'seller@example.com',
+      ),
+    ).resolves.toMatchObject({
+      emailVerifiedAt: new Date('2026-07-18T10:07:00.000Z'),
+      passwordHash: 'replacement-password-hash',
+      tokenVersion: 1,
+    });
+    await expect(
+      accountTokenRepository.deleteRetired(
+        new Date('2026-07-19T00:00:00.000Z'),
+      ),
+    ).resolves.toBe(2);
+  });
+
+  it('persists pending email and conditional account-management state', async () => {
+    const user = await userService.createUser(
+      { ...userPayload, email: 'management@example.com' },
+      'mercadozetta',
+    );
+    const other = await userService.createUser(
+      { ...userPayload, email: 'other-management@example.com' },
+      'mercadozetta',
+    );
+    const campusUser = await userService.createUser(
+      { ...userPayload, email: 'management@example.com' },
+      'campus-market',
+    );
+    const createdAt = new Date('2026-07-19T12:00:00.000Z');
+    const expiresAt = new Date('2026-07-19T12:30:00.000Z');
+
+    await transactionCoordinator.run(async (repositories) => {
+      await expect(
+        repositories.users.findAccountSecurityByIdForUpdate(
+          'mercadozetta',
+          user._id,
+        ),
+      ).resolves.toMatchObject({ _id: user._id, deactivatedAt: null });
+      await expect(
+        repositories.pendingEmailChanges.save({
+          _id: randomUUID(),
+          tenantId: 'mercadozetta',
+          userId: user._id,
+          email: 'replacement@example.com',
+          emailVersion: 0,
+          expiresAt,
+          createdAt,
+        }),
+      ).resolves.toMatchObject({
+        userId: user._id,
+        email: 'replacement@example.com',
+      });
+    });
+
+    const replacementId = randomUUID();
+    await expect(
+      pendingEmailChangeRepository.save({
+        _id: replacementId,
+        tenantId: 'mercadozetta',
+        userId: user._id,
+        email: 'new-address@example.com',
+        emailVersion: 0,
+        expiresAt,
+        createdAt: new Date('2026-07-19T12:01:00.000Z'),
+      }),
+    ).resolves.toMatchObject({
+      _id: replacementId,
+      email: 'new-address@example.com',
+    });
+    await expect(
+      pendingEmailChangeRepository.findByUserForUpdate(
+        'mercadozetta',
+        user._id,
+      ),
+    ).resolves.toMatchObject({ _id: replacementId, emailVersion: 0 });
+
+    await expect(
+      pendingEmailChangeRepository.save({
+        _id: randomUUID(),
+        tenantId: 'mercadozetta',
+        userId: other._id,
+        email: 'NEW-ADDRESS@EXAMPLE.COM',
+        emailVersion: 0,
+        expiresAt,
+        createdAt,
+      }),
+    ).rejects.toBeInstanceOf(DuplicatePendingEmailError);
+    await expect(
+      pendingEmailChangeRepository.save({
+        _id: randomUUID(),
+        tenantId: 'campus-market',
+        userId: campusUser._id,
+        email: 'new-address@example.com',
+        emailVersion: 0,
+        expiresAt,
+        createdAt,
+      }),
+    ).resolves.toMatchObject({ tenantId: 'campus-market' });
+    await expect(
+      pendingEmailChangeRepository.save({
+        _id: randomUUID(),
+        tenantId: 'mercadozetta',
+        userId: user._id,
+        email: 'invalid-expiry@example.com',
+        emailVersion: 0,
+        expiresAt: createdAt,
+        createdAt,
+      }),
+    ).rejects.toMatchObject({ cause: { code: '23514' } });
+
+    const before = await userRepository.findAccountSecurityById(
+      'mercadozetta',
+      user._id,
+    );
+    await expect(
+      userRepository.updateProfile(
+        'mercadozetta',
+        user._id,
+        { username: 'managed user', telephone: null },
+        new Date('2026-07-19T12:02:00.000Z'),
+      ),
+    ).resolves.toMatchObject({ username: 'managed user', telephone: null });
+    await expect(
+      userRepository.replaceAccountPassword({
+        tenantId: 'mercadozetta',
+        userId: user._id,
+        expectedPasswordHash: before!.passwordHash,
+        expectedTokenVersion: 0,
+        passwordHash: 'managed-password-hash',
+        now: new Date('2026-07-19T12:03:00.000Z'),
+      }),
+    ).resolves.toBe(true);
+    await expect(
+      userRepository.replaceAccountPassword({
+        tenantId: 'mercadozetta',
+        userId: user._id,
+        expectedPasswordHash: before!.passwordHash,
+        expectedTokenVersion: 0,
+        passwordHash: 'stale-password-hash',
+        now: new Date('2026-07-19T12:03:01.000Z'),
+      }),
+    ).resolves.toBe(false);
+    await expect(
+      userRepository.promoteAccountEmail({
+        tenantId: 'mercadozetta',
+        userId: user._id,
+        expectedEmailVersion: 0,
+        email: 'new-address@example.com',
+        now: new Date('2026-07-19T12:04:00.000Z'),
+      }),
+    ).resolves.toBe(true);
+    await expect(
+      userRepository.deactivateAccount({
+        tenantId: 'mercadozetta',
+        userId: user._id,
+        expectedPasswordHash: 'managed-password-hash',
+        expectedTokenVersion: 2,
+        passwordHash: 'unusable-password-hash',
+        now: new Date('2026-07-19T12:05:00.000Z'),
+      }),
+    ).resolves.toBe(true);
+    await expect(
+      userRepository.findForAccountSecurity(
+        'mercadozetta',
+        'new-address@example.com',
+      ),
+    ).resolves.toMatchObject({
+      emailVersion: 1,
+      emailVerifiedAt: new Date('2026-07-19T12:04:00.000Z'),
+      passwordHash: 'unusable-password-hash',
+      tokenVersion: 3,
+      deactivatedAt: new Date('2026-07-19T12:05:00.000Z'),
+    });
+
+    const emailChangeTokenId = randomUUID();
+    await accountTokenRepository.create({
+      _id: emailChangeTokenId,
+      tenantId: 'mercadozetta',
+      userId: user._id,
+      purpose: 'email_change',
+      tokenHash: 'e'.repeat(64),
+      tokenHashSecretVersion: 'current',
+      emailVersion: 1,
+      expiresAt: new Date('2026-07-19T12:35:00.000Z'),
+      createdAt: new Date('2026-07-19T12:05:00.000Z'),
+    });
+    await expect(
+      accountTokenRepository.invalidateActive(
+        'mercadozetta',
+        user._id,
+        'email_change',
+        'account_deactivated',
+        new Date('2026-07-19T12:06:00.000Z'),
+      ),
+    ).resolves.toBe(1);
+
+    await db.insert(auditEvents).values(
+      [
+        'user.profile_updated',
+        'user.password_changed',
+        'user.email_change_requested',
+        'user.email_changed',
+        'user.deactivated',
+      ].map((eventType) => ({
+        id: randomUUID(),
+        tenantId: 'mercadozetta',
+        eventType,
+        actorId: eventType === 'user.email_changed' ? null : user._id,
+        resourceType: 'user',
+        resourceId: user._id,
+        occurredAt: new Date('2026-07-19T12:07:00.000Z'),
+      })),
+    );
+    expect(
+      (await db.select().from(auditEvents)).map(({ eventType }) => eventType),
+    ).toEqual(
+      expect.arrayContaining([
+        'user.profile_updated',
+        'user.password_changed',
+        'user.email_change_requested',
+        'user.email_changed',
+        'user.deactivated',
+      ]),
+    );
+    await expect(
+      pendingEmailChangeRepository.deleteExpired(
+        new Date('2026-07-19T13:00:00.000Z'),
+      ),
+    ).resolves.toBe(2);
+  });
+
+  it('updates profiles and gives one concurrent password change all credential effects', async () => {
+    const created = await userService.createUser(
+      { ...userPayload, email: 'managed-domain@example.com' },
+      'mercadozetta',
+    );
+    const session = await postgresSessionService.createSession(
+      created._id,
+      'mercadozetta',
+      0,
+      'account management browser',
+      new Date('2026-07-19T13:00:00.000Z'),
+    );
+    const resetTokenId = randomUUID();
+    await accountTokenRepository.create({
+      _id: resetTokenId,
+      tenantId: 'mercadozetta',
+      userId: created._id,
+      purpose: 'password_reset',
+      tokenHash: 'f'.repeat(64),
+      tokenHashSecretVersion: 'current',
+      expiresAt: new Date('2026-07-19T14:00:00.000Z'),
+      createdAt: new Date('2026-07-19T13:00:00.000Z'),
+    });
+    const profileService = accountManagementService();
+    await expect(
+      profileService.updateProfile(
+        { username: ' Managed Domain ', telephone: null },
+        created._id,
+        'mercadozetta',
+        new Date('2026-07-19T13:01:00.000Z'),
+      ),
+    ).resolves.toMatchObject({ username: 'Managed Domain', telephone: null });
+
+    let hashing = 0;
+    let releaseHashes!: () => void;
+    const hashGate = new Promise<void>((resolve) => {
+      releaseHashes = resolve;
+    });
+    const service = accountManagementService({
+      hashPassword: async (password) => {
+        hashing += 1;
+        if (hashing === 2) releaseHashes();
+        await hashGate;
+        return bcrypt.hash(password, 4);
+      },
+    });
+    const changedAt = new Date('2026-07-19T13:02:00.000Z');
+    const changes = await Promise.allSettled([
+      service.changePassword(
+        {
+          currentPassword: userPayload.password,
+          password: 'replacement-one',
+          passwordConfirmation: 'replacement-one',
+        },
+        created._id,
+        'mercadozetta',
+        changedAt,
+      ),
+      service.changePassword(
+        {
+          currentPassword: userPayload.password,
+          password: 'replacement-two',
+          passwordConfirmation: 'replacement-two',
+        },
+        created._id,
+        'mercadozetta',
+        changedAt,
+      ),
+    ]);
+
+    expect(changes.filter(({ status }) => status === 'fulfilled')).toHaveLength(
+      1,
+    );
+    expect(changes.filter(({ status }) => status === 'rejected')).toMatchObject(
+      [{ reason: { code: 'ACCOUNT_STATE_CHANGED' } }],
+    );
+    const state = await userRepository.findAccountSecurityById(
+      'mercadozetta',
+      created._id,
+    );
+    expect(state).toMatchObject({ tokenVersion: 1 });
+    expect(
+      (await bcrypt.compare('replacement-one', state!.passwordHash)) ||
+        (await bcrypt.compare('replacement-two', state!.passwordHash)),
+    ).toBe(true);
+    await expect(
+      postgresSessions.isActive(
+        'mercadozetta',
+        created._id,
+        session.session.id,
+        0,
+        new Date('2026-07-19T13:03:00.000Z'),
+      ),
+    ).resolves.toBe(false);
+    await expect(
+      accountTokenRepository.findById('mercadozetta', resetTokenId),
+    ).resolves.toMatchObject({ invalidationReason: 'password_change' });
+    const accountAudits = (await db.select().from(auditEvents)).filter(
+      ({ resourceId }) => resourceId === created._id,
+    );
+    expect(
+      accountAudits.filter(
+        ({ eventType }) => eventType === 'user.profile_updated',
+      ),
+    ).toHaveLength(1);
+    expect(
+      accountAudits.filter(
+        ({ eventType }) => eventType === 'user.password_changed',
+      ),
+    ).toHaveLength(1);
+    expect(
+      accountAudits.filter(
+        ({ eventType, metadata }) =>
+          eventType === 'session.revoked' &&
+          metadata?.reason === 'password_change',
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('rolls back profile and password mutations when account audit insertion fails', async () => {
+    const created = await userService.createUser(
+      { ...userPayload, email: 'managed-rollback@example.com' },
+      'mercadozetta',
+    );
+    const before = await userRepository.findAccountSecurityById(
+      'mercadozetta',
+      created._id,
+    );
+    const session = await postgresSessionService.createSession(
+      created._id,
+      'mercadozetta',
+      0,
+      'account management rollback browser',
+      new Date('2026-07-19T13:10:00.000Z'),
+    );
+    const resetTokenId = randomUUID();
+    await accountTokenRepository.create({
+      _id: resetTokenId,
+      tenantId: 'mercadozetta',
+      userId: created._id,
+      purpose: 'password_reset',
+      tokenHash: '9'.repeat(64),
+      tokenHashSecretVersion: 'current',
+      expiresAt: new Date('2026-07-19T14:10:00.000Z'),
+      createdAt: new Date('2026-07-19T13:10:00.000Z'),
+    });
+    await pool.query(`
+      create function reject_account_management_audit() returns trigger
+      language plpgsql as $$
+      begin
+        if new.event_type in ('user.profile_updated', 'user.password_changed') then
+          raise exception 'forced account management audit failure';
+        end if;
+        return new;
+      end;
+      $$;
+      create trigger reject_account_management_audit_insert
+      before insert on audit_events
+      for each row execute function reject_account_management_audit();
+    `);
+    const service = accountManagementService();
+    try {
+      await expect(
+        service.updateProfile(
+          { username: 'must not commit' },
+          created._id,
+          'mercadozetta',
+          new Date('2026-07-19T13:11:00.000Z'),
+        ),
+      ).rejects.toMatchObject({
+        cause: {
+          message: expect.stringContaining(
+            'forced account management audit failure',
+          ),
+        },
+      });
+      await expect(
+        service.changePassword(
+          {
+            currentPassword: userPayload.password,
+            password: 'must-not-commit',
+            passwordConfirmation: 'must-not-commit',
+          },
+          created._id,
+          'mercadozetta',
+          new Date('2026-07-19T13:12:00.000Z'),
+        ),
+      ).rejects.toMatchObject({
+        cause: {
+          message: expect.stringContaining(
+            'forced account management audit failure',
+          ),
+        },
+      });
+    } finally {
+      await pool.query(`
+        drop trigger reject_account_management_audit_insert on audit_events;
+        drop function reject_account_management_audit();
+      `);
+    }
+
+    const after = await userRepository.findAccountSecurityById(
+      'mercadozetta',
+      created._id,
+    );
+    expect(after).toMatchObject({
+      passwordHash: before!.passwordHash,
+      tokenVersion: 0,
+    });
+    await expect(
+      userRepository.findPublicById('mercadozetta', created._id),
+    ).resolves.toMatchObject({ username: userPayload.username.toLowerCase() });
+    await expect(
+      postgresSessions.isActive(
+        'mercadozetta',
+        created._id,
+        session.session.id,
+        0,
+        new Date('2026-07-19T13:13:00.000Z'),
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      accountTokenRepository.findById('mercadozetta', resetTokenId),
+    ).resolves.not.toHaveProperty('invalidatedAt');
+  });
+
+  it('replaces pending email changes and gives one tenant-bound confirmation all credential effects', async () => {
+    const sender = new CapturingAccountMessageSender();
+    const service = emailChangeService(sender);
+    const created = await userService.createUser(
+      { ...userPayload, email: 'email-change@example.com' },
+      'mercadozetta',
+    );
+    const session = await postgresSessionService.createSession(
+      created._id,
+      'mercadozetta',
+      0,
+      'email change browser',
+      new Date('2026-07-19T14:00:00.000Z'),
+    );
+    const peerTokenIds: string[] = [];
+    for (const purpose of ['email_verification', 'password_reset'] as const) {
+      const tokenId = randomUUID();
+      peerTokenIds.push(tokenId);
+      await accountTokenRepository.create({
+        _id: tokenId,
+        tenantId: 'mercadozetta',
+        userId: created._id,
+        purpose,
+        tokenHash:
+          purpose === 'email_verification' ? 'a'.repeat(64) : 'b'.repeat(64),
+        tokenHashSecretVersion: 'current',
+        ...(purpose === 'email_verification' ? { emailVersion: 0 } : {}),
+        expiresAt: new Date('2026-07-19T15:00:00.000Z'),
+        createdAt: new Date('2026-07-19T14:00:00.000Z'),
+      });
+    }
+
+    await service.requestEmailChange(
+      {
+        email: 'first-replacement@example.com',
+        currentPassword: userPayload.password,
+      },
+      created._id,
+      'mercadozetta',
+      new Date('2026-07-19T14:01:00.000Z'),
+    );
+    await flushAccountMessages();
+    const firstMessage = sender.messages.at(-1);
+    if (!firstMessage || !('token' in firstMessage))
+      throw new Error('Expected first email-change token message');
+
+    await service.requestEmailChange(
+      {
+        email: 'final-replacement@example.com',
+        currentPassword: userPayload.password,
+      },
+      created._id,
+      'mercadozetta',
+      new Date('2026-07-19T14:02:00.000Z'),
+    );
+    await flushAccountMessages();
+    const finalMessage = sender.messages.at(-1);
+    if (!finalMessage || !('token' in finalMessage))
+      throw new Error('Expected replacement email-change token message');
+
+    await expect(
+      service.confirmEmailChange(
+        { token: firstMessage.token },
+        'mercadozetta',
+        new Date('2026-07-19T14:03:00.000Z'),
+      ),
+    ).rejects.toMatchObject({ code: 'INVALID_OR_EXPIRED_ACCOUNT_TOKEN' });
+    await expect(
+      service.confirmEmailChange(
+        { token: finalMessage.token },
+        'campus-market',
+        new Date('2026-07-19T14:03:00.000Z'),
+      ),
+    ).rejects.toMatchObject({ code: 'INVALID_OR_EXPIRED_ACCOUNT_TOKEN' });
+
+    const confirmations = await Promise.allSettled([
+      service.confirmEmailChange(
+        { token: finalMessage.token },
+        'mercadozetta',
+        new Date('2026-07-19T14:04:00.000Z'),
+      ),
+      service.confirmEmailChange(
+        { token: finalMessage.token },
+        'mercadozetta',
+        new Date('2026-07-19T14:04:00.000Z'),
+      ),
+    ]);
+    expect(
+      confirmations.filter(({ status }) => status === 'fulfilled'),
+    ).toHaveLength(1);
+    expect(
+      confirmations.filter(({ status }) => status === 'rejected'),
+    ).toMatchObject([{ reason: { code: 'INVALID_OR_EXPIRED_ACCOUNT_TOKEN' } }]);
+
+    await expect(
+      userRepository.findAccountSecurityById('mercadozetta', created._id),
+    ).resolves.toMatchObject({
+      email: 'final-replacement@example.com',
+      emailVersion: 1,
+      tokenVersion: 1,
+      emailVerifiedAt: new Date('2026-07-19T14:04:00.000Z'),
+    });
+    await expect(
+      pendingEmailChangeRepository.findByUser('mercadozetta', created._id),
+    ).resolves.toBeNull();
+    await expect(
+      postgresSessions.isActive(
+        'mercadozetta',
+        created._id,
+        session.session.id,
+        0,
+        new Date('2026-07-19T14:05:00.000Z'),
+      ),
+    ).resolves.toBe(false);
+    for (const tokenId of peerTokenIds) {
+      await expect(
+        accountTokenRepository.findById('mercadozetta', tokenId),
+      ).resolves.toMatchObject({ invalidationReason: 'email_changed' });
+    }
+    const accountAudits = (await db.select().from(auditEvents)).filter(
+      ({ resourceId }) => resourceId === created._id,
+    );
+    expect(
+      accountAudits.filter(
+        ({ eventType }) => eventType === 'user.email_change_requested',
+      ),
+    ).toHaveLength(2);
+    expect(
+      accountAudits.filter(
+        ({ eventType }) => eventType === 'user.email_changed',
+      ),
+    ).toMatchObject([{ actorId: null }]);
+  });
+
+  it('keeps pending email state when confirmation loses a uniqueness race', async () => {
+    const sender = new CapturingAccountMessageSender();
+    const service = emailChangeService(sender);
+    const created = await userService.createUser(
+      { ...userPayload, email: 'email-race@example.com' },
+      'mercadozetta',
+    );
+    await service.requestEmailChange(
+      {
+        email: 'claimed-before-confirm@example.com',
+        currentPassword: userPayload.password,
+      },
+      created._id,
+      'mercadozetta',
+      new Date('2026-07-19T14:10:00.000Z'),
+    );
+    await flushAccountMessages();
+    const message = sender.messages.at(-1);
+    if (!message || !('token' in message))
+      throw new Error('Expected email-change token message');
+    await userService.createUser(
+      { ...userPayload, email: 'CLAIMED-BEFORE-CONFIRM@example.com' },
+      'mercadozetta',
+    );
+
+    await expect(
+      service.confirmEmailChange(
+        { token: message.token },
+        'mercadozetta',
+        new Date('2026-07-19T14:11:00.000Z'),
+      ),
+    ).rejects.toMatchObject({ code: 'EMAIL_UNAVAILABLE' });
+    await expect(
+      userRepository.findAccountSecurityById('mercadozetta', created._id),
+    ).resolves.toMatchObject({
+      email: 'email-race@example.com',
+      emailVersion: 0,
+      tokenVersion: 0,
+    });
+    await expect(
+      pendingEmailChangeRepository.findByUser('mercadozetta', created._id),
+    ).resolves.toMatchObject({ email: 'claimed-before-confirm@example.com' });
+    await expect(
+      accountTokenRepository.findById(
+        'mercadozetta',
+        message.token.split('.')[0],
+      ),
+    ).resolves.not.toHaveProperty('consumedAt');
+  });
+
+  it('rolls back email promotion, token consumption and session revocation when auditing fails', async () => {
+    const sender = new CapturingAccountMessageSender();
+    const service = emailChangeService(sender);
+    const created = await userService.createUser(
+      { ...userPayload, email: 'email-change-rollback@example.com' },
+      'mercadozetta',
+    );
+    const session = await postgresSessionService.createSession(
+      created._id,
+      'mercadozetta',
+      0,
+      'email change rollback browser',
+      new Date('2026-07-19T14:20:00.000Z'),
+    );
+    await service.requestEmailChange(
+      {
+        email: 'email-change-must-not-commit@example.com',
+        currentPassword: userPayload.password,
+      },
+      created._id,
+      'mercadozetta',
+      new Date('2026-07-19T14:21:00.000Z'),
+    );
+    await flushAccountMessages();
+    const message = sender.messages.at(-1);
+    if (!message || !('token' in message))
+      throw new Error('Expected rollback email-change token message');
+
+    await pool.query(`
+      create function reject_email_change_audit() returns trigger
+      language plpgsql as $$
+      begin
+        if new.event_type = 'user.email_changed' then
+          raise exception 'forced email change audit failure';
+        end if;
+        return new;
+      end;
+      $$;
+      create trigger reject_email_change_audit_insert
+      before insert on audit_events
+      for each row execute function reject_email_change_audit();
+    `);
+    try {
+      await expect(
+        service.confirmEmailChange(
+          { token: message.token },
+          'mercadozetta',
+          new Date('2026-07-19T14:22:00.000Z'),
+        ),
+      ).rejects.toMatchObject({
+        cause: {
+          message: expect.stringContaining('forced email change audit failure'),
+        },
+      });
+    } finally {
+      await pool.query(`
+        drop trigger reject_email_change_audit_insert on audit_events;
+        drop function reject_email_change_audit();
+      `);
+    }
+
+    await expect(
+      userRepository.findAccountSecurityById('mercadozetta', created._id),
+    ).resolves.toMatchObject({
+      email: 'email-change-rollback@example.com',
+      emailVersion: 0,
+      tokenVersion: 0,
+    });
+    await expect(
+      pendingEmailChangeRepository.findByUser('mercadozetta', created._id),
+    ).resolves.toMatchObject({
+      email: 'email-change-must-not-commit@example.com',
+    });
+    await expect(
+      accountTokenRepository.findById(
+        'mercadozetta',
+        message.token.split('.')[0],
+      ),
+    ).resolves.not.toHaveProperty('consumedAt');
+    await expect(
+      postgresSessions.isActive(
+        'mercadozetta',
+        created._id,
+        session.session.id,
+        0,
+        new Date('2026-07-19T14:23:00.000Z'),
+      ),
+    ).resolves.toBe(true);
+  });
+
+  it('blocks deactivation for active buyer and seller order obligations', async () => {
+    const seller = await userService.createUser(
+      { ...userPayload, email: 'blocked-seller@example.com' },
+      'mercadozetta',
+    );
+    const buyer = await userService.createUser(
+      { ...userPayload, email: 'blocked-buyer@example.com' },
+      'mercadozetta',
+    );
+    const product = await productRepository.create({
+      tenantId: 'mercadozetta',
+      seller: seller._id,
+      name: 'Active obligation',
+      description: '',
+      category: 'general',
+      subcategory: '',
+      inventory: 2,
+      image: 'active-obligation.png',
+      status: 'active',
+    });
+    const orderId = randomUUID();
+    const orderedAt = new Date('2026-07-19T15:00:00.000Z');
+    await db.insert(orders).values({
+      id: orderId,
+      tenantId: 'mercadozetta',
+      buyerId: buyer._id,
+      status: 'shipped',
+      createdAt: orderedAt,
+      updatedAt: orderedAt,
+    });
+    await db.insert(orderItems).values({
+      id: randomUUID(),
+      tenantId: 'mercadozetta',
+      orderId,
+      productId: product._id,
+      sellerId: seller._id,
+      productName: product.name,
+      quantity: 1,
+      createdAt: orderedAt,
+      updatedAt: orderedAt,
+    });
+    const service = accountDeactivationService();
+
+    for (const account of [seller, buyer])
+      await expect(
+        service.deactivateAccount(
+          {
+            currentPassword: userPayload.password,
+            confirmation: 'DEACTIVATE',
+          },
+          account._id,
+          'mercadozetta',
+          new Date('2026-07-19T15:01:00.000Z'),
+        ),
+      ).rejects.toMatchObject({
+        code: 'ACCOUNT_DEACTIVATION_BLOCKED_ACTIVE_ORDERS',
+      });
+
+    const storedUsers = await db
+      .select()
+      .from(users)
+      .where(inArray(users.id, [seller._id, buyer._id]));
+    expect(
+      storedUsers.every(({ deactivatedAt }) => deactivatedAt === null),
+    ).toBe(true);
+    expect(
+      (await db.select().from(auditEvents)).filter(
+        ({ eventType }) => eventType === 'user.deactivated',
+      ),
+    ).toHaveLength(0);
+  });
+
+  it('deactivates one concurrent attempt while preserving history and tenant isolation', async () => {
+    const target = await userService.createUser(
+      { ...userPayload, email: 'lifecycle-target@example.com' },
+      'mercadozetta',
+    );
+    const other = await userService.createUser(
+      { ...userPayload, email: 'lifecycle-other@example.com' },
+      'mercadozetta',
+    );
+    const campus = await userService.createUser(
+      { ...userPayload, email: 'lifecycle-campus@example.com' },
+      'campus-market',
+    );
+    const targetProduct = await productRepository.create({
+      tenantId: 'mercadozetta',
+      seller: target._id,
+      name: 'Retained target product',
+      description: '',
+      category: 'general',
+      subcategory: '',
+      inventory: 7,
+      image: 'retained-target.png',
+      status: 'active',
+    });
+    const alreadyArchived = await productRepository.create({
+      tenantId: 'mercadozetta',
+      seller: target._id,
+      name: 'Already archived target product',
+      description: '',
+      category: 'general',
+      subcategory: '',
+      inventory: 4,
+      image: 'already-archived.png',
+      status: 'archived',
+    });
+    const campusProduct = await productRepository.create({
+      tenantId: 'campus-market',
+      seller: campus._id,
+      name: 'Campus retained product',
+      description: '',
+      category: 'general',
+      subcategory: '',
+      inventory: 5,
+      image: 'campus-retained.png',
+      status: 'active',
+    });
+    const historyAt = new Date('2026-07-19T15:10:00.000Z');
+    const orderId = randomUUID();
+    await db.insert(orders).values({
+      id: orderId,
+      tenantId: 'mercadozetta',
+      buyerId: other._id,
+      status: 'delivered',
+      createdAt: historyAt,
+      updatedAt: historyAt,
+    });
+    await db.insert(orderItems).values({
+      id: randomUUID(),
+      tenantId: 'mercadozetta',
+      orderId,
+      productId: targetProduct._id,
+      sellerId: target._id,
+      productName: targetProduct.name,
+      quantity: 1,
+      createdAt: historyAt,
+      updatedAt: historyAt,
+    });
+    await db.insert(orderStatusHistory).values({
+      tenantId: 'mercadozetta',
+      orderId,
+      sequence: 1,
+      status: 'delivered',
+      actorId: target._id,
+      changedAt: historyAt,
+    });
+    await db.insert(reviews).values({
+      id: randomUUID(),
+      tenantId: 'mercadozetta',
+      productId: targetProduct._id,
+      authorId: target._id,
+      rating: 5,
+      comment: 'Retained review',
+      createdAt: historyAt,
+      updatedAt: historyAt,
+    });
+    await cartService.setCartItem(
+      target._id,
+      'mercadozetta',
+      targetProduct._id,
+      1,
+    );
+    await watchlistService.addWatchlist(
+      target._id,
+      'mercadozetta',
+      targetProduct._id,
+    );
+    await db.insert(notifications).values({
+      id: randomUUID(),
+      tenantId: 'mercadozetta',
+      userId: target._id,
+      message: 'Disposable target notice',
+      createdAt: historyAt,
+      updatedAt: historyAt,
+    });
+    await cartService.setCartItem(
+      campus._id,
+      'campus-market',
+      campusProduct._id,
+      1,
+    );
+    await watchlistService.addWatchlist(
+      campus._id,
+      'campus-market',
+      campusProduct._id,
+    );
+    await db.insert(notifications).values({
+      id: randomUUID(),
+      tenantId: 'campus-market',
+      userId: campus._id,
+      message: 'Campus notice remains',
+      createdAt: historyAt,
+      updatedAt: historyAt,
+    });
+    const session = await postgresSessionService.createSession(
+      target._id,
+      'mercadozetta',
+      0,
+      'deactivation browser',
+      historyAt,
+    );
+    const tokenIds: string[] = [];
+    for (const purpose of [
+      'email_verification',
+      'password_reset',
+      'email_change',
+    ] as const) {
+      const tokenId = randomUUID();
+      tokenIds.push(tokenId);
+      await accountTokenRepository.create({
+        _id: tokenId,
+        tenantId: 'mercadozetta',
+        userId: target._id,
+        purpose,
+        tokenHash: `${purpose.length}`.repeat(64).slice(0, 64),
+        tokenHashSecretVersion: 'current',
+        ...(purpose === 'password_reset' ? {} : { emailVersion: 0 }),
+        expiresAt: new Date('2026-07-19T16:10:00.000Z'),
+        createdAt: historyAt,
+      });
+    }
+    await pendingEmailChangeRepository.save({
+      _id: randomUUID(),
+      tenantId: 'mercadozetta',
+      userId: target._id,
+      email: 'pending-lifecycle@example.com',
+      emailVersion: 0,
+      expiresAt: new Date('2026-07-19T15:40:00.000Z'),
+      createdAt: historyAt,
+    });
+    const service = accountDeactivationService();
+    const deactivatedAt = new Date('2026-07-19T15:20:00.000Z');
+    const attempts = await Promise.allSettled([
+      service.deactivateAccount(
+        {
+          currentPassword: userPayload.password,
+          confirmation: 'DEACTIVATE',
+        },
+        target._id,
+        'mercadozetta',
+        deactivatedAt,
+      ),
+      service.deactivateAccount(
+        {
+          currentPassword: userPayload.password,
+          confirmation: 'DEACTIVATE',
+        },
+        target._id,
+        'mercadozetta',
+        deactivatedAt,
+      ),
+    ]);
+    expect(
+      attempts.filter(({ status }) => status === 'fulfilled'),
+    ).toHaveLength(1);
+    expect(
+      attempts.filter(({ status }) => status === 'rejected'),
+    ).toMatchObject([{ reason: { code: 'ACCOUNT_STATE_CHANGED' } }]);
+
+    const [storedTarget] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, target._id));
+    expect(storedTarget).toMatchObject({
+      deactivatedAt,
+      tokenVersion: 1,
+      username: null,
+      telephone: null,
+      email: 'lifecycle-target@example.com',
+    });
+    await expect(
+      bcrypt.compare(userPayload.password, storedTarget.passwordHash),
+    ).resolves.toBe(false);
+    await expect(
+      userRepository.findPublicById('mercadozetta', target._id),
+    ).resolves.toBeNull();
+    await expect(
+      userRepository.findForAuthentication(
+        'mercadozetta',
+        'lifecycle-target@example.com',
+      ),
+    ).resolves.toBeNull();
+    await expect(
+      userRepository.findTokenVersion('mercadozetta', target._id),
+    ).resolves.toBeNull();
+    await expect(
+      postgresSessions.isActive(
+        'mercadozetta',
+        target._id,
+        session.session.id,
+        0,
+        new Date('2026-07-19T15:21:00.000Z'),
+      ),
+    ).resolves.toBe(false);
+    for (const tokenId of tokenIds)
+      await expect(
+        accountTokenRepository.findById('mercadozetta', tokenId),
+      ).resolves.toMatchObject({ invalidationReason: 'account_deactivated' });
+    await expect(
+      pendingEmailChangeRepository.findByUser('mercadozetta', target._id),
+    ).resolves.toBeNull();
+    await expect(
+      productRepository.findById('mercadozetta', targetProduct._id),
+    ).resolves.toMatchObject({ status: 'archived', inventory: 7 });
+    await expect(
+      productRepository.findById('mercadozetta', alreadyArchived._id),
+    ).resolves.toMatchObject({ status: 'archived', inventory: 4 });
+    expect(
+      await db.select().from(carts).where(eq(carts.buyerId, target._id)),
+    ).toHaveLength(0);
+    expect(
+      await db
+        .select()
+        .from(watchlistEntries)
+        .where(eq(watchlistEntries.userId, target._id)),
+    ).toHaveLength(0);
+    expect(
+      await db
+        .select()
+        .from(notifications)
+        .where(eq(notifications.userId, target._id)),
+    ).toHaveLength(0);
+    expect(
+      await db.select().from(carts).where(eq(carts.buyerId, campus._id)),
+    ).toHaveLength(1);
+    expect(
+      await db
+        .select()
+        .from(watchlistEntries)
+        .where(eq(watchlistEntries.userId, campus._id)),
+    ).toHaveLength(1);
+    expect(
+      await db
+        .select()
+        .from(notifications)
+        .where(eq(notifications.userId, campus._id)),
+    ).toHaveLength(1);
+    expect(
+      await db.select().from(orders).where(eq(orders.id, orderId)),
+    ).toHaveLength(1);
+    expect(
+      await db.select().from(orderItems).where(eq(orderItems.orderId, orderId)),
+    ).toHaveLength(1);
+    expect(
+      await db
+        .select()
+        .from(orderStatusHistory)
+        .where(eq(orderStatusHistory.orderId, orderId)),
+    ).toHaveLength(1);
+    expect(
+      await db.select().from(reviews).where(eq(reviews.authorId, target._id)),
+    ).toHaveLength(1);
+    const lifecycleAudits = (await db.select().from(auditEvents)).filter(
+      ({ resourceId }) => resourceId === target._id,
+    );
+    expect(lifecycleAudits).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          eventType: 'user.deactivated',
+          actorId: target._id,
+          metadata: { archivedListingCount: 1 },
+        }),
+        expect.objectContaining({
+          eventType: 'session.revoked',
+          metadata: { reason: 'account_deactivated' },
+        }),
+      ]),
+    );
+    await expect(
+      userService.createUser(
+        { ...userPayload, email: 'LIFECYCLE-TARGET@example.com' },
+        'mercadozetta',
+      ),
+    ).rejects.toMatchObject({ code: 'USER_EXISTS' });
+  });
+
+  it('rolls back every deactivation effect when audit insertion fails', async () => {
+    const target = await userService.createUser(
+      { ...userPayload, email: 'deactivation-rollback@example.com' },
+      'mercadozetta',
+    );
+    const product = await productRepository.create({
+      tenantId: 'mercadozetta',
+      seller: target._id,
+      name: 'Rollback listing',
+      description: '',
+      category: 'general',
+      subcategory: '',
+      inventory: 3,
+      image: 'rollback-listing.png',
+      status: 'active',
+    });
+    await cartService.setCartItem(target._id, 'mercadozetta', product._id, 1);
+    await watchlistService.addWatchlist(
+      target._id,
+      'mercadozetta',
+      product._id,
+    );
+    const createdAt = new Date('2026-07-19T15:30:00.000Z');
+    await db.insert(notifications).values({
+      id: randomUUID(),
+      tenantId: 'mercadozetta',
+      userId: target._id,
+      message: 'Must survive rollback',
+      createdAt,
+      updatedAt: createdAt,
+    });
+    const session = await postgresSessionService.createSession(
+      target._id,
+      'mercadozetta',
+      0,
+      'deactivation rollback browser',
+      createdAt,
+    );
+    const tokenId = randomUUID();
+    await accountTokenRepository.create({
+      _id: tokenId,
+      tenantId: 'mercadozetta',
+      userId: target._id,
+      purpose: 'password_reset',
+      tokenHash: '8'.repeat(64),
+      tokenHashSecretVersion: 'current',
+      expiresAt: new Date('2026-07-19T16:30:00.000Z'),
+      createdAt,
+    });
+    await pendingEmailChangeRepository.save({
+      _id: randomUUID(),
+      tenantId: 'mercadozetta',
+      userId: target._id,
+      email: 'deactivation-rollback-pending@example.com',
+      emailVersion: 0,
+      expiresAt: new Date('2026-07-19T16:00:00.000Z'),
+      createdAt,
+    });
+    await pool.query(`
+      create function reject_deactivation_audit() returns trigger
+      language plpgsql as $$
+      begin
+        if new.event_type = 'user.deactivated' then
+          raise exception 'forced deactivation audit failure';
+        end if;
+        return new;
+      end;
+      $$;
+      create trigger reject_deactivation_audit_insert
+      before insert on audit_events
+      for each row execute function reject_deactivation_audit();
+    `);
+    try {
+      await expect(
+        accountDeactivationService().deactivateAccount(
+          {
+            currentPassword: userPayload.password,
+            confirmation: 'DEACTIVATE',
+          },
+          target._id,
+          'mercadozetta',
+          new Date('2026-07-19T15:31:00.000Z'),
+        ),
+      ).rejects.toMatchObject({
+        cause: {
+          message: expect.stringContaining('forced deactivation audit failure'),
+        },
+      });
+    } finally {
+      await pool.query(`
+        drop trigger reject_deactivation_audit_insert on audit_events;
+        drop function reject_deactivation_audit();
+      `);
+    }
+
+    const [storedTarget] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, target._id));
+    expect(storedTarget).toMatchObject({
+      deactivatedAt: null,
+      tokenVersion: 0,
+      username: userPayload.username.toLowerCase(),
+      telephone: userPayload.telephone.toLowerCase(),
+    });
+    await expect(
+      bcrypt.compare(userPayload.password, storedTarget.passwordHash),
+    ).resolves.toBe(true);
+    await expect(
+      productRepository.findById('mercadozetta', product._id),
+    ).resolves.toMatchObject({ status: 'active' });
+    await expect(
+      postgresSessions.isActive(
+        'mercadozetta',
+        target._id,
+        session.session.id,
+        0,
+        new Date('2026-07-19T15:32:00.000Z'),
+      ),
+    ).resolves.toBe(true);
+    await expect(
+      accountTokenRepository.findById('mercadozetta', tokenId),
+    ).resolves.not.toHaveProperty('invalidatedAt');
+    await expect(
+      pendingEmailChangeRepository.findByUser('mercadozetta', target._id),
+    ).resolves.toMatchObject({
+      email: 'deactivation-rollback-pending@example.com',
+    });
+    expect(
+      await db.select().from(carts).where(eq(carts.buyerId, target._id)),
+    ).toHaveLength(1);
+    expect(
+      await db
+        .select()
+        .from(watchlistEntries)
+        .where(eq(watchlistEntries.userId, target._id)),
+    ).toHaveLength(1);
+    expect(
+      await db
+        .select()
+        .from(notifications)
+        .where(eq(notifications.userId, target._id)),
+    ).toHaveLength(1);
+  });
+
+  it('verifies email and resets password with one-winner tokens and session revocation', async () => {
+    const sender = new CapturingAccountMessageSender();
+    const service = accountSecurityService(sender);
+    const created = await userService.createUser(
+      { ...userPayload, email: 'recovery@example.com' },
+      'mercadozetta',
+    );
+    const verificationRequestedAt = new Date('2026-07-19T10:00:00.000Z');
+
+    await expect(
+      service.requestEmailVerification(
+        { email: ' RECOVERY@EXAMPLE.COM ' },
+        'mercadozetta',
+        verificationRequestedAt,
+      ),
+    ).resolves.toMatchObject({ message: expect.any(String) });
+    await flushAccountMessages();
+    const verificationMessage = sender.messages[0];
+    expect(verificationMessage).toMatchObject({
+      kind: 'email_verification',
+      tenantId: 'mercadozetta',
+      userId: created._id,
+      email: 'recovery@example.com',
+    });
+    if (!('token' in verificationMessage))
+      throw new Error('Expected verification token message');
+
+    const [storedVerification] = await db
+      .select()
+      .from(accountTokens)
+      .where(eq(accountTokens.id, verificationMessage.token.split('.')[0]));
+    expect(storedVerification.tokenHash).not.toContain(
+      verificationMessage.token,
+    );
+    expect(storedVerification).not.toHaveProperty('token');
+
+    const confirmations = await Promise.allSettled([
+      service.confirmEmailVerification(
+        { token: verificationMessage.token },
+        'mercadozetta',
+        new Date('2026-07-19T10:05:00.000Z'),
+      ),
+      service.confirmEmailVerification(
+        { token: verificationMessage.token },
+        'mercadozetta',
+        new Date('2026-07-19T10:05:00.000Z'),
+      ),
+    ]);
+    expect(
+      confirmations.filter(({ status }) => status === 'fulfilled'),
+    ).toHaveLength(1);
+    expect(
+      confirmations.filter(({ status }) => status === 'rejected'),
+    ).toMatchObject([{ reason: { code: 'INVALID_OR_EXPIRED_ACCOUNT_TOKEN' } }]);
+    await expect(
+      userRepository.findForAccountSecurity(
+        'mercadozetta',
+        'recovery@example.com',
+      ),
+    ).resolves.toMatchObject({ emailVerifiedAt: expect.any(Date) });
+
+    const session = await postgresSessionService.createSession(
+      created._id,
+      'mercadozetta',
+      0,
+      'recovery integration browser',
+      new Date('2026-07-19T10:06:00.000Z'),
+    );
+    await service.requestPasswordReset(
+      { email: 'recovery@example.com' },
+      'mercadozetta',
+      new Date('2026-07-19T10:10:00.000Z'),
+    );
+    await flushAccountMessages();
+    const resetMessage = sender.messages.find(
+      ({ kind }) => kind === 'password_reset',
+    );
+    if (!resetMessage || !('token' in resetMessage))
+      throw new Error('Expected password reset token message');
+
+    await expect(
+      service.confirmPasswordReset(
+        {
+          token: resetMessage.token,
+          password: 'replacement123',
+          passwordConfirmation: 'replacement123',
+        },
+        'mercadozetta',
+        new Date('2026-07-19T10:15:00.000Z'),
+      ),
+    ).resolves.toBeUndefined();
+    await flushAccountMessages();
+
+    const securityState = await userRepository.findForAccountSecurity(
+      'mercadozetta',
+      'recovery@example.com',
+    );
+    expect(securityState?.tokenVersion).toBe(1);
+    await expect(
+      bcrypt.compare('replacement123', securityState!.passwordHash),
+    ).resolves.toBe(true);
+    await expect(
+      postgresSessions.isActive(
+        'mercadozetta',
+        created._id,
+        session.session.id,
+        0,
+        new Date('2026-07-19T10:16:00.000Z'),
+      ),
+    ).resolves.toBe(false);
+    expect(sender.messages).toContainEqual(
+      expect.objectContaining({ kind: 'password_reset_notice' }),
+    );
+    expect(
+      (await db.select().from(auditEvents))
+        .filter(({ resourceId }) => resourceId === created._id)
+        .map(({ eventType }) => eventType),
+    ).toEqual(
+      expect.arrayContaining([
+        'user.email_verified',
+        'user.password_reset',
+        'session.revoked',
+      ]),
+    );
+  });
+
+  it('exposes account-security HTTP routes only when delivery is configured', async () => {
+    await request(postgresApp)
+      .post('/auth/email-verification/requests')
+      .set('Origin', 'http://localhost:5173')
+      .send({ email: 'unknown@example.com' })
+      .expect(503)
+      .expect(({ body }) => {
+        expect(body).toEqual({
+          error: 'Account message delivery is unavailable',
+          code: 'ACCOUNT_DELIVERY_UNAVAILABLE',
+        });
+      });
+
+    const sender = new CapturingAccountMessageSender();
+    const app = accountSecurityHttpApp(sender);
+    await userService.createUser(
+      { ...userPayload, email: 'http-recovery@example.com' },
+      'mercadozetta',
+    );
+
+    await request(app)
+      .post('/auth/email-verification/requests')
+      .set('Origin', 'http://localhost:5173')
+      .send({ email: 'HTTP-RECOVERY@EXAMPLE.COM' })
+      .expect(202)
+      .expect({
+        message: 'If an eligible account exists, instructions will be sent.',
+      });
+    await flushAccountMessages();
+    const verification = sender.messages.find(
+      ({ kind }) => kind === 'email_verification',
+    );
+    if (!verification || !('token' in verification))
+      throw new Error('Expected HTTP verification token message');
+
+    await request(app)
+      .post('/auth/email-verification/confirmations')
+      .set('Origin', 'http://localhost:5173')
+      .send({ token: verification.token })
+      .expect(204);
+
+    await request(app)
+      .post('/auth/password-reset/requests')
+      .set('Origin', 'http://localhost:5173')
+      .send({ email: 'http-recovery@example.com' })
+      .expect(202);
+    await flushAccountMessages();
+    const reset = sender.messages.find(({ kind }) => kind === 'password_reset');
+    if (!reset || !('token' in reset))
+      throw new Error('Expected HTTP password reset token message');
+
+    const confirmation = await request(app)
+      .post('/auth/password-reset/confirmations')
+      .set('Origin', 'http://localhost:5173')
+      .send({
+        token: reset.token,
+        password: 'replacement123',
+        passwordConfirmation: 'replacement123',
+      })
+      .expect(204);
+    expect(confirmation.headers['set-cookie']).toHaveLength(3);
+  });
+
+  it('serves the authenticated account-management lifecycle through cookies and CSRF', async () => {
+    const sender = new CapturingAccountMessageSender();
+    const app = accountSecurityHttpApp(sender);
+    const registration = await request(app)
+      .post('/users')
+      .send({
+        ...userPayload,
+        email: 'http-account-management@example.com',
+      })
+      .expect(201);
+    const login = await request(app)
+      .post('/auth/login')
+      .set('Origin', 'http://localhost:5173')
+      .send({
+        email: 'http-account-management@example.com',
+        password: userPayload.password,
+      })
+      .expect(200);
+    let auth = authCookies(login);
+
+    await request(app)
+      .patch('/account/profile')
+      .set('Origin', 'http://localhost:5173')
+      .send({ username: 'Missing session' })
+      .expect(401);
+    await request(app)
+      .patch('/account/profile')
+      .set('Cookie', auth.cookie)
+      .set('Origin', 'http://localhost:5173')
+      .send({ username: 'Missing CSRF' })
+      .expect(403)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({ code: 'INVALID_CSRF_TOKEN' }),
+      );
+    await request(app)
+      .patch('/account/profile')
+      .set('Cookie', auth.cookie)
+      .set('Origin', 'http://localhost:5173')
+      .set('X-CSRF-Token', auth.csrf!)
+      .send({ username: ' HTTP Managed ', telephone: null })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          _id: registration.body._id,
+          username: 'HTTP Managed',
+          telephone: null,
+        });
+        expect(body).not.toHaveProperty('passwordHash');
+      });
+
+    await request(app)
+      .post('/account/password-changes')
+      .set('Cookie', auth.cookie)
+      .set('Origin', 'http://localhost:5173')
+      .set('X-CSRF-Token', auth.csrf!)
+      .send({
+        currentPassword: 'wrong-password',
+        password: 'new-http-password',
+        passwordConfirmation: 'new-http-password',
+      })
+      .expect(403)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({ code: 'REAUTHENTICATION_FAILED' }),
+      );
+    const passwordChange = await request(app)
+      .post('/account/password-changes')
+      .set('Cookie', auth.cookie)
+      .set('Origin', 'http://localhost:5173')
+      .set('X-CSRF-Token', auth.csrf!)
+      .send({
+        currentPassword: userPayload.password,
+        password: 'new-http-password',
+        passwordConfirmation: 'new-http-password',
+      })
+      .expect(204);
+    expect(passwordChange.headers['set-cookie']).toHaveLength(3);
+    await request(app)
+      .get('/auth/session')
+      .set('Cookie', auth.cookie)
+      .expect(401);
+
+    const relogin = await request(app)
+      .post('/auth/login')
+      .set('Origin', 'http://localhost:5173')
+      .send({
+        email: 'http-account-management@example.com',
+        password: 'new-http-password',
+      })
+      .expect(200);
+    auth = authCookies(relogin);
+
+    await request(postgresApp)
+      .post('/account/email-changes')
+      .set('Cookie', auth.cookie)
+      .set('Origin', 'http://localhost:5173')
+      .set('X-CSRF-Token', auth.csrf!)
+      .send({
+        email: 'http-account-management-new@example.com',
+        currentPassword: 'new-http-password',
+      })
+      .expect(503)
+      .expect(({ body }) =>
+        expect(body).toMatchObject({ code: 'ACCOUNT_DELIVERY_UNAVAILABLE' }),
+      );
+    await request(app)
+      .post('/account/email-changes')
+      .set('Cookie', auth.cookie)
+      .set('Origin', 'http://localhost:5173')
+      .set('X-CSRF-Token', auth.csrf!)
+      .send({
+        email: ' HTTP-ACCOUNT-MANAGEMENT-NEW@EXAMPLE.COM ',
+        currentPassword: 'new-http-password',
+      })
+      .expect(202)
+      .expect({
+        message:
+          'If the address can be used, confirmation instructions will be sent.',
+      });
+    await flushAccountMessages();
+    const emailChange = sender.messages.find(
+      ({ kind }) => kind === 'email_change',
+    );
+    if (!emailChange || !('token' in emailChange))
+      throw new Error('Expected HTTP email-change token message');
+
+    await request(app)
+      .post('/auth/login')
+      .set('Origin', 'http://localhost:5173')
+      .send({
+        email: 'http-account-management@example.com',
+        password: 'new-http-password',
+      })
+      .expect(200);
+    const emailConfirmation = await request(app)
+      .post('/auth/email-change/confirmations')
+      .set('Origin', 'http://localhost:5173')
+      .send({ token: emailChange.token })
+      .expect(204);
+    expect(emailConfirmation.headers['set-cookie']).toHaveLength(3);
+    await request(app)
+      .get('/auth/session')
+      .set('Cookie', auth.cookie)
+      .expect(401);
+    await request(app)
+      .post('/auth/login')
+      .set('Origin', 'http://localhost:5173')
+      .send({
+        email: 'http-account-management@example.com',
+        password: 'new-http-password',
+      })
+      .expect(401);
+
+    const newEmailLogin = await request(app)
+      .post('/auth/login')
+      .set('Origin', 'http://localhost:5173')
+      .send({
+        email: 'http-account-management-new@example.com',
+        password: 'new-http-password',
+      })
+      .expect(200);
+    auth = authCookies(newEmailLogin);
+    const deactivation = await request(app)
+      .post('/account/deactivation')
+      .set('Cookie', auth.cookie)
+      .set('Origin', 'http://localhost:5173')
+      .set('X-CSRF-Token', auth.csrf!)
+      .send({
+        currentPassword: 'new-http-password',
+        confirmation: 'DEACTIVATE',
+      })
+      .expect(204);
+    expect(deactivation.headers['set-cookie']).toHaveLength(3);
+    await request(app)
+      .post('/auth/login')
+      .set('Origin', 'http://localhost:5173')
+      .send({
+        email: 'http-account-management-new@example.com',
+        password: 'new-http-password',
+      })
+      .expect(401);
+    await request(app).get(`/users/${registration.body._id}`).expect(404);
+  });
+
+  it('rolls back reset token, password, and sessions when audit insertion fails', async () => {
+    const sender = new CapturingAccountMessageSender();
+    const service = accountSecurityService(sender);
+    const created = await userService.createUser(
+      { ...userPayload, email: 'rollback-recovery@example.com' },
+      'mercadozetta',
+    );
+    const session = await postgresSessionService.createSession(
+      created._id,
+      'mercadozetta',
+      0,
+      'rollback integration browser',
+      new Date('2026-07-19T11:00:00.000Z'),
+    );
+    await service.requestPasswordReset(
+      { email: 'rollback-recovery@example.com' },
+      'mercadozetta',
+      new Date('2026-07-19T11:01:00.000Z'),
+    );
+    await flushAccountMessages();
+    const resetMessage = sender.messages.find(
+      ({ kind }) => kind === 'password_reset',
+    );
+    if (!resetMessage || !('token' in resetMessage))
+      throw new Error('Expected password reset token message');
+
+    await pool.query(`
+      create function reject_password_reset_audit() returns trigger
+      language plpgsql as $$
+      begin
+        if new.event_type = 'user.password_reset' then
+          raise exception 'forced account audit failure';
+        end if;
+        return new;
+      end;
+      $$;
+      create trigger reject_password_reset_audit_insert
+      before insert on audit_events
+      for each row execute function reject_password_reset_audit();
+    `);
+    try {
+      await expect(
+        service.confirmPasswordReset(
+          {
+            token: resetMessage.token,
+            password: 'must-not-commit',
+            passwordConfirmation: 'must-not-commit',
+          },
+          'mercadozetta',
+          new Date('2026-07-19T11:05:00.000Z'),
+        ),
+      ).rejects.toMatchObject({
+        cause: {
+          message: expect.stringContaining('forced account audit failure'),
+        },
+      });
+    } finally {
+      await pool.query(`
+        drop trigger reject_password_reset_audit_insert on audit_events;
+        drop function reject_password_reset_audit();
+      `);
+    }
+
+    const state = await userRepository.findForAccountSecurity(
+      'mercadozetta',
+      'rollback-recovery@example.com',
+    );
+    expect(state?.tokenVersion).toBe(0);
+    await expect(
+      bcrypt.compare(userPayload.password, state!.passwordHash),
+    ).resolves.toBe(true);
+    await expect(
+      postgresSessions.isActive(
+        'mercadozetta',
+        created._id,
+        session.session.id,
+        0,
+        new Date('2026-07-19T11:06:00.000Z'),
+      ),
+    ).resolves.toBe(true);
+    const [storedReset] = await db
+      .select({ consumedAt: accountTokens.consumedAt })
+      .from(accountTokens)
+      .where(eq(accountTokens.id, resetMessage.token.split('.')[0]));
+    expect(storedReset.consumedAt).toBeNull();
   });
 
   it('enforces tenant ownership and maps product rows to the current API shape', async () => {

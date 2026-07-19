@@ -21,6 +21,8 @@ export REFRESH_TOKEN_HASH_SECRETS='{"smoke":"production-smoke-refresh-secret"}'
 export REFRESH_TOKEN_HASH_ACTIVE_VERSION='smoke'
 export CSRF_SECRETS='{"smoke":"production-smoke-csrf-secret"}'
 export CSRF_ACTIVE_VERSION='smoke'
+export ACCOUNT_TOKEN_HASH_SECRETS='{"smoke":"production-smoke-account-token-secret"}'
+export ACCOUNT_TOKEN_HASH_ACTIVE_VERSION='smoke'
 
 docker compose -p "$project_name" -f "$compose_file" config --quiet
 docker compose -p "$project_name" -f "$compose_file" up \

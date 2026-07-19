@@ -64,6 +64,16 @@ export type BrandCopy = {
     productCreateError: string;
     invalidCredentials: string;
   };
+  account: {
+    navigationAction: string;
+    title: string;
+    profileTitle: string;
+    passwordTitle: string;
+    emailTitle: string;
+    deactivationTitle: string;
+    deliveryUnavailable: string;
+    confirmationTitle: string;
+  };
 };
 
 export type BrandFeatures = {

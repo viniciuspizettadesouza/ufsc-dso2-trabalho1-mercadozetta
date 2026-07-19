@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { getTableName } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/pg-core';
 import {
+  accountTokens,
   auditEvents,
   cartItems,
   carts,
@@ -11,6 +12,7 @@ import {
   orders,
   orderStatusHistory,
   products,
+  pendingEmailChanges,
   reviews,
   sessions,
   tenants,
@@ -30,11 +32,21 @@ const auditEventMigration = readFileSync(
   resolve(process.cwd(), 'drizzle/0002_easy_jasper_sitwell.sql'),
   'utf8',
 );
+const accountSecurityMigration = readFileSync(
+  resolve(process.cwd(), 'drizzle/0003_famous_miek.sql'),
+  'utf8',
+);
+const accountManagementMigration = readFileSync(
+  resolve(process.cwd(), 'drizzle/0004_melted_nekra.sql'),
+  'utf8',
+);
 
 describe('PostgreSQL schema contract', () => {
   const tables = [
     tenants,
     users,
+    pendingEmailChanges,
+    accountTokens,
     products,
     carts,
     cartItems,
@@ -52,6 +64,8 @@ describe('PostgreSQL schema contract', () => {
     expect(tables.map(getTableName)).toEqual([
       'tenants',
       'users',
+      'pending_email_changes',
+      'account_tokens',
       'products',
       'carts',
       'cart_items',
@@ -66,11 +80,13 @@ describe('PostgreSQL schema contract', () => {
     ]);
     expect(migration.match(/CREATE TABLE/g)).toHaveLength(12);
     expect(auditEventMigration.match(/CREATE TABLE/g)).toHaveLength(1);
+    expect(accountSecurityMigration.match(/CREATE TABLE/g)).toHaveLength(1);
+    expect(accountManagementMigration.match(/CREATE TABLE/g)).toHaveLength(1);
   });
 
   it('generates tenant-qualified integrity and inventory constraints', () => {
     const configs = tables.map(getTableConfig);
-    expect(configs.flatMap((config) => config.foreignKeys)).toHaveLength(26);
+    expect(configs.flatMap((config) => config.foreignKeys)).toHaveLength(30);
     expect(configs.flatMap((config) => config.checks).length).toBeGreaterThan(
       10,
     );
@@ -122,6 +138,56 @@ describe('PostgreSQL schema contract', () => {
 
     expect(auditEventMigration).not.toMatch(
       /password|token_hash|cookie|authorization|csrf/i,
+    );
+  });
+
+  it('adds tenant-scoped single-use account tokens and verified-user state', () => {
+    for (const expectedSql of [
+      'account_tokens_tenant_user_fkey',
+      'account_tokens_purpose_check',
+      'account_tokens_email_version_check',
+      'account_tokens_expiry_check',
+      'account_tokens_lifecycle_check',
+      'account_tokens_invalidation_reason_check',
+      'account_tokens_active_key',
+      'account_tokens_issuance_idx',
+      'account_tokens_expiry_idx',
+      'users_email_version_check',
+      'user.email_verified',
+      'user.password_reset',
+    ])
+      expect(accountSecurityMigration).toContain(expectedSql);
+
+    expect(accountSecurityMigration).toContain(
+      'SET "email_verified_at" = "created_at"',
+    );
+    expect(accountSecurityMigration).not.toMatch(
+      /raw_token|password_hash|cookie|authorization|csrf/i,
+    );
+  });
+
+  it('adds constrained pending email and account-management state', () => {
+    for (const expectedSql of [
+      'pending_email_changes_tenant_user_key',
+      'pending_email_changes_tenant_email_key',
+      'pending_email_changes_tenant_user_fkey',
+      'pending_email_changes_email_version_check',
+      'pending_email_changes_expiry_check',
+      'pending_email_changes_expiry_idx',
+      'deactivated_at',
+      "'email_change'",
+      "'password_change'",
+      "'account_deactivated'",
+      "'user.profile_updated'",
+      "'user.password_changed'",
+      "'user.email_change_requested'",
+      "'user.email_changed'",
+      "'user.deactivated'",
+    ])
+      expect(accountManagementMigration).toContain(expectedSql);
+
+    expect(accountManagementMigration).not.toMatch(
+      /raw_token|password_hash|cookie|authorization|csrf/i,
     );
   });
 });

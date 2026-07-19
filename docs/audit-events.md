@@ -12,16 +12,40 @@ UUID, constrained resource type and UUID, optional sanitized JSON metadata, and
 an occurrence timestamp supplied by the domain transaction. The baseline event
 types are:
 
-| Event                    | Resource                                   | Safe metadata                               |
-| ------------------------ | ------------------------------------------ | ------------------------------------------- |
-| `session.created`        | session                                    | none                                        |
-| `session.rotated`        | session                                    | rotation counter                            |
-| `session.revoked`        | session or user for all-session revocation | reason                                      |
-| `session.reuse_detected` | session                                    | reason                                      |
-| `inventory.set`          | product                                    | previous/next inventory and status          |
-| `inventory.decremented`  | product                                    | order ID, quantity, previous/next inventory |
-| `order.placed`           | order                                      | item count                                  |
-| `order.status_changed`   | order                                      | previous/next status                        |
+| Event                         | Resource                                   | Safe metadata                               |
+| ----------------------------- | ------------------------------------------ | ------------------------------------------- |
+| `session.created`             | session                                    | none                                        |
+| `session.rotated`             | session                                    | rotation counter                            |
+| `session.revoked`             | session or user for all-session revocation | reason                                      |
+| `session.reuse_detected`      | session                                    | reason                                      |
+| `inventory.set`               | product                                    | previous/next inventory and status          |
+| `inventory.decremented`       | product                                    | order ID, quantity, previous/next inventory |
+| `order.placed`                | order                                      | item count                                  |
+| `order.status_changed`        | order                                      | previous/next status                        |
+| `user.email_verified`         | user                                       | none                                        |
+| `user.password_reset`         | user                                       | none                                        |
+| `user.profile_updated`        | user                                       | changed field names only                    |
+| `user.password_changed`       | user                                       | none                                        |
+| `user.email_change_requested` | user                                       | none                                        |
+| `user.email_changed`          | user                                       | none                                        |
+| `user.deactivated`            | user                                       | archived listing count                      |
+
+Migration `0003_famous_miek.sql` reserves the two user-security event types for
+the accepted verification and recovery contract. The provider-independent
+account-security service emits them in the same transaction as token
+consumption, verification or password replacement, and session revocation.
+Because those mutations are authorized by a one-time token rather than an
+authenticated session, their audit records have no actor ID.
+
+Migration `0004_melted_nekra.sql` reserves the five authenticated
+account-management types accepted in ADR 0005. The provider-independent profile
+and password services emit `user.profile_updated` and `user.password_changed`
+atomically. The provider-independent email-change service emits
+`user.email_change_requested` with the authenticated user as actor and emits
+`user.email_changed` without an actor because confirmation is authorized by a
+one-time token. The provider-independent deactivation service emits
+`user.deactivated` with only the archived-listing count and the authenticated
+user as actor. No HTTP route exposes these account-management services yet.
 
 Actor foreign keys are tenant-qualified. Resource IDs are intentionally not
 foreign keys: an audit record must survive later resource lifecycle changes,
@@ -45,7 +69,13 @@ insertion occurs inside the same transaction as:
   revocation, and all-session revocation;
 - explicit seller inventory changes;
 - order creation and every conditional checkout inventory decrement; and
-- order status/history changes and their buyer notification.
+- order status/history changes and their buyer notification;
+- profile and password changes, including password-triggered session and token
+  revocation; and
+- email-change initiation and confirmation, including pending state, token
+  consumption/invalidation, email promotion, and session revocation; and
+- account deactivation, including profile clearing, credential invalidation,
+  listing archival, and disposable-state cleanup.
 
 If audit insertion fails, the domain mutation rolls back. Refresh replay is a
 special committed-denial path: the transaction stores the family revocation and
