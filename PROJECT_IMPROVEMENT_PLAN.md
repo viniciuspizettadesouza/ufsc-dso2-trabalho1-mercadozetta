@@ -98,16 +98,46 @@ promotion, and advanced-platform work until pilot evidence justifies it.
   formatting, both coverage gates, frontend and production builds, all 31
   PostgreSQL scenarios, Chromium workflows for both tenants, the
   production-image smoke, and the nine-migration recovery rehearsal.
+- Step 16 now has a recorded provisional launch-constraint baseline for a
+  single-developer portfolio-to-pilot path: EUR 75/month soft and EUR 120/month
+  hard cash limits, a ten-seller/100-order monthly planning cohort, EEA-hosted
+  customer content, a 99.5% internal availability target, the existing
+  four-hour RTO/24-hour RPO, bounded support, and explicit single-operator risk.
+  These assumptions are revision triggers, not fabricated production evidence.
+- The Step 16 desktop evaluation compares Render Frankfurt, DigitalOcean
+  Frankfurt Droplets plus Managed PostgreSQL, and AWS ECS Fargate plus RDS in
+  Frankfurt using current official capability and price material, a twelve-month
+  cash and operator-time model, security/portability/exit gates, and weighted
+  scoring. Render and DigitalOcean advance to staging spikes; no deployment
+  provider has been selected.
+- The zero-cost portion of Step 16 now has a repeatable local staging-readiness
+  command. It builds the production images, applies one-shot migrations, checks
+  non-root execution, runs both Chromium workflows through the production proxy
+  for both tenants, exercises compiled cleanup, performs a bounded load smoke,
+  and chains the fresh-target PostgreSQL recovery rehearsal. The frontend image
+  now accepts runtime private-backend host/port configuration, and unprovisioned
+  Render and DigitalOcean candidate templates have local structural guards.
+- The verified local run passed both browser workflows for each tenant and 100
+  catalog requests at concurrency ten with zero failures; local p95 was 29 ms
+  for MercadoZetta and 21 ms for CampusMarket. Recovery again passed all nine
+  migrations and restored invariants. These measurements are local evidence
+  only and do not replace provider TLS, webhook, backup, alert, rollback,
+  Portugal-latency, cost, residency, or exit evidence.
 
 ## Next Action
 
-Start Step 16 by recording the deployment constraints that cannot be inferred
-from the repository: acceptable monthly and one-time budget, expected pilot
-traffic and seller count, Portugal/EEA data-residency needs, availability
-target, RTO/RPO, support expectations, team operational experience, and the
-owner of deployment incidents. Then compare at least three viable provider
-approaches against the accepted payment, webhook, background-work, PostgreSQL,
-recovery, observability, rollback, cost, and exit requirements.
+The project owner has explicitly deferred all paid infrastructure. Keep Step
+16's Render and DigitalOcean spikes, provider ADR, and provider selection open
+without creating accounts or resources; the completed
+[zero-cost staging baseline](docs/staging-spike-readiness.md) is the handoff when
+spend is later authorized.
+
+While that external gate is deferred, start Step 17 with its first no-cost
+slice: consult [Product Feature Ideas](docs/product-feature-ideas.md), audit the
+current cart/checkout server-state ownership and documented contracts, then
+separate the persistent cart, final checkout review, and buyer order history
+without duplicating server state. Do not begin payment implementation or treat
+the local staging rehearsal as provider acceptance.
 
 Do not install a Stripe SDK, add payment tables, enable payment surfaces, or
 choose a deployment provider before that constraint record and staging spike
@@ -192,18 +222,18 @@ Accepted contract:
 
 ### 16. Select and validate the MVP deployment platform
 
-- [ ] Record the launch constraints before comparing providers: acceptable
+- [x] Record the launch constraints before comparing providers: acceptable
       monthly and one-time budget, expected pilot traffic and seller count,
       Portugal/EEA region and data-residency needs, availability target,
       recovery-time and recovery-point objectives, support expectations, team
       operational experience, and the owner of deployment incidents.
-- [ ] Compare at least three viable approaches: a managed application platform,
+- [x] Compare at least three viable approaches: a managed application platform,
       a container/VPS host paired with managed PostgreSQL, and a major-cloud
       container service. Use current official capabilities and prices, and score
       twelve-month total cost rather than headline compute price. Include
       database, backups, storage, bandwidth/egress, logs/metrics, scheduled jobs,
       domains/TLS, staging, support, taxes, and expected operator time.
-- [ ] Require production images, stable HTTPS and Stripe webhook URLs, custom
+- [x] Require production images, stable HTTPS and Stripe webhook URLs, custom
       domains, managed secrets, an EEA deployment region, authenticated and
       encrypted PostgreSQL, versioned migrations, scheduled one-shot jobs,
       health/readiness probes, centralized logs, actionable alerts, automated

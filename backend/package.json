@@ -19,6 +19,7 @@
     "cleanup:data": "ts-node -r tsconfig-paths/register src/scripts/cleanupPostgresData.ts",
     "cleanup:data:runtime": "node dist/scripts/cleanupPostgresData.js",
     "seed:demo": "ts-node -r tsconfig-paths/register src/scripts/seedDemoData.ts",
+    "seed:demo:runtime": "node dist/scripts/seedDemoData.js",
     "compile": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint . --max-warnings 0",
     "test": "vitest run",

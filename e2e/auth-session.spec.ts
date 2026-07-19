@@ -3,6 +3,17 @@ import { expectPageToBeAccessible, expectVisibleFocus } from './accessibility';
 
 const campusMarket = process.env.E2E_TENANT_ID === 'campus-market';
 const brandName = campusMarket ? 'CampusMarket' : 'MercadoZetta';
+const apiUrl = process.env.E2E_API_URL || 'http://localhost:4333';
+const apiPath = new URL(apiUrl).pathname.replace(/\/$/, '');
+const refreshCookiePath = `${apiPath}/auth` || '/auth';
+const productionCookies = process.env.E2E_PRODUCTION_COOKIES === 'true';
+const cookieNames = productionCookies
+  ? {
+      access: '__Host-mz_at',
+      refresh: '__Secure-mz_rt',
+      csrf: '__Host-mz_csrf',
+    }
+  : { access: 'mz_at', refresh: 'mz_rt', csrf: 'mz_csrf' };
 const seller = campusMarket
   ? { email: 'vinicius@campus-market.test', password: 'campusmarket123' }
   : { email: 'vinicius@mercadozetta.test', password: 'mercadozetta123' };
@@ -44,19 +55,19 @@ test('returns to a protected route, renews cookies, and logs out', async ({
   expect(cookies).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        name: 'mz_at',
+        name: cookieNames.access,
         httpOnly: true,
         path: '/',
         sameSite: 'Lax',
       }),
       expect.objectContaining({
-        name: 'mz_rt',
+        name: cookieNames.refresh,
         httpOnly: true,
-        path: '/auth',
+        path: refreshCookiePath,
         sameSite: 'Lax',
       }),
       expect.objectContaining({
-        name: 'mz_csrf',
+        name: cookieNames.csrf,
         httpOnly: false,
         path: '/',
         sameSite: 'Lax',
@@ -64,10 +75,10 @@ test('returns to a protected route, renews cookies, and logs out', async ({
     ]),
   );
 
-  await context.clearCookies({ name: 'mz_at' });
+  await context.clearCookies({ name: cookieNames.access });
   const refreshResponse = page.waitForResponse(
     (response) =>
-      response.url() === 'http://localhost:4333/auth/refresh' &&
+      response.url() === `${apiUrl}/auth/refresh` &&
       response.request().method() === 'POST',
   );
   await page.reload();
@@ -75,12 +86,14 @@ test('returns to a protected route, renews cookies, and logs out', async ({
   await expect(page.getByRole('heading', { name: 'Checkout' })).toBeVisible();
   expect((await refreshResponse).status()).toBe(204);
   expect(
-    (await context.cookies()).some((cookie) => cookie.name === 'mz_at'),
+    (await context.cookies()).some(
+      (cookie) => cookie.name === cookieNames.access,
+    ),
   ).toBe(true);
 
   const logoutResponse = page.waitForResponse(
     (response) =>
-      response.url() === 'http://localhost:4333/auth/logout' &&
+      response.url() === `${apiUrl}/auth/logout` &&
       response.request().method() === 'POST',
   );
   await page.getByRole('button', { name: 'Sair' }).click();
@@ -90,7 +103,7 @@ test('returns to a protected route, renews cookies, and logs out', async ({
   await expect(page.getByRole('button', { name: 'Entrar' })).toBeVisible();
   expect(
     (await context.cookies()).filter((cookie) =>
-      ['mz_at', 'mz_rt', 'mz_csrf'].includes(cookie.name),
+      Object.values(cookieNames).includes(cookie.name),
     ),
   ).toEqual([]);
 });

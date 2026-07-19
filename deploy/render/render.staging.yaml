@@ -1,0 +1,81 @@
+# Candidate template only. Do not sync before the paid staging spike is authorized.
+services:
+  - type: pserv
+    runtime: image
+    name: mercadozetta-backend-staging
+    plan: starter
+    region: frankfurt
+    image:
+      url: ghcr.io/OWNER/mercadozetta-backend@sha256:IMAGE_DIGEST
+    preDeployCommand: npm run db:migrate:runtime
+    envVars: &backend-env
+      - key: NODE_ENV
+        value: production
+      - key: POSTGRESQL_URL
+        fromDatabase:
+          name: mercadozetta-postgres-staging
+          property: connectionString
+      - key: PORT
+        value: '3333'
+      - key: HEALTHCHECK_TENANT_ID
+        value: mercadozetta
+      - key: TENANT_HEADER_REQUIRED
+        value: 'true'
+      - key: CORS_ORIGIN
+        sync: false
+      - key: TRUST_PROXY_HOPS
+        sync: false
+      - key: JWT_SIGNING_KEYS
+        sync: false
+      - key: JWT_ACTIVE_KID
+        sync: false
+      - key: REFRESH_TOKEN_HASH_SECRETS
+        sync: false
+      - key: REFRESH_TOKEN_HASH_ACTIVE_VERSION
+        sync: false
+      - key: CSRF_SECRETS
+        sync: false
+      - key: CSRF_ACTIVE_VERSION
+        sync: false
+      - key: ACCOUNT_TOKEN_HASH_SECRETS
+        sync: false
+      - key: ACCOUNT_TOKEN_HASH_ACTIVE_VERSION
+        sync: false
+
+  - type: web
+    runtime: image
+    name: mercadozetta-frontend-staging
+    plan: starter
+    region: frankfurt
+    image:
+      url: ghcr.io/OWNER/mercadozetta-frontend-campus-market@sha256:IMAGE_DIGEST
+    healthCheckPath: /readyz
+    envVars:
+      - key: BACKEND_HOST
+        fromService:
+          type: pserv
+          name: mercadozetta-backend-staging
+          property: host
+      - key: BACKEND_PORT
+        fromService:
+          type: pserv
+          name: mercadozetta-backend-staging
+          property: port
+
+  - type: cron
+    runtime: image
+    name: mercadozetta-cleanup-staging
+    plan: starter
+    region: frankfurt
+    schedule: '17 3 * * *'
+    image:
+      url: ghcr.io/OWNER/mercadozetta-backend@sha256:IMAGE_DIGEST
+    dockerCommand: npm run cleanup:data:runtime
+    envVars: *backend-env
+
+databases:
+  - name: mercadozetta-postgres-staging
+    plan: basic-256mb
+    region: frankfurt
+    postgresMajorVersion: '18'
+    ipAllowList: []

@@ -1,0 +1,73 @@
+services:
+  migrate:
+    image: ${BACKEND_IMAGE:?Set an immutable backend image digest}
+    restart: 'no'
+    environment:
+      POSTGRESQL_URL: ${POSTGRESQL_URL:?Set the private managed PostgreSQL URL}
+    command: ['npm', 'run', 'db:migrate:runtime']
+
+  backend:
+    image: ${BACKEND_IMAGE:?Set an immutable backend image digest}
+    restart: unless-stopped
+    environment: &backend-env
+      NODE_ENV: production
+      POSTGRESQL_URL: ${POSTGRESQL_URL:?Set the private managed PostgreSQL URL}
+      JWT_SIGNING_KEYS: ${JWT_SIGNING_KEYS:?Set JWT_SIGNING_KEYS}
+      JWT_ACTIVE_KID: ${JWT_ACTIVE_KID:?Set JWT_ACTIVE_KID}
+      REFRESH_TOKEN_HASH_SECRETS: ${REFRESH_TOKEN_HASH_SECRETS:?Set REFRESH_TOKEN_HASH_SECRETS}
+      REFRESH_TOKEN_HASH_ACTIVE_VERSION: ${REFRESH_TOKEN_HASH_ACTIVE_VERSION:?Set REFRESH_TOKEN_HASH_ACTIVE_VERSION}
+      CSRF_SECRETS: ${CSRF_SECRETS:?Set CSRF_SECRETS}
+      CSRF_ACTIVE_VERSION: ${CSRF_ACTIVE_VERSION:?Set CSRF_ACTIVE_VERSION}
+      ACCOUNT_TOKEN_HASH_SECRETS: ${ACCOUNT_TOKEN_HASH_SECRETS:?Set ACCOUNT_TOKEN_HASH_SECRETS}
+      ACCOUNT_TOKEN_HASH_ACTIVE_VERSION: ${ACCOUNT_TOKEN_HASH_ACTIVE_VERSION:?Set ACCOUNT_TOKEN_HASH_ACTIVE_VERSION}
+      PORT: 3333
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
+      CORS_ORIGIN: ${CORS_ORIGIN:?Set the public staging origin}
+      PRODUCT_IMAGE_HOSTS: ${PRODUCT_IMAGE_HOSTS:-example.com,images.unsplash.com}
+      TENANT_HEADER_REQUIRED: 'true'
+      HEALTHCHECK_TENANT_ID: mercadozetta
+      RATE_LIMIT_AUTH_WINDOW_MS: ${RATE_LIMIT_AUTH_WINDOW_MS:-900000}
+      RATE_LIMIT_AUTH_MAX: ${RATE_LIMIT_AUTH_MAX:-5}
+      RATE_LIMIT_REGISTER_WINDOW_MS: ${RATE_LIMIT_REGISTER_WINDOW_MS:-900000}
+      RATE_LIMIT_REGISTER_MAX: ${RATE_LIMIT_REGISTER_MAX:-10}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "const http=require('http');const request=http.get({host:'127.0.0.1',port:3333,path:'/ready',headers:{'X-Tenant-Id':'mercadozetta'}},response=>process.exit(response.statusCode===200?0:1));request.on('error',()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  frontend:
+    image: ${FRONTEND_IMAGE:?Set an immutable frontend image digest}
+    restart: unless-stopped
+    environment:
+      BACKEND_HOST: backend
+      BACKEND_PORT: 3333
+    ports:
+      - '127.0.0.1:${APP_PORT:-8080}:8080'
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        ['CMD', 'wget', '--quiet', '--spider', 'http://127.0.0.1:8080/readyz']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  cleanup:
+    image: ${BACKEND_IMAGE:?Set an immutable backend image digest}
+    profiles: [job]
+    restart: 'no'
+    environment: *backend-env
+    command: ['npm', 'run', 'cleanup:data:runtime']

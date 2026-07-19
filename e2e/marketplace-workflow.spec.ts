@@ -3,6 +3,7 @@ import { expectPageToBeAccessible } from './accessibility';
 
 const campusMarket = process.env.E2E_TENANT_ID === 'campus-market';
 const tenantId = campusMarket ? 'campus-market' : 'mercadozetta';
+const apiUrl = process.env.E2E_API_URL || 'http://localhost:4333';
 
 const buyer = {
   email: `e2e.buyer@${tenantId}.test`,
@@ -40,7 +41,7 @@ async function login(
   await page.getByPlaceholder('Password').fill(credentials.password);
   const loginResponsePromise = page.waitForResponse(
     (response) =>
-      response.url() === 'http://localhost:4333/auth/login' &&
+      response.url() === `${apiUrl}/auth/login` &&
       response.request().method() === 'POST',
   );
   await page.getByRole('button', { name: 'Entrar' }).click();
@@ -62,7 +63,7 @@ test('registers a tenant buyer and completes checkout and fulfillment', async ({
 
   const registrationResponsePromise = page.waitForResponse(
     (response) =>
-      response.url() === 'http://localhost:4333/users' &&
+      response.url() === `${apiUrl}/users` &&
       response.request().method() === 'POST',
   );
   await page.getByRole('button', { name: 'Criar conta' }).click();
@@ -101,7 +102,7 @@ test('registers a tenant buyer and completes checkout and fulfillment', async ({
 
   const orderResponsePromise = page.waitForResponse(
     (response) =>
-      response.url() === 'http://localhost:4333/orders' &&
+      response.url() === `${apiUrl}/orders` &&
       response.request().method() === 'POST',
   );
   await page.getByRole('button', { name: 'Place order' }).click();
@@ -138,8 +139,7 @@ test('registers a tenant buyer and completes checkout and fulfillment', async ({
     for (const status of ['confirmed', 'shipped', 'delivered']) {
       const statusResponsePromise = sellerPage.waitForResponse(
         (response) =>
-          response.url() ===
-            `http://localhost:4333/orders/${order._id}/status` &&
+          response.url() === `${apiUrl}/orders/${order._id}/status` &&
           response.request().method() === 'PATCH',
       );
       await sellerPage

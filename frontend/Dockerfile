@@ -29,7 +29,7 @@ RUN npm run build
 
 FROM nginx:1.28.3-alpine3.23 AS production
 
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY nginx.conf /etc/nginx/nginx.conf.template
 COPY --from=build --chown=nginx:nginx /app/dist /usr/share/nginx/html
 
 USER nginx
@@ -39,4 +39,4 @@ HEALTHCHECK --interval=10s --timeout=3s --start-period=5s --retries=5 \
   CMD wget --quiet --spider http://127.0.0.1:8080/healthz || exit 1
 
 ENTRYPOINT []
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["sh", "-c", "sed -e \"s|__BACKEND_HOST__|${BACKEND_HOST:-backend}|g\" -e \"s|__BACKEND_PORT__|${BACKEND_PORT:-3333}|g\" /etc/nginx/nginx.conf.template > /tmp/nginx.conf && exec nginx -c /tmp/nginx.conf -g 'daemon off;' "]
