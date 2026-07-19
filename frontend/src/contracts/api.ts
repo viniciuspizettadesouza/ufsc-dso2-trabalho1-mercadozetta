@@ -2205,6 +2205,8 @@ export interface paths {
                     "X-Tenant-Id"?: string;
                     /** @description Session-bound double-submit proof required for cookie-authenticated mutations. */
                     "X-CSRF-Token": string;
+                    /** @description Client-generated checkout intent identifier. Reusing it for the same buyer returns the original order without repeating side effects. */
+                    "Idempotency-Key": string;
                 };
                 path?: never;
                 cookie?: never;
@@ -2260,7 +2262,7 @@ export interface paths {
                         "application/json": {
                             error: string;
                             /** @enum {string} */
-                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "INVALID_REQUEST" | "MISSING_PRODUCT_FIELDS" | "INVALID_PRODUCT_INVENTORY" | "INVALID_PRODUCT_STATUS" | "INVALID_PRODUCT_STATUS_INVENTORY" | "INVALID_PRODUCT_IMAGE_URL";
+                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "IDEMPOTENCY_KEY_REQUIRED" | "INVALID_IDEMPOTENCY_KEY" | "INVALID_REQUEST" | "MISSING_PRODUCT_FIELDS" | "INVALID_PRODUCT_INVENTORY" | "INVALID_PRODUCT_STATUS" | "INVALID_PRODUCT_STATUS_INVENTORY" | "INVALID_PRODUCT_IMAGE_URL";
                             details?: unknown;
                         };
                     };
@@ -2289,6 +2291,20 @@ export interface paths {
                             error: string;
                             /** @enum {string} */
                             code: "INVALID_ORIGIN" | "INVALID_CSRF_TOKEN";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Idempotency key was reused with a different product payload */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "IDEMPOTENCY_KEY_REUSED";
                             details?: unknown;
                         };
                     };
@@ -3352,6 +3368,8 @@ export interface paths {
                     limit?: number;
                     offset?: number;
                     scope?: "all" | "buyer" | "seller";
+                    status?: components["schemas"]["OrderStatus"];
+                    q?: string;
                 };
                 header?: {
                     /** @description Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise. */
@@ -3422,6 +3440,8 @@ export interface paths {
                     "X-Tenant-Id"?: string;
                     /** @description Session-bound double-submit proof required for cookie-authenticated mutations. */
                     "X-CSRF-Token": string;
+                    /** @description Client-generated checkout intent identifier. Reusing it for the same buyer returns the original order without repeating side effects. */
+                    "Idempotency-Key": string;
                 };
                 path?: never;
                 cookie?: never;
@@ -3473,7 +3493,7 @@ export interface paths {
                         "application/json": {
                             error: string;
                             /** @enum {string} */
-                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "EMPTY_CART";
+                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "IDEMPOTENCY_KEY_REQUIRED" | "INVALID_IDEMPOTENCY_KEY" | "EMPTY_CART";
                             details?: unknown;
                         };
                     };
@@ -3522,6 +3542,100 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/seller/operations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get seller inventory and order operations */
+        get: {
+            parameters: {
+                query?: {
+                    limit?: number;
+                    offset?: number;
+                    lowStockThreshold?: number;
+                };
+                header?: {
+                    /** @description Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise. */
+                    "X-Tenant-Id"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Tenant-scoped seller operations */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "summary": {
+                         *         "productCount": 0,
+                         *         "activeProductCount": 0,
+                         *         "lowStockProductCount": 0,
+                         *         "inventoryUnits": 0,
+                         *         "orderCount": 0,
+                         *         "openOrderCount": 0,
+                         *         "orderedUnits": 0
+                         *       },
+                         *       "lowStockProducts": [],
+                         *       "inventoryHistory": {
+                         *         "items": [],
+                         *         "page": {
+                         *           "limit": 20,
+                         *           "offset": 0,
+                         *           "total": 0,
+                         *           "hasMore": false
+                         *         }
+                         *       }
+                         *     }
+                         */
+                        "application/json": components["schemas"]["SellerOperations"];
+                    };
+                };
+                /** @description Invalid tenant, threshold, or pagination */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "INVALID_REQUEST";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Missing or invalid session */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "AUTH_TOKEN_REQUIRED" | "INVALID_AUTH_TOKEN";
+                            details?: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3753,6 +3867,8 @@ export interface paths {
                     "X-Tenant-Id"?: string;
                     /** @description Session-bound double-submit proof required for cookie-authenticated mutations. */
                     "X-CSRF-Token": string;
+                    /** @description Client-generated checkout intent identifier. Reusing it for the same buyer returns the original order without repeating side effects. */
+                    "Idempotency-Key": string;
                 };
                 path: {
                     productId: string;
@@ -3801,7 +3917,7 @@ export interface paths {
                         "application/json": {
                             error: string;
                             /** @enum {string} */
-                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "INVALID_RESOURCE_ID" | "INVALID_REQUEST";
+                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "IDEMPOTENCY_KEY_REQUIRED" | "INVALID_IDEMPOTENCY_KEY" | "INVALID_RESOURCE_ID" | "INVALID_REQUEST";
                             details?: unknown;
                         };
                     };
@@ -3844,6 +3960,20 @@ export interface paths {
                             error: string;
                             /** @enum {string} */
                             code: "PRODUCT_NOT_FOUND";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Idempotency key was reused with a different review payload */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "IDEMPOTENCY_KEY_REUSED";
                             details?: unknown;
                         };
                     };
@@ -4230,11 +4360,11 @@ export interface components {
          * @example 507f191e-810c-4197-9de8-60ea00000001
          */
         ResourceId: string;
+        /** @enum {string} */
+        OrderStatus: "placed" | "confirmed" | "shipped" | "delivered" | "cancelled";
         OrderStatusUpdateRequest: {
             status: components["schemas"]["OrderStatus"];
         };
-        /** @enum {string} */
-        OrderStatus: "placed" | "confirmed" | "shipped" | "delivered" | "cancelled";
         CreateReviewRequest: {
             rating: number;
             comment: string;
@@ -4433,6 +4563,54 @@ export interface components {
             seller: string;
             productName: string;
             quantity: number;
+        };
+        SellerOperations: {
+            summary: {
+                productCount: number;
+                activeProductCount: number;
+                lowStockProductCount: number;
+                inventoryUnits: number;
+                orderCount: number;
+                openOrderCount: number;
+                orderedUnits: number;
+            };
+            lowStockProducts: {
+                /**
+                 * Format: uuid
+                 * @example 507f191e-810c-4197-9de8-60ea00000001
+                 */
+                _id: string;
+                name: string;
+                inventory: number;
+                /** @enum {string} */
+                status: "draft" | "active" | "paused" | "sold_out";
+            }[];
+            inventoryHistory: {
+                items: components["schemas"]["InventoryHistoryEntry"][];
+                page: components["schemas"]["PageInfo"];
+            };
+        };
+        InventoryHistoryEntry: {
+            /**
+             * Format: uuid
+             * @example 507f191e-810c-4197-9de8-60ea00000001
+             */
+            _id: string;
+            /** @enum {string} */
+            eventType: "inventory.set" | "inventory.decremented";
+            /**
+             * Format: uuid
+             * @example 507f191e-810c-4197-9de8-60ea00000001
+             */
+            product: string;
+            productName: string;
+            previousInventory: number;
+            nextInventory: number;
+            quantity: number | null;
+            /** @example 507f191e-810c-4197-9de8-60ea00000001 */
+            orderId: string | null;
+            /** Format: date-time */
+            occurredAt: string;
         };
         ReviewList: {
             items: components["schemas"]["Review"][];

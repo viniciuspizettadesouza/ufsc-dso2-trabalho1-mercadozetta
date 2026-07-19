@@ -291,8 +291,17 @@ describe('security config', () => {
       'https://admin.example.com',
     ]);
 
+    const options = getCorsOptions();
+    expect(options.allowedHeaders).toEqual(
+      expect.arrayContaining([
+        'Content-Type',
+        'X-Tenant-Id',
+        'X-CSRF-Token',
+        'Idempotency-Key',
+      ]),
+    );
     const callback = vi.fn();
-    getCorsOptions().origin(undefined, callback);
+    options.origin(undefined, callback);
     expect(callback).toHaveBeenCalledWith(null, true);
   });
 

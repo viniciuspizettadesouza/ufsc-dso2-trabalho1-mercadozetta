@@ -95,7 +95,8 @@ the platform configuration. Never trust an unbounded proxy chain: client IPs
 feed authentication and registration rate limiting.
 
 An external proxy must preserve `Set-Cookie`, the request `Origin`,
-`X-Tenant-Id`, `X-CSRF-Token`, and the forwarded headers. It must also preserve
+`X-Tenant-Id`, `X-CSRF-Token`, `Idempotency-Key`, and the forwarded headers. It
+must also preserve
 the `/api` prefix contract or implement the same refresh-cookie path rewrite.
 
 ## Build, deploy, and verify

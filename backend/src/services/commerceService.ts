@@ -15,7 +15,12 @@ import type { ReviewRepository } from '@/repositories/reviewRepository';
 import type { WatchlistRepository } from '@/repositories/watchlistRepository';
 import type { Pagination } from '@/pagination';
 import type { CheckoutService } from '@/services/checkoutService';
+import {
+  idempotencyKeyConflict,
+  mutationRequestHash,
+} from '@/services/mutationIdempotencyService';
 import type { OrderListData } from '@/validators/commerceValidator';
+import type { SellerOperationsService } from '@/services/sellerOperationsService';
 
 async function getCartWithRepository(
   carts: CartRepository,
@@ -124,6 +129,15 @@ async function updateOrderStatusWithRepositories(
       'ORDER_FORBIDDEN',
       'Not authorized to update this order',
     );
+  if (order.status === status) {
+    const items = await orderItems.listByOrderIds(tenantId, [orderId]);
+    return {
+      ...order,
+      items: items.filter(
+        (item) => isBuyerCancellation || item.seller === userId,
+      ),
+    };
+  }
   const isValidSellerTransition =
     Boolean(sellerItem) && sellerOrderTransitions[order.status] === status;
   const isValidBuyerCancellation =
@@ -169,53 +183,75 @@ async function updateOrderStatusWithRepositories(
 }
 
 async function createReviewWithRepository(
-  reviews: ReviewRepository,
-  productRepository: ProductRepository,
-  notifications: NotificationRepository,
+  transactions: CheckoutTransactionCoordinator,
   userId: string,
   tenantId: string,
   productId: string,
   rating: number,
   comment: string,
+  idempotencyKey: string,
 ) {
-  const product = await productRepository.findById(tenantId, productId);
-  if (!product)
-    throw new AppError(404, 'PRODUCT_NOT_FOUND', 'Product not found');
-  if (String(product.seller) === userId)
-    throw new AppError(
-      403,
-      'REVIEW_FORBIDDEN',
-      'Sellers cannot review their own products',
-    );
-  const purchased = await reviews.hasPurchasedProduct(
-    tenantId,
-    userId,
-    productId,
-  );
-  if (!purchased)
-    throw new AppError(
-      403,
-      'REVIEW_PURCHASE_REQUIRED',
-      'Only buyers can review purchased products',
-    );
-  const now = new Date();
-  const review = await reviews.upsert(
-    tenantId,
-    productId,
-    userId,
-    rating,
-    comment,
-    now,
-  );
-  await notifications.create(
-    {
-      tenantId,
-      userId: String(product.seller),
-      message: `New review for ${product.name}`,
+  const requestHash = mutationRequestHash({ productId, rating, comment });
+  return transactions.run(
+    async ({ idempotency, products, reviews, notifications }) => {
+      const claim = await idempotency.claim({
+        tenantId,
+        actorId: userId,
+        operation: 'review.upsert',
+        key: idempotencyKey,
+        requestHash,
+        now: new Date(),
+      });
+      if (claim.outcome === 'conflict') throw idempotencyKeyConflict();
+      if (claim.outcome === 'replay') {
+        const replay = await reviews.findById(tenantId, claim.resourceId);
+        if (!replay) throw new Error('Idempotent review resource is missing');
+        return replay;
+      }
+
+      const product = await products.findById(tenantId, productId);
+      if (!product)
+        throw new AppError(404, 'PRODUCT_NOT_FOUND', 'Product not found');
+      if (String(product.seller) === userId)
+        throw new AppError(
+          403,
+          'REVIEW_FORBIDDEN',
+          'Sellers cannot review their own products',
+        );
+      if (!(await reviews.hasPurchasedProduct(tenantId, userId, productId)))
+        throw new AppError(
+          403,
+          'REVIEW_PURCHASE_REQUIRED',
+          'Only buyers can review purchased products',
+        );
+      const now = new Date();
+      const review = await reviews.upsert(
+        tenantId,
+        productId,
+        userId,
+        rating,
+        comment,
+        now,
+      );
+      await notifications.create(
+        {
+          tenantId,
+          userId: String(product.seller),
+          message: `New review for ${product.name}`,
+        },
+        now,
+      );
+      await idempotency.complete({
+        tenantId,
+        actorId: userId,
+        operation: 'review.upsert',
+        key: idempotencyKey,
+        requestHash,
+        resourceId: review._id,
+      });
+      return review;
     },
-    now,
   );
-  return review;
 }
 
 export function createWatchlistCommerceService(
@@ -240,8 +276,7 @@ export function createWatchlistCommerceService(
 
 export function createReviewCommerceService(
   reviews: ReviewRepository,
-  products: ProductRepository,
-  notifications: NotificationRepository,
+  transactions: CheckoutTransactionCoordinator,
 ) {
   return {
     listReviews: (
@@ -255,16 +290,16 @@ export function createReviewCommerceService(
       productId: string,
       rating: number,
       comment: string,
+      idempotencyKey: string,
     ) =>
       createReviewWithRepository(
-        reviews,
-        products,
-        notifications,
+        transactions,
         userId,
         tenantId,
         productId,
         rating,
         comment,
+        idempotencyKey,
       ),
   };
 }
@@ -370,4 +405,5 @@ export type CommerceService = ReturnType<typeof createCartCommerceService> &
   ReturnType<typeof createOrderCommerceService> &
   ReturnType<typeof createNotificationCommerceService> &
   ReturnType<typeof createWatchlistCommerceService> &
-  ReturnType<typeof createReviewCommerceService>;
+  ReturnType<typeof createReviewCommerceService> &
+  SellerOperationsService;

@@ -41,12 +41,44 @@ describe('SellerOrders', () => {
   });
 
   function mockOrders(data: unknown) {
-    vi.mocked(api.get).mockImplementation(async (url) => ({
-      data:
-        url === '/notifications/unread-count'
-          ? { count: 0 }
-          : paginatedResponse(data as object[]),
-    }));
+    vi.mocked(api.get).mockImplementation(async (url) => {
+      if (url === '/notifications/unread-count') return { data: { count: 0 } };
+      if (url.startsWith('/seller/operations')) {
+        return {
+          data: {
+            summary: {
+              productCount: 2,
+              activeProductCount: 1,
+              lowStockProductCount: 1,
+              inventoryUnits: 7,
+              orderCount: 3,
+              openOrderCount: 1,
+              orderedUnits: 4,
+            },
+            lowStockProducts: [
+              {
+                _id: 'product-1',
+                name: 'Coffee',
+                inventory: 2,
+                status: 'active',
+              },
+            ],
+            inventoryHistory: {
+              items: [
+                {
+                  _id: 'event-1',
+                  productName: 'Coffee',
+                  previousInventory: 3,
+                  nextInventory: 2,
+                },
+              ],
+              page: { limit: 10, offset: 0, total: 1, hasMore: false },
+            },
+          },
+        };
+      }
+      return { data: paginatedResponse(data as object[]) };
+    });
   }
 
   it('shows only the signed-in seller items and permitted next action', async () => {
@@ -73,6 +105,19 @@ describe('SellerOrders', () => {
     expect(
       screen.getByRole('button', { name: 'Mark as confirmed' }),
     ).toBeInTheDocument();
+    expect(screen.getByText('Coffee: 2 remaining')).toBeInTheDocument();
+    expect(screen.getByText('Coffee: 3 → 2')).toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText('Search orders'), 'Coffee');
+    await userEvent.selectOptions(screen.getByLabelText('Status'), 'placed');
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Apply filters' }),
+    );
+    await waitFor(() =>
+      expect(api.get).toHaveBeenCalledWith(
+        '/orders?scope=seller&status=placed&q=Coffee&limit=20&offset=0',
+      ),
+    );
   });
 
   it('advances an order through its permitted seller action', async () => {
@@ -123,9 +168,9 @@ describe('SellerOrders', () => {
 
     renderSellerOrders();
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Unable to load seller orders.',
-    );
+    expect(
+      await screen.findByText('Unable to load seller orders.'),
+    ).toBeInTheDocument();
   });
 
   it('preserves seller order state when progression fails', async () => {

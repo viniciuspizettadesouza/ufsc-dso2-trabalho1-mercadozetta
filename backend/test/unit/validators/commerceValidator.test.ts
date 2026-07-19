@@ -217,6 +217,7 @@ describe('commerce validator', () => {
       scope: 'seller',
       limit: 10,
       offset: 20,
+      q: '',
     });
     expect(() => validateOrderList({ scope: 'admin' })).toThrow();
   });

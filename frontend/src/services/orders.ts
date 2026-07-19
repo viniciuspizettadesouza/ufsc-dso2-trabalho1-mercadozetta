@@ -13,6 +13,8 @@ export type OrderListRequest = {
   scope: 'buyer' | 'seller';
   limit: number | null;
   offset: number | null;
+  status: OrderStatus | '';
+  q: string;
 };
 
 export async function listOrders(
@@ -22,8 +24,10 @@ export async function listOrders(
   return response.data;
 }
 
-export async function createOrder(): Promise<Order> {
-  const response = await api.post<Order>(apiRoutes.orders);
+export async function createOrder(idempotencyKey: string): Promise<Order> {
+  const response = await api.post<Order>(apiRoutes.orders, undefined, {
+    headers: { 'Idempotency-Key': idempotencyKey },
+  });
   return response.data;
 }
 
@@ -39,7 +43,10 @@ export async function updateOrderStatus(
 }
 
 function orderListPath(request: OrderListRequest) {
-  const path = `${apiRoutes.orders}?scope=${request.scope}`;
+  const parameters = new URLSearchParams({ scope: request.scope });
+  if (request.status) parameters.set('status', request.status);
+  if (request.q) parameters.set('q', request.q);
+  const path = `${apiRoutes.orders}?${parameters.toString()}`;
   return request.limit === null || request.offset === null
     ? path
     : withPage(path, request.offset, request.limit);

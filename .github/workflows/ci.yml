@@ -24,6 +24,32 @@ env:
   HUSKY: 0
 
 jobs:
+  audit:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Audit root dependencies
+        run: npm audit --audit-level=high
+
+      - name: Audit backend dependencies
+        run: npm --prefix backend audit --audit-level=high
+
+      - name: Audit frontend dependencies
+        run: npm --prefix frontend audit --audit-level=high
+
   validate:
     runs-on: ubuntu-24.04
 
@@ -50,41 +76,32 @@ jobs:
       - name: Install frontend dependencies
         run: npm --prefix frontend ci
 
-      - name: Audit root dependencies
-        run: npm audit --audit-level=high
-
-      - name: Audit backend dependencies
-        run: npm --prefix backend audit --audit-level=high
-
-      - name: Audit frontend dependencies
-        run: npm --prefix frontend audit --audit-level=high
-
-      - name: Typecheck backend
-        run: npm run typecheck
+      - name: Check formatting
+        run: npm run format:check
 
       - name: Check generated API types
         run: npm run check:api-types
 
-      - name: Check formatting
-        run: npm run format:check
-
       - name: Lint backend
         run: npm run lint:backend
+
+      - name: Lint frontend
+        run: npm run lint:frontend
+
+      - name: Typecheck backend
+        run: npm run typecheck
+
+      - name: Build frontend
+        run: npm --prefix frontend run build
 
       - name: Test backend
         run: npm run test:backend
 
-      - name: Test database integration
-        run: npm run test:integration
-
       - name: Test frontend
         run: npm run test:frontend
 
-      - name: Lint frontend
-        run: npm --prefix frontend run lint
-
-      - name: Build frontend
-        run: npm --prefix frontend run build
+      - name: Test database integration
+        run: npm run test:integration
 
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium

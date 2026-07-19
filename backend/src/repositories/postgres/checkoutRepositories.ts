@@ -42,6 +42,8 @@ import { PostgresSessionRepository } from '@/repositories/postgres/sessionReposi
 import { PostgresPendingEmailChangeRepository } from '@/repositories/postgres/pendingEmailChangeRepository';
 import { PostgresUserRepository } from '@/repositories/postgres/userRepository';
 import { PostgresAccountLifecycleRepository } from '@/repositories/postgres/accountLifecycleRepository';
+import { PostgresMutationIdempotencyRepository } from '@/repositories/postgres/mutationIdempotencyRepository';
+import { PostgresReviewRepository } from '@/repositories/postgres/commerceRepositories';
 import { mapProductRow } from '@/repositories/mappers';
 import { paginated } from '@/pagination';
 import type { Pagination } from '@/pagination';
@@ -229,7 +231,12 @@ export class PostgresOrderRepository implements OrderRepository {
     }));
   }
 
-  async createPlaced(tenantId: string, buyerId: string, now: Date) {
+  async createPlaced(
+    tenantId: string,
+    buyerId: string,
+    idempotencyKey: string,
+    now: Date,
+  ) {
     const id = randomUUID();
     const [order] = await this.db
       .insert(orders)
@@ -237,6 +244,7 @@ export class PostgresOrderRepository implements OrderRepository {
         id,
         tenantId,
         buyerId,
+        checkoutIdempotencyKey: idempotencyKey,
         status: 'placed',
         createdAt: now,
         updatedAt: now,
@@ -261,6 +269,25 @@ export class PostgresOrderRepository implements OrderRepository {
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
     };
+  }
+
+  async findByCheckoutIdempotencyKey(
+    tenantId: string,
+    buyerId: string,
+    idempotencyKey: string,
+  ) {
+    const rows = await this.db
+      .select()
+      .from(orders)
+      .where(
+        and(
+          eq(orders.tenantId, tenantId),
+          eq(orders.buyerId, buyerId),
+          eq(orders.checkoutIdempotencyKey, idempotencyKey),
+        ),
+      )
+      .limit(1);
+    return (await this.mapOrders(rows))[0] || null;
   }
 
   async findById(tenantId: string, orderId: string) {
@@ -311,7 +338,33 @@ export class PostgresOrderRepository implements OrderRepository {
         : pagination.scope === 'seller'
           ? exists(sellerOrder)
           : or(eq(orders.buyerId, userId), exists(sellerOrder));
-    const where = and(eq(orders.tenantId, tenantId), visibility);
+    const escapedQuery = pagination.q.replace(/[\\%_]/g, '\\$&');
+    const pattern = `%${escapedQuery}%`;
+    const searchItems = this.db
+      .select({ value: sql`1` })
+      .from(orderItems)
+      .where(
+        and(
+          eq(orderItems.tenantId, orders.tenantId),
+          eq(orderItems.orderId, orders.id),
+          pagination.scope === 'seller'
+            ? eq(orderItems.sellerId, userId)
+            : undefined,
+          sql`${orderItems.productName} ilike ${pattern} escape '\\'`,
+        ),
+      );
+    const search = pagination.q
+      ? or(
+          sql`${orders.id}::text ilike ${pattern} escape '\\'`,
+          exists(searchItems),
+        )
+      : undefined;
+    const where = and(
+      eq(orders.tenantId, tenantId),
+      visibility,
+      pagination.status ? eq(orders.status, pagination.status) : undefined,
+      search,
+    );
     const [rows, [{ total }]] = await Promise.all([
       this.db
         .select()
@@ -535,6 +588,8 @@ function repositories(db: TransactionDatabase): MutationRepositories {
     orderItems: new PostgresOrderItemRepository(db),
     orders: new PostgresOrderRepository(db),
     products: new PostgresProductRepository(db),
+    idempotency: new PostgresMutationIdempotencyRepository(db),
+    reviews: new PostgresReviewRepository(db),
     sessions: new PostgresSessionRepository(db),
     users: new PostgresUserRepository(db),
   };

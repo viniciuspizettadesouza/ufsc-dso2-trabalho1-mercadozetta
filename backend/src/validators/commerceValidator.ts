@@ -118,6 +118,8 @@ export const reviewErrorCodes = {
   createRequest: [
     'TENANT_HEADER_REQUIRED',
     'INVALID_TENANT',
+    'IDEMPOTENCY_KEY_REQUIRED',
+    'INVALID_IDEMPOTENCY_KEY',
     'INVALID_RESOURCE_ID',
     'INVALID_REQUEST',
   ],
@@ -129,6 +131,7 @@ export const reviewErrorCodes = {
     'REVIEW_PURCHASE_REQUIRED',
   ],
   productNotFound: ['PRODUCT_NOT_FOUND'],
+  idempotencyConflict: ['IDEMPOTENCY_KEY_REUSED'],
 } as const;
 
 export const reviewInvalidRequestExamples = {
@@ -188,7 +191,13 @@ export const orderListResponseSchema = paginatedResponseSchema(
 
 export const orderErrorCodes = {
   listRequest: ['TENANT_HEADER_REQUIRED', 'INVALID_TENANT', 'INVALID_REQUEST'],
-  checkoutRequest: ['TENANT_HEADER_REQUIRED', 'INVALID_TENANT', 'EMPTY_CART'],
+  checkoutRequest: [
+    'TENANT_HEADER_REQUIRED',
+    'INVALID_TENANT',
+    'IDEMPOTENCY_KEY_REQUIRED',
+    'INVALID_IDEMPOTENCY_KEY',
+    'EMPTY_CART',
+  ],
   statusRequest: [
     'TENANT_HEADER_REQUIRED',
     'INVALID_TENANT',
@@ -268,8 +277,59 @@ export const notificationInvalidRequestExamples = {
 } as const;
 export const orderListSchema = paginationSchema.extend({
   scope: z.enum(['all', 'buyer', 'seller']).default('all'),
+  status: orderStatusResponseSchema.optional(),
+  q: z.string().trim().max(100).default(''),
 });
 export type OrderListData = z.infer<typeof orderListSchema>;
+
+export const sellerOperationsQuerySchema = paginationSchema.extend({
+  lowStockThreshold: z.coerce.number().int().min(0).max(100_000).default(5),
+});
+export type SellerOperationsQuery = z.infer<typeof sellerOperationsQuerySchema>;
+
+export const inventoryHistoryEntryResponseSchema = z
+  .object({
+    _id: z.string().uuid().meta({ example: UUID_EXAMPLE }),
+    eventType: z.enum(['inventory.set', 'inventory.decremented']),
+    product: z.string().uuid().meta({ example: UUID_EXAMPLE }),
+    productName: z.string(),
+    previousInventory: z.int().min(0),
+    nextInventory: z.int().min(0),
+    quantity: z.int().positive().nullable(),
+    orderId: z.string().uuid().nullable().meta({ example: UUID_EXAMPLE }),
+    occurredAt: z.iso.datetime(),
+  })
+  .meta({ id: 'InventoryHistoryEntry' });
+
+export const sellerOperationsResponseSchema = z
+  .object({
+    summary: z.object({
+      productCount: z.int().min(0),
+      activeProductCount: z.int().min(0),
+      lowStockProductCount: z.int().min(0),
+      inventoryUnits: z.int().min(0),
+      orderCount: z.int().min(0),
+      openOrderCount: z.int().min(0),
+      orderedUnits: z.int().min(0),
+    }),
+    lowStockProducts: z.array(
+      z.object({
+        _id: z.string().uuid().meta({ example: UUID_EXAMPLE }),
+        name: z.string(),
+        inventory: z.int().min(0),
+        status: z.enum(['draft', 'active', 'paused', 'sold_out']),
+      }),
+    ),
+    inventoryHistory: paginatedResponseSchema(
+      inventoryHistoryEntryResponseSchema,
+    ),
+  })
+  .meta({ id: 'SellerOperations' });
+
+export const sellerOperationsErrorCodes = {
+  request: ['TENANT_HEADER_REQUIRED', 'INVALID_TENANT', 'INVALID_REQUEST'],
+  authentication: ['AUTH_TOKEN_REQUIRED', 'INVALID_AUTH_TOKEN'],
+} as const;
 
 export const validateResourceId = (value: unknown) =>
   parseAppSchema(resourceIdSchema, value);
@@ -283,3 +343,5 @@ export const validateNotificationRead = (value: object) =>
   parseAppSchema(notificationReadRequestSchema, value);
 export const validateOrderList = (value: object) =>
   parseAppSchema(orderListSchema, value);
+export const validateSellerOperations = (value: object) =>
+  parseAppSchema(sellerOperationsQuerySchema, value);

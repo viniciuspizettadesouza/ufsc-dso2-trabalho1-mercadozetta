@@ -124,6 +124,17 @@ export function createEmailChangeService(
           if (await users.emailExists(tenantId, data.email))
             throw emailUnavailable();
 
+          const pending = await pendingEmailChanges.findByUserForUpdate(
+            tenantId,
+            userId,
+          );
+          if (
+            pending?.email.toLowerCase() === data.email &&
+            pending.emailVersion === locked.emailVersion &&
+            pending.expiresAt.getTime() > now.getTime()
+          )
+            return null;
+
           await accountTokens.invalidateActive(
             tenantId,
             userId,
@@ -174,7 +185,7 @@ export function createEmailChangeService(
       mapEmailConflict(error);
     }
 
-    dispatchAccountMessage(sender, message);
+    if (message) dispatchAccountMessage(sender, message);
     return EMAIL_CHANGE_REQUEST_RESPONSE;
   }
 

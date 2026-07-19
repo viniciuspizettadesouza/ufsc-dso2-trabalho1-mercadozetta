@@ -41,7 +41,7 @@ database contains newer migrations. Image rollback must use the compatibility
 decision for that release; a successful no-op invocation of an old migration
 runner is not proof that the old application is safe.
 
-## Audit of migrations 0000 through 0004
+## Audit of migrations 0000 through 0005
 
 | Migration                      | Change and data work                                                                                                                                       | Preceding application on migrated schema                                                                                                           | Supported overlap and rollback                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -50,6 +50,7 @@ runner is not proof that the old application is safe.
 | `0002_easy_jasper_sitwell.sql` | Adds append-only audit events, indexes, and mutation-rejection triggers; no reconstructable audit backfill.                                                | Structurally yes; the preceding application ignores the new table.                                                                                 | Mixed writes are not semantically supported because the preceding application does not append the required audit events. Drain audited mutations for rollout or rollback. Leave audit rows and triggers in place during application rollback; never erase audit evidence as an ordinary rollback step.                                                                                                                                                                                |
 | `0003_famous_miek.sql`         | Adds account tokens, user email verification/version fields, constraints and indexes, expands audit event types, and backfills existing users as verified. | Yes for the historical release: added fields have compatible defaults/nullability, and verification/recovery was not yet exposed by public routes. | A bounded old/new overlap is structurally safe only while login enforcement remains unchanged. Application rollback may leave token rows and added columns in place, but disables the newer verification/recovery behavior. The whole-table user backfill and constraint changes require lock-duration rehearsal before use on a populated production-sized table.                                                                                                                    |
 | `0004_melted_nekra.sql`        | Adds pending email changes and `users.deactivated_at`, expands account-token constraints and audit event types; no row backfill.                           | Structurally yes; the preceding application ignores the additions.                                                                                 | Mixed application versions are not supported after account deactivation is enabled: a pre-`0004` application does not enforce `deactivated_at` and could restore login or public visibility. Drain old writers before activation. Do not roll back to a pre-deactivation application after any account is deactivated unless traffic is stopped and a separately reviewed compensation preserves the security boundary. Leave the schema and retained account/audit records in place. |
+| `0005_special_marauders.sql`   | Adds the order checkout-idempotency UUID, backfills existing orders, installs a safe default, and enforces tenant/buyer/key uniqueness.                    | Structurally yes; preceding writers receive a generated key from PostgreSQL, but they do not honor a client key or provide replay semantics.       | Drain checkout requests across the application switch so every accepted request receives one consistent idempotency contract. Application rollback may leave the populated column, default, and constraint in place. At production scale, rehearse and, if necessary, replace the one-shot backfill with bounded batches before deployment.                                                                                                                                           |
 
 This table records compatibility of the existing history; it does not authorize
 editing an applied migration. Migration SQL, Drizzle snapshots, and journal
@@ -107,7 +108,7 @@ For each migration release, its change record must contain:
 - readiness plus critical catalog, login, checkout, fulfillment, session, and
   affected-feature smoke checks.
 
-For the existing history, an empty database must apply `0000` through `0004`
+For the existing history, an empty database must apply `0000` through `0006`
 and match the checked-in schema contract. An upgrade rehearsal from each
 supported prior release must also pass. The `0003` rehearsal must record the
 preexisting-user count and prove those users received non-null
@@ -115,6 +116,12 @@ preexisting-user count and prove those users received non-null
 prove its new table and constraints exist, pending email uniqueness is
 tenant-scoped and case-insensitive, and no existing account, commerce, or audit
 row changed.
+
+Migration `0005` compatibly adds checkout replay keys. Migration `0006` adds
+tenant/actor/operation-scoped product and review replay records without
+rewriting existing domain rows. Its key, request fingerprint, and resource
+identifier contain no request body or secret and remain retained while the
+replayed commerce resource remains available.
 
 Abort before migration when the expected previous migration is absent, an
 unknown migration or schema drift is present, a second runner exists, the

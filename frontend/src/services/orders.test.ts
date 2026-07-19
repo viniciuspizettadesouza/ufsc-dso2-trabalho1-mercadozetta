@@ -31,6 +31,7 @@ const orders = {
   items: [order],
   page: { limit: 20, offset: 0, total: 1, hasMore: false },
 } satisfies OrderList;
+const idempotencyKey = '33333333-3333-4333-8333-333333333333';
 
 describe('order service', () => {
   beforeEach(() => {
@@ -48,6 +49,8 @@ describe('order service', () => {
         scope: 'buyer',
         limit: null,
         offset: null,
+        status: '',
+        q: '',
       }),
     ).resolves.toBe(orders);
 
@@ -62,6 +65,8 @@ describe('order service', () => {
       scope: 'seller',
       limit: 20,
       offset: 40,
+      status: '',
+      q: '',
     });
 
     expect(api.get).toHaveBeenCalledWith(
@@ -69,12 +74,31 @@ describe('order service', () => {
     );
   });
 
+  it('serializes seller status and escaped text filters', async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: orders });
+
+    await listOrders({
+      userId: 'seller-1',
+      scope: 'seller',
+      limit: 20,
+      offset: 0,
+      status: 'confirmed',
+      q: 'Coffee beans',
+    });
+
+    expect(api.get).toHaveBeenCalledWith(
+      '/orders?scope=seller&status=confirmed&q=Coffee+beans&limit=20&offset=0',
+    );
+  });
+
   it('checks out and returns the created order', async () => {
     vi.mocked(api.post).mockResolvedValue({ data: order });
 
-    await expect(createOrder()).resolves.toBe(order);
+    await expect(createOrder(idempotencyKey)).resolves.toBe(order);
 
-    expect(api.post).toHaveBeenCalledWith('/orders');
+    expect(api.post).toHaveBeenCalledWith('/orders', undefined, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
   });
 
   it('updates lifecycle status and returns the server order', async () => {

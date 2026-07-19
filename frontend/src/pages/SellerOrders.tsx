@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { type FormEvent, useState } from 'react';
 
 import Header from '@/pages/header';
 import { useAuth } from '@/auth/AuthContext';
@@ -17,6 +17,8 @@ import {
   useAdvanceOrder,
   useOrderList,
 } from '@/serverState/orders';
+import { useSellerOperations } from '@/serverState/sellerOperations';
+import type { SellerOperationsRequest } from '@/services/sellerOperations';
 
 const nextStatus: Partial<Record<OrderStatus, OrderStatus>> = {
   placed: 'confirmed',
@@ -51,8 +53,20 @@ function SellerOrdersPage({
     scope: 'seller',
     limit: null,
     offset: null,
+    status: '',
+    q: '',
   }));
+  const [search, setSearch] = useState('');
+  const [status, setStatus] = useState<OrderStatus | ''>('');
+  const [operationsRequest, setOperationsRequest] =
+    useState<SellerOperationsRequest>(() => ({
+      userId: sellerId,
+      lowStockThreshold: 5,
+      limit: 10,
+      offset: 0,
+    }));
   const orderQuery = useOrderList(orderRequest, enabled);
+  const operationsQuery = useSellerOperations(operationsRequest, enabled);
   const updateOrder = useAdvanceOrder(orderRequest);
   const orders = orderQuery.data?.items ?? [];
   const page = orderQuery.data?.page ?? firstPage;
@@ -63,6 +77,20 @@ function SellerOrdersPage({
       scope: 'seller',
       limit: page.limit,
       offset,
+      status: orderRequest.status,
+      q: orderRequest.q,
+    });
+  }
+
+  function filterOrders(event: FormEvent) {
+    event.preventDefault();
+    setOrderRequest({
+      userId: sellerId,
+      scope: 'seller',
+      limit: page.limit,
+      offset: 0,
+      status,
+      q: search.trim(),
     });
   }
 
@@ -96,6 +124,101 @@ function SellerOrdersPage({
       <Header />
       <main className="mx-auto max-w-[900px] px-4 py-8">
         <h1 className="text-3xl font-bold">Seller orders</h1>
+        {operationsQuery.data && (
+          <section aria-labelledby="operations-heading">
+            <h2 id="operations-heading">Operations overview</h2>
+            <dl>
+              <div>
+                <dt>Products</dt>
+                <dd>{operationsQuery.data.summary.productCount}</dd>
+              </div>
+              <div>
+                <dt>Inventory units</dt>
+                <dd>{operationsQuery.data.summary.inventoryUnits}</dd>
+              </div>
+              <div>
+                <dt>Orders</dt>
+                <dd>{operationsQuery.data.summary.orderCount}</dd>
+              </div>
+              <div>
+                <dt>Open orders</dt>
+                <dd>{operationsQuery.data.summary.openOrderCount}</dd>
+              </div>
+              <div>
+                <dt>Ordered units</dt>
+                <dd>{operationsQuery.data.summary.orderedUnits}</dd>
+              </div>
+            </dl>
+            <h3>Low-stock warnings</h3>
+            {operationsQuery.data.lowStockProducts.length ? (
+              <ul>
+                {operationsQuery.data.lowStockProducts.map((product) => (
+                  <li key={product._id}>
+                    {product.name}: {product.inventory} remaining
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No low-stock products.</p>
+            )}
+            <h3>Inventory history</h3>
+            {operationsQuery.data.inventoryHistory.items.length ? (
+              <ul>
+                {operationsQuery.data.inventoryHistory.items.map((entry) => (
+                  <li key={entry._id}>
+                    {entry.productName}: {entry.previousInventory} →{' '}
+                    {entry.nextInventory}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No inventory changes recorded.</p>
+            )}
+            {operationsQuery.data.inventoryHistory.page.total >
+              operationsQuery.data.inventoryHistory.page.limit && (
+              <PaginationControls
+                label="Inventory history pages"
+                page={operationsQuery.data.inventoryHistory.page}
+                onPage={(offset) =>
+                  setOperationsRequest((current) => ({ ...current, offset }))
+                }
+              />
+            )}
+          </section>
+        )}
+        {enabled && operationsQuery.isPending && (
+          <p role="status">Loading seller operations...</p>
+        )}
+        {operationsQuery.isError && !operationsQuery.data && (
+          <p role="alert">Unable to load seller operations.</p>
+        )}
+        <form onSubmit={filterOrders}>
+          <label htmlFor="order-search">Search orders</label>
+          <input
+            id="order-search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Order ID or product name"
+          />
+          <label htmlFor="order-status">Status</label>
+          <select
+            id="order-status"
+            value={status}
+            onChange={(event) =>
+              setStatus(event.target.value as OrderStatus | '')
+            }
+          >
+            <option value="">All statuses</option>
+            <option value="placed">Placed</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="shipped">Shipped</option>
+            <option value="delivered">Delivered</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <Button type="submit" variant="primary">
+            Apply filters
+          </Button>
+        </form>
         <MutationFeedbackMessage feedback={feedback} />
         {enabled && orderQuery.isPending ? (
           <p role="status">Loading seller orders...</p>

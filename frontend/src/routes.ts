@@ -52,6 +52,7 @@ export const apiRoutes = {
   watchlistItem: (productId: string) => `/watchlist/${productId}`,
   orders: '/orders',
   orderStatus: (orderId: string) => `/orders/${orderId}/status`,
+  sellerOperations: '/seller/operations',
   reviews: (productId: string) => `/products/${productId}/reviews`,
   notifications: '/notifications',
   notification: (notificationId: string) => `/notifications/${notificationId}`,

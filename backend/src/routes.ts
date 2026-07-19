@@ -25,6 +25,7 @@ import {
   passwordChangeRateLimiter,
 } from '@/middleware/rateLimit';
 import validateRequest from '@/middleware/validateRequest';
+import { requireIdempotencyKey } from '@/middleware/idempotency';
 import {
   validateCreateProductPayload,
   validateProductFilters,
@@ -55,6 +56,7 @@ import {
   validateResourceId,
   validateReview,
   validateOrderList,
+  validateSellerOperations,
 } from '@/validators/commerceValidator';
 
 export type RouteDependencies = {
@@ -281,6 +283,7 @@ export function createRoutes(dependencies: RouteDependencies) {
     '/products',
     authMiddleware,
     requireCsrf,
+    requireIdempotencyKey,
     validateRequest({ body: validateCreateProductPayload }),
     asyncHandler(ProductController.add),
   );
@@ -369,7 +372,14 @@ export function createRoutes(dependencies: RouteDependencies) {
     '/orders',
     authMiddleware,
     requireCsrf,
+    requireIdempotencyKey,
     asyncHandler(CommerceController.createOrder),
+  );
+  routes.get(
+    '/seller/operations',
+    authMiddleware,
+    validateRequest({ query: validateSellerOperations }),
+    asyncHandler(CommerceController.getSellerOperations),
   );
   routes.patch(
     '/orders/:orderId/status',
@@ -393,6 +403,7 @@ export function createRoutes(dependencies: RouteDependencies) {
     '/products/:productId/reviews',
     authMiddleware,
     requireCsrf,
+    requireIdempotencyKey,
     validateRequest({
       params: resourceParams('productId'),
       body: validateReview,

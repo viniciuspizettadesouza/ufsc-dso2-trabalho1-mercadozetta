@@ -59,6 +59,9 @@ import {
   reviewInvalidRequestExamples,
   reviewListResponseSchema,
   reviewResponseSchema,
+  sellerOperationsErrorCodes,
+  sellerOperationsQuerySchema,
+  sellerOperationsResponseSchema,
   unreadNotificationCountResponseSchema,
   watchlistEntryResponseSchema,
   watchlistErrorCodes,
@@ -96,6 +99,15 @@ const csrfHeader = z.string().meta({
     'Session-bound double-submit proof required for cookie-authenticated mutations.',
   example: 'nonce.signature',
 });
+const idempotencyHeader = z
+  .string()
+  .uuid()
+  .meta({
+    param: { name: 'Idempotency-Key', in: 'header' },
+    description:
+      'Client-generated checkout intent identifier. Reusing it for the same buyer returns the original order without repeating side effects.',
+    example: UUID_EXAMPLE,
+  });
 
 const welcomeSchema = z.object({ message: z.string() }).meta({ id: 'Welcome' });
 const healthSchema = z
@@ -918,7 +930,7 @@ export function createOpenApiDocument() {
           tags: ['Products'],
           summary: 'Create a product',
           security: [{ cookieAuth: [] }],
-          parameters: [tenantHeader, csrfHeader],
+          parameters: [tenantHeader, csrfHeader, idempotencyHeader],
           requestBody: {
             required: true,
             content: json(createProductSchema, {
@@ -948,6 +960,10 @@ export function createOpenApiDocument() {
             403: appErrors(
               'Origin or CSRF validation failed',
               productErrorCodes.csrf,
+            ),
+            409: appErrors(
+              'Idempotency key was reused with a different product payload',
+              productErrorCodes.idempotencyConflict,
             ),
           },
         },
@@ -1284,7 +1300,7 @@ export function createOpenApiDocument() {
           tags: ['Commerce'],
           summary: 'Place an order from the current cart',
           security: [{ cookieAuth: [] }],
-          parameters: [tenantHeader, csrfHeader],
+          parameters: [tenantHeader, csrfHeader, idempotencyHeader],
           responses: {
             201: {
               description: 'Order placed',
@@ -1308,6 +1324,44 @@ export function createOpenApiDocument() {
               {
                 INSUFFICIENT_INVENTORY: orderInvalidRequestExamples.inventory,
               },
+            ),
+          },
+        },
+      },
+      '/seller/operations': {
+        get: {
+          tags: ['Commerce'],
+          summary: 'Get seller inventory and order operations',
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader],
+          requestParams: { query: sellerOperationsQuerySchema },
+          responses: {
+            200: {
+              description: 'Tenant-scoped seller operations',
+              content: json(sellerOperationsResponseSchema, {
+                summary: {
+                  productCount: 0,
+                  activeProductCount: 0,
+                  lowStockProductCount: 0,
+                  inventoryUnits: 0,
+                  orderCount: 0,
+                  openOrderCount: 0,
+                  orderedUnits: 0,
+                },
+                lowStockProducts: [],
+                inventoryHistory: {
+                  items: [],
+                  page: { ...pageExample, total: 0 },
+                },
+              }),
+            },
+            400: appErrors(
+              'Invalid tenant, threshold, or pagination',
+              sellerOperationsErrorCodes.request,
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              sellerOperationsErrorCodes.authentication,
             ),
           },
         },
@@ -1391,7 +1445,7 @@ export function createOpenApiDocument() {
           tags: ['Commerce'],
           summary: 'Create or update a verified-buyer review',
           security: [{ cookieAuth: [] }],
-          parameters: [tenantHeader, csrfHeader],
+          parameters: [tenantHeader, csrfHeader, idempotencyHeader],
           requestParams: { path: z.object({ productId: resourceId }) },
           requestBody: {
             required: true,
@@ -1430,6 +1484,10 @@ export function createOpenApiDocument() {
             404: appErrors(
               'Product not found',
               reviewErrorCodes.productNotFound,
+            ),
+            409: appErrors(
+              'Idempotency key was reused with a different review payload',
+              reviewErrorCodes.idempotencyConflict,
             ),
           },
         },

@@ -49,6 +49,8 @@ priorities, and session handoff belong only in the
   behavior.
 - View only the line items they sold, even when an order contains products from
   several sellers.
+- Search and filter those orders, monitor tenant-scoped quantity/order totals
+  and low-stock warnings, and review inventory-change history.
 - Move orders through `placed → confirmed → shipped → delivered` one step at a
   time.
 - Receive notifications for new orders and reviews.
@@ -331,9 +333,12 @@ Catalog, seller-product, order, review, and notification lists accept `limit`
 `{ items, page: { limit, offset, total, hasMore } }`. Offset pagination is used
 because catalog queries support several user-selected sort orders; every order
 has deterministic UUID tie-breakers. Order lists additionally accept `scope`
-(`all`, `buyer`, or `seller`), and seller scope returns only the authenticated
-seller's line items. Frontend pages still declare local approximate response
-types rather than consuming generated or shared contract types.
+(`all`, `buyer`, or `seller`), lifecycle status, and order-ID/product-name
+search; seller scope returns only the authenticated seller's line items. The
+seller operations endpoint and page add quantity/order summaries, low-stock
+warnings, and paginated inventory history. See
+[the marketplace operations baseline](marketplace-operations.md). Frontend
+services consume generated OpenAPI response types.
 
 ## 11. Local development
 
@@ -364,8 +369,8 @@ The testing strategy separates concerns by what each layer can establish:
 
 Type-checking, lint, formatting, dependency audit, build, and test commands are
 kept in the [README command reference](../README.md#common-commands). The
-current CI runs the database integration lane but not coverage or the available
-isolated Chromium authentication lane.
+current CI runs the database integration and isolated Chromium browser lanes,
+but not coverage.
 
 ## 13. Deployment model
 
@@ -412,11 +417,13 @@ recovery automation.
   versions for their documented overlap windows.
 - Catalog and seller filtering/sorting and all bounded list windows execute in
   PostgreSQL. Offset pages can shift when concurrent writes change earlier rows.
-- Product creation, editing, archival/reactivation, and current inventory
-  adjustment exist, but inventory history is not yet recorded.
+- Product creation, editing, archival/reactivation, current inventory adjustment,
+  and seller-scoped inventory history are implemented.
 - Orders have no price, payment, address, shipment, return, refund, or dispute
   models. Cancellation does not replenish stock.
-- Checkout lacks an idempotency key or equivalent duplicate-request protection.
+- Checkout, product creation, and review upsert use scoped idempotency keys;
+  target-state retries suppress duplicate lifecycle, inventory, and profile
+  audit writes.
 - Review eligibility means “has an order item,” not “has a delivered,
   non-cancelled purchase.”
 - The product does not define privileged administrator roles or a privileged

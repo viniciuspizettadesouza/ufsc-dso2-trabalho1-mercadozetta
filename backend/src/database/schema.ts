@@ -361,11 +361,19 @@ export const orders = pgTable(
         onUpdate: 'restrict',
       }),
     buyerId: uuid('buyer_id').notNull(),
+    checkoutIdempotencyKey: uuid('checkout_idempotency_key')
+      .defaultRandom()
+      .notNull(),
     status: text().default('placed').notNull(),
     ...lifecycleTimestamps(),
   },
   (table) => [
     unique('orders_tenant_id_id_key').on(table.tenantId, table.id),
+    unique('orders_checkout_idempotency_key').on(
+      table.tenantId,
+      table.buyerId,
+      table.checkoutIdempotencyKey,
+    ),
     foreignKey({
       name: 'orders_tenant_buyer_fkey',
       columns: [table.tenantId, table.buyerId],
@@ -470,6 +478,45 @@ export const orderStatusHistory = pgTable(
     check(
       'order_status_history_status_check',
       sql`${table.status} in ('placed', 'confirmed', 'shipped', 'delivered', 'cancelled')`,
+    ),
+  ],
+);
+
+export const mutationIdempotency = pgTable(
+  'mutation_idempotency',
+  {
+    tenantId: text('tenant_id').notNull(),
+    actorId: uuid('actor_id').notNull(),
+    operation: varchar({ length: 64 }).notNull(),
+    key: uuid().notNull(),
+    requestHash: varchar('request_hash', { length: 64 }).notNull(),
+    resourceId: uuid('resource_id'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    primaryKey({
+      name: 'mutation_idempotency_pkey',
+      columns: [table.tenantId, table.actorId, table.operation, table.key],
+    }),
+    foreignKey({
+      name: 'mutation_idempotency_tenant_actor_fkey',
+      columns: [table.tenantId, table.actorId],
+      foreignColumns: [users.tenantId, users.id],
+    })
+      .onDelete('restrict')
+      .onUpdate('restrict'),
+    check(
+      'mutation_idempotency_operation_check',
+      sql`${table.operation} in ('product.create', 'review.upsert')`,
+    ),
+    check(
+      'mutation_idempotency_request_hash_check',
+      sql`length(${table.requestHash}) = 64`,
+    ),
+    index('mutation_idempotency_resource_idx').on(
+      table.tenantId,
+      table.operation,
+      table.resourceId,
     ),
   ],
 );

@@ -21,6 +21,7 @@ import {
 import { PostgresProductRepository } from '@/repositories/postgres/productRepository';
 import { PostgresSessionRepository } from '@/repositories/postgres/sessionRepository';
 import { PostgresUserRepository } from '@/repositories/postgres/userRepository';
+import { PostgresSellerOperationsRepository } from '@/repositories/postgres/sellerOperationsRepository';
 import type { AccountMessageSender } from '@/services/accountMessageSender';
 import { createAccountSecurityService } from '@/services/accountSecurityService';
 import { createAccountManagementService } from '@/services/accountManagementService';
@@ -36,6 +37,7 @@ import type { ReviewRepository } from '@/repositories/reviewRepository';
 import type { SessionRepository } from '@/repositories/sessionRepository';
 import type { UserRepository } from '@/repositories/userRepository';
 import type { WatchlistRepository } from '@/repositories/watchlistRepository';
+import type { SellerOperationsRepository } from '@/repositories/sellerOperationsRepository';
 import { createAuthService } from '@/services/authService';
 import {
   createCartCommerceService,
@@ -47,6 +49,7 @@ import {
 import { createProductService } from '@/services/productService';
 import { createSessionService } from '@/services/sessionService';
 import { createUserService } from '@/services/userService';
+import { createSellerOperationsService } from '@/services/sellerOperationsService';
 
 type PersistenceRepositories = {
   users: UserRepository;
@@ -59,6 +62,7 @@ type PersistenceRepositories = {
   watchlists: WatchlistRepository;
   reviews: ReviewRepository;
   checkout: CheckoutTransactionCoordinator;
+  sellerOperations: SellerOperationsRepository;
 };
 
 function createComposition(
@@ -90,11 +94,8 @@ function createComposition(
       repositories.watchlists,
       repositories.products,
     ),
-    ...createReviewCommerceService(
-      repositories.reviews,
-      repositories.products,
-      repositories.notifications,
-    ),
+    ...createReviewCommerceService(repositories.reviews, repositories.checkout),
+    ...createSellerOperationsService(repositories.sellerOperations),
   };
 
   return {
@@ -146,6 +147,7 @@ export function createPostgresComposition(
       watchlists: new PostgresWatchlistRepository(db),
       reviews: new PostgresReviewRepository(db),
       checkout: new PostgresCheckoutTransactionCoordinator(db),
+      sellerOperations: new PostgresSellerOperationsRepository(db),
     },
     accountMessageSender,
   );

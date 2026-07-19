@@ -44,6 +44,7 @@ describe('productController', () => {
       validated: { body },
       userId: product.seller,
       tenant: { id: product.tenantId },
+      idempotencyKey: '507f191e-810c-4197-9de8-60ea00000005',
     } as unknown as Request;
     const response = responseDouble();
 
@@ -53,6 +54,7 @@ describe('productController', () => {
       body,
       product.seller,
       product.tenantId,
+      '507f191e-810c-4197-9de8-60ea00000005',
     );
     expect(response.status).toHaveBeenCalledWith(201);
     expect(response.send).toHaveBeenCalledWith(product);
@@ -139,7 +141,7 @@ describe('productController', () => {
       response,
     );
 
-    expect(createProduct).toHaveBeenCalledWith({}, '', '');
+    expect(createProduct).toHaveBeenCalledWith({}, '', '', '');
   });
 
   it.each([

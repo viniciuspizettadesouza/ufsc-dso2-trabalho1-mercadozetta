@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router';
 import Header from '@/pages/header';
 import { appRoutes } from '@/routes';
@@ -15,17 +15,21 @@ import { useAuth } from '@/auth/AuthContext';
 import { type OrderListRequest } from '@/serverState/queryKeys';
 import { useCreateOrder, useOrderList } from '@/serverState/orders';
 import { useDetailedCart } from '@/serverState/cart';
+import { createIdempotencyKey } from '@/services/idempotency';
 
 export default function Checkout() {
   const { user } = useAuth();
   const userId = user?._id ?? 'anonymous';
   const [pendingItem, setPendingItem] = useState('');
   const [feedback, setFeedback] = useState<MutationFeedback>(null);
+  const checkoutIdempotencyKey = useRef<string | null>(null);
   const [orderRequest, setOrderRequest] = useState<OrderListRequest>(() => ({
     userId,
     scope: 'buyer',
     limit: null,
     offset: null,
+    status: '',
+    q: '',
   }));
   const cart = useDetailedCart(userId);
   const orderQuery = useOrderList(orderRequest);
@@ -54,6 +58,8 @@ export default function Checkout() {
       scope: 'buyer',
       limit: orderPage.limit,
       offset,
+      status: '',
+      q: '',
     });
   }
 
@@ -61,7 +67,9 @@ export default function Checkout() {
     if (!items.length) return;
     try {
       setFeedback(null);
-      await createOrder.mutateAsync();
+      checkoutIdempotencyKey.current ??= createIdempotencyKey();
+      await createOrder.mutateAsync(checkoutIdempotencyKey.current);
+      checkoutIdempotencyKey.current = null;
       setFeedback({ type: 'success', message: 'Order placed successfully.' });
     } catch {
       setFeedback({ type: 'error', message: 'Unable to place order.' });
@@ -73,6 +81,7 @@ export default function Checkout() {
       setPendingItem(productId);
       setFeedback(null);
       await cart.updateQuantity({ productId, quantity });
+      checkoutIdempotencyKey.current = null;
       setFeedback({ type: 'success', message: 'Cart quantity updated.' });
     } catch {
       setFeedback({
@@ -89,6 +98,7 @@ export default function Checkout() {
       setPendingItem(productId);
       setFeedback(null);
       await cart.removeItem(productId);
+      checkoutIdempotencyKey.current = null;
       setFeedback({ type: 'success', message: 'Item removed from cart.' });
     } catch {
       setFeedback({ type: 'error', message: 'Unable to remove cart item.' });

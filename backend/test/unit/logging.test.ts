@@ -59,6 +59,7 @@ describe('structured logging', () => {
       headers: {
         cookie: 'access=secret-cookie',
         'x-csrf-token': 'secret-csrf-proof',
+        'idempotency-key': 'secret-idempotency-key',
       },
       body: {
         password: 'secret-password',

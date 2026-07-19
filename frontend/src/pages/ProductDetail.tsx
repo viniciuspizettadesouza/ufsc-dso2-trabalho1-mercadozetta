@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import Header from '@/pages/header';
 import { useBrand } from '@/brands/brandContext';
@@ -21,6 +21,7 @@ import {
   useCreateReview,
   useReviewList,
 } from '@/serverState/reviews';
+import { createIdempotencyKey } from '@/services/idempotency';
 const noReviews: Review[] = [];
 
 export default function ProductDetail() {
@@ -38,6 +39,10 @@ function ProductDetailPage({ productId }: { productId?: string }) {
   const brand = useBrand();
   const { status, user } = useAuth();
   const [rating, setRating] = useState('5');
+  const reviewIdempotency = useRef<{
+    key: string;
+    fingerprint: string;
+  } | null>(null);
   const [comment, setComment] = useState('');
   const [pendingAction, setPendingAction] = useState('');
   const [actionFeedback, setActionFeedback] = useState<MutationFeedback>(null);
@@ -118,10 +123,22 @@ function ProductDetailPage({ productId }: { productId?: string }) {
     try {
       setPendingAction('review');
       setActionFeedback(null);
-      await reviewMutation.mutateAsync({
+      const review = {
         rating: Number(rating),
         comment: comment.trim(),
+      };
+      const fingerprint = JSON.stringify(review);
+      if (reviewIdempotency.current?.fingerprint !== fingerprint) {
+        reviewIdempotency.current = {
+          key: createIdempotencyKey(),
+          fingerprint,
+        };
+      }
+      await reviewMutation.mutateAsync({
+        ...review,
+        idempotencyKey: reviewIdempotency.current.key,
       });
+      reviewIdempotency.current = null;
       setComment('');
       setActionFeedback({ type: 'success', message: 'Review added.' });
     } catch {

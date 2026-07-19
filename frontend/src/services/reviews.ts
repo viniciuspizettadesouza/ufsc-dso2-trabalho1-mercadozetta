@@ -6,6 +6,9 @@ import api from '@/services/api';
 export type Review = components['schemas']['Review'];
 export type ReviewList = components['schemas']['ReviewList'];
 export type CreateReviewInput = components['schemas']['CreateReviewRequest'];
+export type CreateReviewMutation = CreateReviewInput & {
+  idempotencyKey: string;
+};
 export type ReviewListRequest = {
   productId: string;
   limit: number | null;
@@ -21,9 +24,12 @@ export async function listReviews(
 
 export async function createReview(
   productId: string,
-  input: CreateReviewInput,
+  input: CreateReviewMutation,
 ): Promise<Review> {
-  const response = await api.post<Review>(apiRoutes.reviews(productId), input);
+  const { idempotencyKey, ...body } = input;
+  const response = await api.post<Review>(apiRoutes.reviews(productId), body, {
+    headers: { 'Idempotency-Key': idempotencyKey },
+  });
   return response.data;
 }
 

@@ -25,6 +25,7 @@ function repository(
 const productId = '507f191e-810c-4197-9de8-60ea00000001';
 const missingProductId = '507f191e-810c-4197-9de8-60ea00000002';
 const sellerId = '507f1f77-bcf8-4ecd-8994-390110000001';
+const idempotencyKey = '507f191e-810c-4197-9de8-60ea00000003';
 const products = [
   {
     _id: 'product-1',
@@ -69,9 +70,17 @@ const products = [
 
 function service(productRepository: ProductRepository, profile = vi.fn()) {
   const audits = { append: vi.fn(), appendMany: vi.fn() };
+  const idempotency = {
+    claim: vi.fn().mockResolvedValue({ outcome: 'claimed' }),
+    complete: vi.fn().mockResolvedValue(undefined),
+  };
   const transactions = {
     run: (work) =>
-      work({ products: productRepository, audits } as unknown as Parameters<
+      work({
+        products: productRepository,
+        audits,
+        idempotency,
+      } as unknown as Parameters<
         Parameters<CheckoutTransactionCoordinator['run']>[0]
       >[0]),
   } satisfies CheckoutTransactionCoordinator;
@@ -174,6 +183,7 @@ describe('productService', () => {
         { name: ' Keyboard ', inventory: '2', image: 'keyboard.png' },
         sellerId,
         'campus-market',
+        idempotencyKey,
       ),
     ).resolves.toEqual({ _id: 'product-1' });
     expect(create).toHaveBeenCalledWith({

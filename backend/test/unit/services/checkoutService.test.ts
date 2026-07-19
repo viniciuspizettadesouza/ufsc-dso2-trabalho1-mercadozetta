@@ -7,6 +7,7 @@ const now = new Date('2026-07-19T15:00:00.000Z');
 const tenantId = 'mercadozetta';
 const buyerId = '507f1f77-bcf8-4ecd-8994-390110000001';
 const sellerId = '507f1f77-bcf8-4ecd-8994-390110000002';
+const idempotencyKey = '507f191e-810c-4197-9de8-60ea00000005';
 const cart = {
   id: '507f191e-810c-4197-9de8-60ea00000001',
   tenantId,
@@ -61,6 +62,7 @@ function harness(
     cart?: typeof cart | null;
     products?: ProductRecord[];
     inventoryUpdated?: boolean;
+    replayedOrder?: typeof order | null;
   } = {},
 ) {
   const checkoutCart = overrides.cart === undefined ? cart : overrides.cart;
@@ -77,8 +79,16 @@ function harness(
       .fn()
       .mockResolvedValue(overrides.inventoryUpdated ?? true),
   };
-  const orders = { createPlaced: vi.fn().mockResolvedValue(order) };
-  const orderItems = { createMany: vi.fn().mockResolvedValue([]) };
+  const orders = {
+    createPlaced: vi.fn().mockResolvedValue(order),
+    findByCheckoutIdempotencyKey: vi
+      .fn()
+      .mockResolvedValue(overrides.replayedOrder ?? null),
+  };
+  const orderItems = {
+    createMany: vi.fn().mockResolvedValue([]),
+    listByOrderIds: vi.fn().mockResolvedValue([]),
+  };
   const audits = { appendMany: vi.fn().mockResolvedValue(undefined) };
   const notifications = {
     create: vi.fn().mockResolvedValue(undefined),
@@ -121,7 +131,7 @@ describe('checkoutService', () => {
   it('places the complete order and all side effects in one transaction', async () => {
     const test = harness();
 
-    const created = await test.createOrder(buyerId, tenantId);
+    const created = await test.createOrder(buyerId, tenantId, idempotencyKey);
 
     expect(test.transactions.run).toHaveBeenCalledTimes(1);
     expect(test.carts.findForCheckout).toHaveBeenCalledWith(tenantId, buyerId);
@@ -132,6 +142,7 @@ describe('checkoutService', () => {
     expect(test.orders.createPlaced).toHaveBeenCalledWith(
       tenantId,
       buyerId,
+      idempotencyKey,
       now,
     );
 
@@ -219,10 +230,46 @@ describe('checkoutService', () => {
     expect(created).toEqual({ ...order, items: expectedItems });
   });
 
+  it('returns the original order for a repeated idempotency key without side effects', async () => {
+    const replayedItems = [
+      {
+        tenantId,
+        order: order._id,
+        product: products[0]._id,
+        seller: sellerId,
+        productName: products[0].name,
+        quantity: 2,
+      },
+    ];
+    const test = harness({ replayedOrder: order });
+    test.orderItems.listByOrderIds.mockResolvedValue(replayedItems);
+
+    await expect(
+      test.createOrder(buyerId, tenantId, idempotencyKey),
+    ).resolves.toEqual({ ...order, items: replayedItems });
+
+    expect(test.carts.findForCheckout).toHaveBeenCalledWith(tenantId, buyerId);
+    expect(test.orders.findByCheckoutIdempotencyKey).toHaveBeenCalledWith(
+      tenantId,
+      buyerId,
+      idempotencyKey,
+    );
+    expect(test.orderItems.listByOrderIds).toHaveBeenCalledWith(tenantId, [
+      order._id,
+    ]);
+    expect(test.products.findByIdsForUpdate).not.toHaveBeenCalled();
+    expect(test.orders.createPlaced).not.toHaveBeenCalled();
+    expect(test.audits.appendMany).not.toHaveBeenCalled();
+    expect(test.carts.clear).not.toHaveBeenCalled();
+    expect(test.notifications.create).not.toHaveBeenCalled();
+  });
+
   it('rejects an empty cart before loading products', async () => {
     const test = harness({ cart: null });
 
-    await expect(test.createOrder(buyerId, tenantId)).rejects.toMatchObject({
+    await expect(
+      test.createOrder(buyerId, tenantId, idempotencyKey),
+    ).rejects.toMatchObject({
       statusCode: 400,
       code: 'EMPTY_CART',
     });
@@ -238,7 +285,9 @@ describe('checkoutService', () => {
     const oneItemCart = { ...cart, items: [cart.items[0]] };
     const test = harness({ cart: oneItemCart, products: found });
 
-    await expect(test.createOrder(buyerId, tenantId)).rejects.toMatchObject({
+    await expect(
+      test.createOrder(buyerId, tenantId, idempotencyKey),
+    ).rejects.toMatchObject({
       statusCode: 409,
       code: 'INSUFFICIENT_INVENTORY',
     });
@@ -248,7 +297,9 @@ describe('checkoutService', () => {
   it('rejects a lost conditional inventory update before side effects', async () => {
     const test = harness({ inventoryUpdated: false });
 
-    await expect(test.createOrder(buyerId, tenantId)).rejects.toMatchObject({
+    await expect(
+      test.createOrder(buyerId, tenantId, idempotencyKey),
+    ).rejects.toMatchObject({
       statusCode: 409,
       code: 'INSUFFICIENT_INVENTORY',
     });

@@ -18,6 +18,7 @@ import {
   tenants,
   users,
   watchlistEntries,
+  mutationIdempotency,
 } from '@/database/schema';
 
 const migration = readFileSync(
@@ -40,6 +41,14 @@ const accountManagementMigration = readFileSync(
   resolve(process.cwd(), 'drizzle/0004_melted_nekra.sql'),
   'utf8',
 );
+const checkoutIdempotencyMigration = readFileSync(
+  resolve(process.cwd(), 'drizzle/0005_special_marauders.sql'),
+  'utf8',
+);
+const mutationIdempotencyMigration = readFileSync(
+  resolve(process.cwd(), 'drizzle/0006_yielding_captain_america.sql'),
+  'utf8',
+);
 
 describe('PostgreSQL schema contract', () => {
   const tables = [
@@ -58,6 +67,7 @@ describe('PostgreSQL schema contract', () => {
     notifications,
     sessions,
     auditEvents,
+    mutationIdempotency,
   ];
 
   it('exports the accepted relational tables', () => {
@@ -77,16 +87,18 @@ describe('PostgreSQL schema contract', () => {
       'notifications',
       'sessions',
       'audit_events',
+      'mutation_idempotency',
     ]);
     expect(migration.match(/CREATE TABLE/g)).toHaveLength(12);
     expect(auditEventMigration.match(/CREATE TABLE/g)).toHaveLength(1);
     expect(accountSecurityMigration.match(/CREATE TABLE/g)).toHaveLength(1);
     expect(accountManagementMigration.match(/CREATE TABLE/g)).toHaveLength(1);
+    expect(mutationIdempotencyMigration.match(/CREATE TABLE/g)).toHaveLength(1);
   });
 
   it('generates tenant-qualified integrity and inventory constraints', () => {
     const configs = tables.map(getTableConfig);
-    expect(configs.flatMap((config) => config.foreignKeys)).toHaveLength(30);
+    expect(configs.flatMap((config) => config.foreignKeys)).toHaveLength(31);
     expect(configs.flatMap((config) => config.checks).length).toBeGreaterThan(
       10,
     );
@@ -188,6 +200,34 @@ describe('PostgreSQL schema contract', () => {
 
     expect(accountManagementMigration).not.toMatch(
       /raw_token|password_hash|cookie|authorization|csrf/i,
+    );
+  });
+
+  it('backfills and constrains checkout idempotency keys compatibly', () => {
+    for (const expectedSql of [
+      'checkout_idempotency_key',
+      'gen_random_uuid()',
+      'SET DEFAULT',
+      'SET NOT NULL',
+      'orders_checkout_idempotency_key',
+      'UNIQUE("tenant_id","buyer_id","checkout_idempotency_key")',
+    ])
+      expect(checkoutIdempotencyMigration).toContain(expectedSql);
+  });
+
+  it('adds scoped product and review mutation replay records', () => {
+    for (const expectedSql of [
+      'mutation_idempotency_pkey',
+      'mutation_idempotency_tenant_actor_fkey',
+      'mutation_idempotency_operation_check',
+      'mutation_idempotency_request_hash_check',
+      'mutation_idempotency_resource_idx',
+      "'product.create'",
+      "'review.upsert'",
+    ])
+      expect(mutationIdempotencyMigration).toContain(expectedSql);
+    expect(mutationIdempotencyMigration).not.toMatch(
+      /password|token|cookie|authorization|csrf/i,
     );
   });
 });

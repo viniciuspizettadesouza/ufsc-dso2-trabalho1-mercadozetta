@@ -22,6 +22,9 @@ export type CreateProductInput = ProductDetailsUpdate & {
   inventory: number;
   status: ProductStatus;
 };
+export type CreateProductMutation = CreateProductInput & {
+  idempotencyKey: string;
+};
 export type ProductInventoryUpdate = { inventory: number };
 export type ProductStatusUpdate = { status: ProductStatus };
 
@@ -35,8 +38,11 @@ export async function getProduct(productId: string) {
   return response.data;
 }
 
-export async function createProduct(input: CreateProductInput) {
-  const response = await api.post<Product>(apiRoutes.products, input);
+export async function createProduct(input: CreateProductMutation) {
+  const { idempotencyKey, ...body } = input;
+  const response = await api.post<Product>(apiRoutes.products, body, {
+    headers: { 'Idempotency-Key': idempotencyKey },
+  });
   return response.data;
 }
 

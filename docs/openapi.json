@@ -4626,6 +4626,19 @@
             },
             "required": true,
             "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Client-generated checkout intent identifier. Reusing it for the same buyer returns the original order without repeating side effects.",
+              "example": "507f191e-810c-4197-9de8-60ea00000001"
+            },
+            "required": true,
+            "description": "Client-generated checkout intent identifier. Reusing it for the same buyer returns the original order without repeating side effects."
           }
         ],
         "requestBody": {
@@ -4687,6 +4700,8 @@
                       "enum": [
                         "TENANT_HEADER_REQUIRED",
                         "INVALID_TENANT",
+                        "IDEMPOTENCY_KEY_REQUIRED",
+                        "INVALID_IDEMPOTENCY_KEY",
                         "INVALID_REQUEST",
                         "MISSING_PRODUCT_FIELDS",
                         "INVALID_PRODUCT_INVENTORY",
@@ -4716,6 +4731,20 @@
                     "value": {
                       "error": "Invalid tenant",
                       "code": "INVALID_TENANT"
+                    }
+                  },
+                  "IDEMPOTENCY_KEY_REQUIRED": {
+                    "summary": "IDEMPOTENCY_KEY_REQUIRED",
+                    "value": {
+                      "error": "Idempotency-Key header is required",
+                      "code": "IDEMPOTENCY_KEY_REQUIRED"
+                    }
+                  },
+                  "INVALID_IDEMPOTENCY_KEY": {
+                    "summary": "INVALID_IDEMPOTENCY_KEY",
+                    "value": {
+                      "error": "Idempotency-Key must be a UUID",
+                      "code": "INVALID_IDEMPOTENCY_KEY"
                     }
                   },
                   "INVALID_REQUEST": {
@@ -4846,6 +4875,42 @@
                     "value": {
                       "error": "CSRF token is invalid",
                       "code": "INVALID_CSRF_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency key was reused with a different product payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "IDEMPOTENCY_KEY_REUSED"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "IDEMPOTENCY_KEY_REUSED": {
+                    "summary": "IDEMPOTENCY_KEY_REUSED",
+                    "value": {
+                      "error": "Idempotency-Key was already used for a different request",
+                      "code": "IDEMPOTENCY_KEY_REUSED"
                     }
                   }
                 }
@@ -7170,6 +7235,22 @@
             }
           },
           {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "$ref": "#/components/schemas/OrderStatus"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "default": "",
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
             "in": "header",
             "name": "X-Tenant-Id",
             "schema": {
@@ -7329,6 +7410,19 @@
             },
             "required": true,
             "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Client-generated checkout intent identifier. Reusing it for the same buyer returns the original order without repeating side effects.",
+              "example": "507f191e-810c-4197-9de8-60ea00000001"
+            },
+            "required": true,
+            "description": "Client-generated checkout intent identifier. Reusing it for the same buyer returns the original order without repeating side effects."
           }
         ],
         "responses": {
@@ -7382,6 +7476,8 @@
                       "enum": [
                         "TENANT_HEADER_REQUIRED",
                         "INVALID_TENANT",
+                        "IDEMPOTENCY_KEY_REQUIRED",
+                        "INVALID_IDEMPOTENCY_KEY",
                         "EMPTY_CART"
                       ]
                     },
@@ -7406,6 +7502,20 @@
                     "value": {
                       "error": "Invalid tenant",
                       "code": "INVALID_TENANT"
+                    }
+                  },
+                  "IDEMPOTENCY_KEY_REQUIRED": {
+                    "summary": "IDEMPOTENCY_KEY_REQUIRED",
+                    "value": {
+                      "error": "Idempotency-Key header is required",
+                      "code": "IDEMPOTENCY_KEY_REQUIRED"
+                    }
+                  },
+                  "INVALID_IDEMPOTENCY_KEY": {
+                    "summary": "INVALID_IDEMPOTENCY_KEY",
+                    "value": {
+                      "error": "Idempotency-Key must be a UUID",
+                      "code": "INVALID_IDEMPOTENCY_KEY"
                     }
                   },
                   "EMPTY_CART": {
@@ -7537,6 +7647,190 @@
                     "value": {
                       "error": "A cart item is unavailable",
                       "code": "INSUFFICIENT_INVENTORY"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/seller/operations": {
+      "get": {
+        "tags": [
+          "Commerce"
+        ],
+        "summary": "Get seller inventory and order operations",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          },
+          {
+            "in": "query",
+            "name": "lowStockThreshold",
+            "schema": {
+              "default": 5,
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Tenant-scoped seller operations",
+            "content": {
+              "application/json": {
+                "example": {
+                  "summary": {
+                    "productCount": 0,
+                    "activeProductCount": 0,
+                    "lowStockProductCount": 0,
+                    "inventoryUnits": 0,
+                    "orderCount": 0,
+                    "openOrderCount": 0,
+                    "orderedUnits": 0
+                  },
+                  "lowStockProducts": [],
+                  "inventoryHistory": {
+                    "items": [],
+                    "page": {
+                      "limit": 20,
+                      "offset": 0,
+                      "total": 0,
+                      "hasMore": false
+                    }
+                  }
+                },
+                "schema": {
+                  "$ref": "#/components/schemas/SellerOperations"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid tenant, threshold, or pagination",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "TENANT_HEADER_REQUIRED",
+                        "INVALID_TENANT",
+                        "INVALID_REQUEST"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "TENANT_HEADER_REQUIRED": {
+                    "summary": "TENANT_HEADER_REQUIRED",
+                    "value": {
+                      "error": "X-Tenant-Id header is required",
+                      "code": "TENANT_HEADER_REQUIRED"
+                    }
+                  },
+                  "INVALID_TENANT": {
+                    "summary": "INVALID_TENANT",
+                    "value": {
+                      "error": "Invalid tenant",
+                      "code": "INVALID_TENANT"
+                    }
+                  },
+                  "INVALID_REQUEST": {
+                    "summary": "INVALID_REQUEST",
+                    "value": {
+                      "error": "Invalid option: expected one of \"draft\"|\"active\"|\"paused\"|\"sold_out\"|\"archived\"",
+                      "code": "INVALID_REQUEST"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "AUTH_TOKEN_REQUIRED",
+                        "INVALID_AUTH_TOKEN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "AUTH_TOKEN_REQUIRED": {
+                    "summary": "AUTH_TOKEN_REQUIRED",
+                    "value": {
+                      "error": "Authorization token is required",
+                      "code": "AUTH_TOKEN_REQUIRED"
+                    }
+                  },
+                  "INVALID_AUTH_TOKEN": {
+                    "summary": "INVALID_AUTH_TOKEN",
+                    "value": {
+                      "error": "Invalid authorization token",
+                      "code": "INVALID_AUTH_TOKEN"
                     }
                   }
                 }
@@ -8049,6 +8343,19 @@
             },
             "required": true,
             "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Client-generated checkout intent identifier. Reusing it for the same buyer returns the original order without repeating side effects.",
+              "example": "507f191e-810c-4197-9de8-60ea00000001"
+            },
+            "required": true,
+            "description": "Client-generated checkout intent identifier. Reusing it for the same buyer returns the original order without repeating side effects."
           }
         ],
         "requestBody": {
@@ -8101,6 +8408,8 @@
                       "enum": [
                         "TENANT_HEADER_REQUIRED",
                         "INVALID_TENANT",
+                        "IDEMPOTENCY_KEY_REQUIRED",
+                        "INVALID_IDEMPOTENCY_KEY",
                         "INVALID_RESOURCE_ID",
                         "INVALID_REQUEST"
                       ]
@@ -8126,6 +8435,20 @@
                     "value": {
                       "error": "Invalid tenant",
                       "code": "INVALID_TENANT"
+                    }
+                  },
+                  "IDEMPOTENCY_KEY_REQUIRED": {
+                    "summary": "IDEMPOTENCY_KEY_REQUIRED",
+                    "value": {
+                      "error": "Idempotency-Key header is required",
+                      "code": "IDEMPOTENCY_KEY_REQUIRED"
+                    }
+                  },
+                  "INVALID_IDEMPOTENCY_KEY": {
+                    "summary": "INVALID_IDEMPOTENCY_KEY",
+                    "value": {
+                      "error": "Idempotency-Key must be a UUID",
+                      "code": "INVALID_IDEMPOTENCY_KEY"
                     }
                   },
                   "INVALID_RESOURCE_ID": {
@@ -8280,6 +8603,42 @@
                     "value": {
                       "error": "Product not found",
                       "code": "PRODUCT_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Idempotency key was reused with a different review payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "IDEMPOTENCY_KEY_REUSED"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "IDEMPOTENCY_KEY_REUSED": {
+                    "summary": "IDEMPOTENCY_KEY_REUSED",
+                    "value": {
+                      "error": "Idempotency-Key was already used for a different request",
+                      "code": "IDEMPOTENCY_KEY_REUSED"
                     }
                   }
                 }
@@ -9138,6 +9497,16 @@
         "type": "string",
         "format": "uuid"
       },
+      "OrderStatus": {
+        "type": "string",
+        "enum": [
+          "placed",
+          "confirmed",
+          "shipped",
+          "delivered",
+          "cancelled"
+        ]
+      },
       "OrderStatusUpdateRequest": {
         "type": "object",
         "properties": {
@@ -9147,16 +9516,6 @@
         },
         "required": [
           "status"
-        ]
-      },
-      "OrderStatus": {
-        "type": "string",
-        "enum": [
-          "placed",
-          "confirmed",
-          "shipped",
-          "delivered",
-          "cancelled"
         ]
       },
       "CreateReviewRequest": {
@@ -9799,6 +10158,203 @@
           "seller",
           "productName",
           "quantity"
+        ],
+        "additionalProperties": false
+      },
+      "SellerOperations": {
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "object",
+            "properties": {
+              "productCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "activeProductCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "lowStockProductCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "inventoryUnits": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "orderCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "openOrderCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "orderedUnits": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "productCount",
+              "activeProductCount",
+              "lowStockProductCount",
+              "inventoryUnits",
+              "orderCount",
+              "openOrderCount",
+              "orderedUnits"
+            ],
+            "additionalProperties": false
+          },
+          "lowStockProducts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "_id": {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+                  "example": "507f191e-810c-4197-9de8-60ea00000001"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "inventory": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "draft",
+                    "active",
+                    "paused",
+                    "sold_out"
+                  ]
+                }
+              },
+              "required": [
+                "_id",
+                "name",
+                "inventory",
+                "status"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "inventoryHistory": {
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/InventoryHistoryEntry"
+                }
+              },
+              "page": {
+                "$ref": "#/components/schemas/PageInfo"
+              }
+            },
+            "required": [
+              "items",
+              "page"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "summary",
+          "lowStockProducts",
+          "inventoryHistory"
+        ],
+        "additionalProperties": false
+      },
+      "InventoryHistoryEntry": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "example": "507f191e-810c-4197-9de8-60ea00000001"
+          },
+          "eventType": {
+            "type": "string",
+            "enum": [
+              "inventory.set",
+              "inventory.decremented"
+            ]
+          },
+          "product": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "example": "507f191e-810c-4197-9de8-60ea00000001"
+          },
+          "productName": {
+            "type": "string"
+          },
+          "previousInventory": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "nextInventory": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "orderId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "example": "507f191e-810c-4197-9de8-60ea00000001"
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "_id",
+          "eventType",
+          "product",
+          "productName",
+          "previousInventory",
+          "nextInventory",
+          "quantity",
+          "orderId",
+          "occurredAt"
         ],
         "additionalProperties": false
       },

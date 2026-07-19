@@ -81,6 +81,8 @@ export const productErrorCodes = {
   create: [
     'TENANT_HEADER_REQUIRED',
     'INVALID_TENANT',
+    'IDEMPOTENCY_KEY_REQUIRED',
+    'INVALID_IDEMPOTENCY_KEY',
     'INVALID_REQUEST',
     'MISSING_PRODUCT_FIELDS',
     'INVALID_PRODUCT_INVENTORY',
@@ -88,6 +90,7 @@ export const productErrorCodes = {
     'INVALID_PRODUCT_STATUS_INVENTORY',
     'INVALID_PRODUCT_IMAGE_URL',
   ],
+  idempotencyConflict: ['IDEMPOTENCY_KEY_REUSED'],
   update: [
     'TENANT_HEADER_REQUIRED',
     'INVALID_TENANT',

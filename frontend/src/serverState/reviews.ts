@@ -10,7 +10,7 @@ import { queryKeys, type ReviewListRequest } from '@/serverState/queryKeys';
 import {
   createReview,
   listReviews,
-  type CreateReviewInput,
+  type CreateReviewMutation,
   type ReviewList,
 } from '@/services/reviews';
 
@@ -40,7 +40,8 @@ export function useCreateReview(
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (input: CreateReviewInput) => createReview(productId!, input),
+    mutationFn: (input: CreateReviewMutation) =>
+      createReview(productId!, input),
     onSuccess: (review) => {
       queryClient.setQueryData<ReviewQueryData>(
         queryKeys.reviews.list(request),

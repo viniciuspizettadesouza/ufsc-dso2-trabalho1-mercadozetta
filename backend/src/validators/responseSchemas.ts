@@ -241,6 +241,18 @@ export const appErrorExamples = {
     code: 'NOTIFICATION_NOT_FOUND',
   },
   EMPTY_CART: { error: 'Cart is empty', code: 'EMPTY_CART' },
+  IDEMPOTENCY_KEY_REQUIRED: {
+    error: 'Idempotency-Key header is required',
+    code: 'IDEMPOTENCY_KEY_REQUIRED',
+  },
+  INVALID_IDEMPOTENCY_KEY: {
+    error: 'Idempotency-Key must be a UUID',
+    code: 'INVALID_IDEMPOTENCY_KEY',
+  },
+  IDEMPOTENCY_KEY_REUSED: {
+    error: 'Idempotency-Key was already used for a different request',
+    code: 'IDEMPOTENCY_KEY_REUSED',
+  },
   ORDER_FORBIDDEN: {
     error: 'Not authorized to update this order',
     code: 'ORDER_FORBIDDEN',

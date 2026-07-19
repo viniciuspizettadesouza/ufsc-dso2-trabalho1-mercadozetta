@@ -20,8 +20,14 @@ export interface OrderRepository {
   createPlaced(
     tenantId: string,
     buyerId: string,
+    idempotencyKey: string,
     now: Date,
   ): Promise<CheckoutOrder>;
+  findByCheckoutIdempotencyKey(
+    tenantId: string,
+    buyerId: string,
+    idempotencyKey: string,
+  ): Promise<CheckoutOrder | null>;
   findById(tenantId: string, orderId: string): Promise<CheckoutOrder | null>;
   listByIds(tenantId: string, orderIds: string[]): Promise<CheckoutOrder[]>;
   listIdsByBuyer(tenantId: string, buyerId: string): Promise<string[]>;

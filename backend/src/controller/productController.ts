@@ -68,6 +68,7 @@ export function createProductController(productService: ProductService) {
         req.validated.body,
         req.userId ?? '',
         req.tenant?.id ?? '',
+        req.idempotencyKey ?? '',
       );
       return res.status(201).send(createdProduct);
     },

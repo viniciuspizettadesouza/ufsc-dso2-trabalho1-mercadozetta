@@ -72,6 +72,8 @@ describe('queryKeys', () => {
         scope: 'seller',
         limit: 20,
         offset: 40,
+        status: '',
+        q: '',
       }),
     ).toEqual([
       'orders',
@@ -81,6 +83,8 @@ describe('queryKeys', () => {
         scope: 'seller',
         limit: 20,
         offset: 40,
+        status: '',
+        q: '',
       },
     ]);
   });

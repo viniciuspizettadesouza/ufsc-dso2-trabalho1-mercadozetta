@@ -58,10 +58,17 @@ describe('review service', () => {
 
   it('upserts a review and returns the server review', async () => {
     vi.mocked(api.post).mockResolvedValue({ data: review });
-    const input = { rating: 5, comment: 'Excellent product' };
+    const input = {
+      rating: 5,
+      comment: 'Excellent product',
+      idempotencyKey: '11111111-1111-4111-8111-111111111111',
+    };
 
     await expect(createReview('product-1', input)).resolves.toBe(review);
 
-    expect(api.post).toHaveBeenCalledWith('/products/product-1/reviews', input);
+    const { idempotencyKey, ...body } = input;
+    expect(api.post).toHaveBeenCalledWith('/products/product-1/reviews', body, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
   });
 });

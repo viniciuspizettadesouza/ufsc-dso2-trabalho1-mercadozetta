@@ -9,6 +9,8 @@ import type { SessionRepository } from '@/repositories/sessionRepository';
 import type { PendingEmailChangeRepository } from '@/repositories/pendingEmailChangeRepository';
 import type { UserRepository } from '@/repositories/userRepository';
 import type { AccountLifecycleRepository } from '@/repositories/accountLifecycleRepository';
+import type { MutationIdempotencyRepository } from '@/repositories/mutationIdempotencyRepository';
+import type { ReviewRepository } from '@/repositories/reviewRepository';
 
 export type CheckoutRepositories = {
   audits: AuditEventRepository;
@@ -25,6 +27,8 @@ export type MutationRepositories = CheckoutRepositories & {
   pendingEmailChanges: PendingEmailChangeRepository;
   sessions: SessionRepository;
   users: UserRepository;
+  idempotency: MutationIdempotencyRepository;
+  reviews: ReviewRepository;
 };
 
 export interface CheckoutTransactionCoordinator {

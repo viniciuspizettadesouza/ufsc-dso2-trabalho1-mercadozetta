@@ -36,6 +36,20 @@
       "when": 1784418564549,
       "tag": "0004_melted_nekra",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1784432559746,
+      "tag": "0005_special_marauders",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784434570228,
+      "tag": "0006_yielding_captain_america",
+      "breakpoints": true
     }
   ]
 }

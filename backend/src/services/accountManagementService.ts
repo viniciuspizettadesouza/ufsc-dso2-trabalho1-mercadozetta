@@ -37,6 +37,14 @@ export function createAccountManagementService(
   ) {
     const data = validateProfileUpdate(body);
     return transactions.run(async ({ users, audits }) => {
+      const current = await users.findPublicById(tenantId, userId);
+      if (!current) throw accountStateChangedError();
+      const changedFields = Object.keys(data).filter(
+        (field) =>
+          current[field as keyof typeof current] !==
+          data[field as keyof typeof data],
+      );
+      if (!changedFields.length) return current;
       const updated = await users.updateProfile(tenantId, userId, data, now);
       if (!updated) throw accountStateChangedError();
 
@@ -46,7 +54,7 @@ export function createAccountManagementService(
         actorId: userId,
         resourceType: 'user',
         resourceId: userId,
-        metadata: { changedFields: Object.keys(data).join(',') },
+        metadata: { changedFields: changedFields.join(',') },
         occurredAt: now,
       });
       return updated;

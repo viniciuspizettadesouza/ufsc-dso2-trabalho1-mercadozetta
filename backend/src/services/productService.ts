@@ -18,6 +18,10 @@ import {
   validateProductInventoryUpdate,
 } from '@/validators/productValidator';
 import AppError from '@/errors/AppError';
+import {
+  idempotencyKeyConflict,
+  mutationRequestHash,
+} from '@/services/mutationIdempotencyService';
 
 type SellerProfileService = {
   getPublicSellerProfile(
@@ -63,9 +67,41 @@ export function createProductService(
     body: CreateProductRequestBody | CreateProductData,
     seller: string,
     tenantId = defaultTenantId,
+    idempotencyKey: string,
   ) {
     const productData = validateCreateProductPayload(body);
-    return repository.create({ ...productData, tenantId, seller });
+    const requestHash = mutationRequestHash(productData);
+    return transactions.run(async ({ idempotency, products }) => {
+      const claim = await idempotency.claim({
+        tenantId,
+        actorId: seller,
+        operation: 'product.create',
+        key: idempotencyKey,
+        requestHash,
+        now: new Date(),
+      });
+      if (claim.outcome === 'conflict') throw idempotencyKeyConflict();
+      if (claim.outcome === 'replay') {
+        const replay = await products.findById(tenantId, claim.resourceId);
+        if (!replay) throw new Error('Idempotent product resource is missing');
+        return replay;
+      }
+
+      const created = await products.create({
+        ...productData,
+        tenantId,
+        seller,
+      });
+      await idempotency.complete({
+        tenantId,
+        actorId: seller,
+        operation: 'product.create',
+        key: idempotencyKey,
+        requestHash,
+        resourceId: created._id,
+      });
+      return created;
+    });
   }
 
   async function getProductById(productId: string, tenantId = defaultTenantId) {
@@ -162,6 +198,7 @@ export function createProductService(
         tenantId,
       );
       const { inventory } = validateProductInventoryUpdate(body);
+      if (inventory === product.inventory) return product;
       const status =
         inventory === 0 && product.status === 'active'
           ? 'sold_out'

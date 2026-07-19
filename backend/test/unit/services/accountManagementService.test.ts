@@ -24,6 +24,11 @@ const publicUser = {
 function harness(overrides: Record<string, unknown> = {}) {
   const users = {
     findAccountSecurityById: vi.fn().mockResolvedValue(user),
+    findPublicById: vi.fn().mockResolvedValue({
+      ...publicUser,
+      username: 'Original Seller',
+      telephone: '123',
+    }),
     updateProfile: vi.fn().mockResolvedValue(publicUser),
     replaceAccountPassword: vi.fn().mockResolvedValue(true),
     ...(overrides.users as object),
@@ -107,7 +112,7 @@ describe('accountManagementService', () => {
 
   it('rejects missing profile state and validates before a transaction', async () => {
     const missing = harness({
-      users: { updateProfile: vi.fn().mockResolvedValue(null) },
+      users: { findPublicById: vi.fn().mockResolvedValue(null) },
     });
     await expect(
       missing.updateProfile({ username: 'seller' }, user._id),
@@ -119,6 +124,21 @@ describe('accountManagementService', () => {
       invalid.updateProfile({ email: 'other@example.com' } as never, user._id),
     ).rejects.toMatchObject({ code: 'INVALID_REQUEST' });
     expect(invalid.transactions.run).not.toHaveBeenCalled();
+  });
+
+  it('returns unchanged profile state without an audit write', async () => {
+    const service = harness({
+      users: { findPublicById: vi.fn().mockResolvedValue(publicUser) },
+    });
+
+    await expect(
+      service.updateProfile(
+        { username: publicUser.username, telephone: null },
+        user._id,
+      ),
+    ).resolves.toEqual(publicUser);
+    expect(service.users.updateProfile).not.toHaveBeenCalled();
+    expect(service.audits.append).not.toHaveBeenCalled();
   });
 
   it('changes a reauthenticated password and revokes credentials atomically', async () => {

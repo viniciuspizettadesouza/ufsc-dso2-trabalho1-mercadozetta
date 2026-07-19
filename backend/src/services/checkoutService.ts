@@ -5,10 +5,23 @@ async function createOrderInTransaction(
   transactions: CheckoutTransactionCoordinator,
   userId: string,
   tenantId: string,
+  idempotencyKey: string,
 ) {
   return transactions.run(async (repositories) => {
     const now = new Date();
     const cart = await repositories.carts.findForCheckout(tenantId, userId);
+    const replayedOrder =
+      await repositories.orders.findByCheckoutIdempotencyKey(
+        tenantId,
+        userId,
+        idempotencyKey,
+      );
+    if (replayedOrder) {
+      const items = await repositories.orderItems.listByOrderIds(tenantId, [
+        replayedOrder._id,
+      ]);
+      return { ...replayedOrder, items };
+    }
     if (!cart?.items.length)
       throw new AppError(400, 'EMPTY_CART', 'Cart is empty');
 
@@ -33,7 +46,12 @@ async function createOrderInTransaction(
         );
     }
 
-    const order = await repositories.orders.createPlaced(tenantId, userId, now);
+    const order = await repositories.orders.createPlaced(
+      tenantId,
+      userId,
+      idempotencyKey,
+      now,
+    );
     const items = cart.items.map((item) => {
       const product = productMap.get(item.productId)!;
       return {
@@ -116,8 +134,8 @@ export function createCheckoutService(
   transactions: CheckoutTransactionCoordinator,
 ) {
   return {
-    createOrder: (userId: string, tenantId: string) =>
-      createOrderInTransaction(transactions, userId, tenantId),
+    createOrder: (userId: string, tenantId: string, idempotencyKey: string) =>
+      createOrderInTransaction(transactions, userId, tenantId, idempotencyKey),
   };
 }
 

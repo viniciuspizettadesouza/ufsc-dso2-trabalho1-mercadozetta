@@ -313,7 +313,12 @@ export function getCorsOptions(): CorsOptions {
 
   return {
     credentials: true,
-    allowedHeaders: ['Content-Type', 'X-Tenant-Id', 'X-CSRF-Token'],
+    allowedHeaders: [
+      'Content-Type',
+      'X-Tenant-Id',
+      'X-CSRF-Token',
+      'Idempotency-Key',
+    ],
     origin(origin, callback) {
       if (!origin) return callback(null, true);
 

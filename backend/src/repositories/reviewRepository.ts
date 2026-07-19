@@ -10,6 +10,7 @@ export type ReviewRecord = {
 };
 
 export interface ReviewRepository {
+  findById(tenantId: string, reviewId: string): Promise<ReviewRecord | null>;
   list(
     tenantId: string,
     productId: string,

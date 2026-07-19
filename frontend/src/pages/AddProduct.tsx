@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 
 import Header from '@/pages/header';
@@ -10,6 +10,7 @@ import { Input } from '@/components/Input';
 import { Select } from '@/components/Select';
 import { type ProductStatus, useCreateProduct } from '@/serverState/products';
 import { getApiErrorMessage } from '@/services/errors';
+import { createIdempotencyKey } from '@/services/idempotency';
 
 const productStatusOptions: ProductStatus[] = [
   'draft',
@@ -23,6 +24,7 @@ export default function AddProduct() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const createProduct = useCreateProduct();
+  const idempotency = useRef<{ key: string; fingerprint: string } | null>(null);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -44,7 +46,7 @@ export default function AddProduct() {
     try {
       setError('');
 
-      await createProduct.mutateAsync({
+      const product = {
         name,
         description,
         category,
@@ -52,6 +54,14 @@ export default function AddProduct() {
         inventory: Number(inventory),
         image,
         status,
+      };
+      const fingerprint = JSON.stringify(product);
+      if (idempotency.current?.fingerprint !== fingerprint) {
+        idempotency.current = { key: createIdempotencyKey(), fingerprint };
+      }
+      await createProduct.mutateAsync({
+        ...product,
+        idempotencyKey: idempotency.current.key,
       });
 
       navigate(appRoutes.sellerProducts(user._id));

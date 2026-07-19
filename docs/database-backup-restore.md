@@ -122,9 +122,10 @@ Run `npm run test:recovery` from the repository root. The isolated rehearsal:
    runner and loads deterministic non-personal tenant, account, session,
    catalog, cart, watchlist, order/history, review, notification, token, and
    audit data;
-3. takes and validates a pre-migration backup, then applies `0004` and verifies
+3. takes and validates a pre-migration backup, then applies `0004` through `0006` and verifies
    row preservation;
-4. adds representative `0004` account-management state and takes a current
+4. adds representative `0004` account-management state, verifies the `0005`
+   order-key backfill and the `0006` replay table, and takes a current
    custom-format backup with checksum and migration metadata;
 5. restores into a fresh database, reruns the current migration runner, and
    verifies journal parity, counts, tenant relationships, commerce state,

@@ -14,6 +14,10 @@ import type { WatchlistRepository } from '@/repositories/watchlistRepository';
 import { paginated } from '@/pagination';
 import type { Pagination } from '@/pagination';
 
+type TransactionDatabase = Parameters<
+  Parameters<Database['transaction']>[0]
+>[0];
+
 export class PostgresWatchlistRepository implements WatchlistRepository {
   constructor(private readonly db: Database) {}
 
@@ -98,7 +102,29 @@ export class PostgresWatchlistRepository implements WatchlistRepository {
 }
 
 export class PostgresReviewRepository implements ReviewRepository {
-  constructor(private readonly db: Database) {}
+  constructor(private readonly db: Database | TransactionDatabase) {}
+
+  private map(row: typeof reviews.$inferSelect) {
+    return {
+      _id: row.id,
+      tenantId: row.tenantId,
+      product: row.productId,
+      author: row.authorId,
+      rating: row.rating,
+      comment: row.comment,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    };
+  }
+
+  async findById(tenantId: string, reviewId: string) {
+    const [review] = await this.db
+      .select()
+      .from(reviews)
+      .where(and(eq(reviews.tenantId, tenantId), eq(reviews.id, reviewId)))
+      .limit(1);
+    return review ? this.map(review) : null;
+  }
 
   async list(tenantId: string, productId: string, pagination: Pagination) {
     const where = and(
@@ -116,16 +142,7 @@ export class PostgresReviewRepository implements ReviewRepository {
       this.db.select({ total: count() }).from(reviews).where(where),
     ]);
     return paginated(
-      rows.map((review) => ({
-        _id: review.id,
-        tenantId: review.tenantId,
-        product: review.productId,
-        author: review.authorId,
-        rating: review.rating,
-        comment: review.comment,
-        createdAt: review.createdAt,
-        updatedAt: review.updatedAt,
-      })),
+      rows.map((review) => this.map(review)),
       total,
       pagination,
     );
@@ -182,15 +199,6 @@ export class PostgresReviewRepository implements ReviewRepository {
         set: { rating, comment, updatedAt: now },
       })
       .returning();
-    return {
-      _id: review.id,
-      tenantId: review.tenantId,
-      product: review.productId,
-      author: review.authorId,
-      rating: review.rating,
-      comment: review.comment,
-      createdAt: review.createdAt,
-      updatedAt: review.updatedAt,
-    };
+    return this.map(review);
   }
 }

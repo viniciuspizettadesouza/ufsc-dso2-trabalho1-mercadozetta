@@ -2,7 +2,10 @@ import type { Request, Response } from 'express';
 import type { CommerceService } from '@/services/commerceService';
 import type { OrderStatus } from '@/orderStatus';
 import type { Pagination } from '@/pagination';
-import type { OrderListData } from '@/validators/commerceValidator';
+import type {
+  OrderListData,
+  SellerOperationsQuery,
+} from '@/validators/commerceValidator';
 
 const pagination = (req: Request) => req.validated?.query as Pagination;
 
@@ -65,7 +68,11 @@ export function createCommerceController(service: CommerceService) {
   }
   async function createOrder(req: Request, res: Response) {
     const { userId, tenantId } = context(req);
-    res.status(201).send(await service.createOrder(userId, tenantId));
+    res
+      .status(201)
+      .send(
+        await service.createOrder(userId, tenantId, req.idempotencyKey ?? ''),
+      );
   }
   async function listOrders(req: Request, res: Response) {
     const { userId, tenantId } = context(req);
@@ -83,6 +90,16 @@ export function createCommerceController(service: CommerceService) {
     const { status } = req.validated?.body as { status: OrderStatus };
     res.send(
       await service.updateOrderStatus(userId, tenantId, orderId, status),
+    );
+  }
+  async function getSellerOperations(req: Request, res: Response) {
+    const { userId, tenantId } = context(req);
+    res.send(
+      await service.getSellerOperations(
+        userId,
+        tenantId,
+        req.validated?.query as SellerOperationsQuery,
+      ),
     );
   }
   async function listReviews(req: Request, res: Response) {
@@ -107,6 +124,7 @@ export function createCommerceController(service: CommerceService) {
           productId,
           body.rating,
           body.comment,
+          req.idempotencyKey ?? '',
         ),
       );
   }
@@ -148,6 +166,7 @@ export function createCommerceController(service: CommerceService) {
     createOrder,
     listOrders,
     updateOrderStatus,
+    getSellerOperations,
     listReviews,
     createReview,
     listNotifications,

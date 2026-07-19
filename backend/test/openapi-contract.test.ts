@@ -674,6 +674,16 @@ describe('OpenAPI contract', () => {
       paths['/orders'].post.responses[201].content['application/json'].schema
         .$ref,
     ).toBe('#/components/schemas/Order');
+    expect(paths['/orders'].post.parameters).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          in: 'header',
+          name: 'Idempotency-Key',
+          required: true,
+          schema: expect.objectContaining({ format: 'uuid' }),
+        }),
+      ]),
+    );
     expect(
       paths['/orders/{orderId}/status'].patch.requestBody.content[
         'application/json'

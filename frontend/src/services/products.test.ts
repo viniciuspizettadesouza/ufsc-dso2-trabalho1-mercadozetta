@@ -80,11 +80,15 @@ describe('product service', () => {
       image: 'coffee.png',
       inventory: 2,
       status: 'active' as const,
+      idempotencyKey: '11111111-1111-4111-8111-111111111111',
     };
 
     await expect(createProduct(input)).resolves.toBe(product);
 
-    expect(api.post).toHaveBeenCalledWith('/products', input);
+    const { idempotencyKey, ...body } = input;
+    expect(api.post).toHaveBeenCalledWith('/products', body, {
+      headers: { 'Idempotency-Key': idempotencyKey },
+    });
   });
 
   it('updates product details, inventory, and status through domain routes', async () => {

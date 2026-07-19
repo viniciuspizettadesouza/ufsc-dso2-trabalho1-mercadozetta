@@ -115,10 +115,15 @@ describe('marketplace pages', () => {
       quantity: 1,
     });
     expect(screen.getByText(/Great beans/)).toBeInTheDocument();
-    expect(api.post).toHaveBeenCalledWith('/products/product-1/reviews', {
-      rating: 5,
-      comment: 'Great beans',
-    });
+    expect(api.post).toHaveBeenCalledWith(
+      '/products/product-1/reviews',
+      { rating: 5, comment: 'Great beans' },
+      {
+        headers: {
+          'Idempotency-Key': expect.stringMatching(/^[0-9a-f-]{36}$/),
+        },
+      },
+    );
     expect(screen.getByRole('status')).toHaveTextContent('Review added.');
   });
 
@@ -358,7 +363,15 @@ describe('marketplace pages', () => {
     await waitFor(() =>
       expect(screen.getByText(/order-1/)).toBeInTheDocument(),
     );
-    expect(api.post).toHaveBeenCalledWith('/orders');
+    expect(api.post).toHaveBeenCalledWith(
+      '/orders',
+      undefined,
+      expect.objectContaining({
+        headers: {
+          'Idempotency-Key': expect.stringMatching(/^[0-9a-f-]{36}$/),
+        },
+      }),
+    );
     expect(screen.getByText(/placed by buyer-1 at/)).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(
       'Order placed successfully.',
@@ -368,7 +381,7 @@ describe('marketplace pages', () => {
 
   it('shows checkout loading and order API errors', async () => {
     mockCheckout({ items: [{ product, quantity: 1 }] });
-    vi.mocked(api.post).mockRejectedValueOnce(new Error('network error'));
+    vi.mocked(api.post).mockRejectedValue(new Error('network error'));
 
     renderAt('/checkout', '/checkout', <Checkout />);
 
@@ -382,6 +395,12 @@ describe('marketplace pages', () => {
       'Unable to place order.',
     );
     expect(screen.getByLabelText('Quantity for Coffee')).toHaveValue('1');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Place order' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
+    expect(vi.mocked(api.post).mock.calls[1][2]).toEqual(
+      vi.mocked(api.post).mock.calls[0][2],
+    );
   });
 
   it('shows checkout load errors', async () => {

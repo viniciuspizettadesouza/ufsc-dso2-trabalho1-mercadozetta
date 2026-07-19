@@ -797,8 +797,31 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 - Final verification passes generated-contract parity, typecheck, 243 backend
   tests, 186 frontend tests, lint, formatting, both coverage gates, the frontend
   production build, all 28 PostgreSQL scenarios, and both Chromium workflows.
-  Next action: start Step 13 with idempotency for checkout and other
-  retry-sensitive mutations.
+- Step 13 is complete. Checkout, product creation, and review upsert require
+  actor/tenant-scoped UUID idempotency keys; migrations `0005` and `0006`
+  persist replay boundaries and request fingerprints, exact retries return the
+  stored resource, and conflicting payload reuse is rejected without duplicate
+  inventory, cart, notification, history, or audit effects. Inventory and
+  profile target-state retries suppress duplicate audits. Account-token,
+  registration, and login retry semantics are explicitly documented without
+  persisting sensitive credential replay input.
+- Sellers can view tenant-scoped quantity/order summaries, low-stock warnings,
+  and paginated inventory history, and can search their orders by UUID or sold
+  product name and filter by lifecycle status. Revenue remains deferred until
+  authoritative monetary snapshots exist. The conditional category review
+  found no current hierarchy, governance, or cross-channel discovery need, so
+  free-text categories remain and the trigger for managed taxonomy is recorded.
+- Generated-contract parity, typecheck, 252 backend tests across 51 files, 189
+  frontend tests across 40 files, lint, formatting, both coverage gates,
+  frontend and production builds, all 29 PostgreSQL scenarios, both Chromium
+  workflows, the seven-migration recovery rehearsal, and the production-image
+  smoke pass. Backend coverage passes with 86.05% branches and 90.56%
+  functions; frontend coverage passes with 91.02% branches and 95.95%
+  functions.
+- Next action: begin Step 14 by accepting the tenant currency and exact money
+  representation decision before adding product prices or order-line price
+  snapshots. Start with the Step 14 checklist and the product/order schema in
+  `backend/src/database/schema.ts`; do not infer revenue from current quantities.
 
 ## Recommended Order
 
@@ -1081,12 +1104,12 @@ marketplace demo while evolving the new persistent commerce workflows safely.
 
 ### 13. Complete the operational marketplace baseline
 
-- [ ] Make checkout and other retry-sensitive mutations idempotent so retries
+- [x] Make checkout and other retry-sensitive mutations idempotent so retries
       cannot create duplicate orders or side effects.
-- [ ] Add seller inventory history, low-stock warnings, order search and
+- [x] Add seller inventory history, low-stock warnings, order search and
       filtering, and basic tenant-scoped quantity and order summaries. Defer
       revenue summaries until Step 14 introduces authoritative monetary data.
-- [ ] Replace uncontrolled free-text categories with managed taxonomy only if
+- [x] Replace uncontrolled free-text categories with managed taxonomy only if
       catalog requirements need consistent discovery.
 
 ### 14. Add an authoritative monetary model

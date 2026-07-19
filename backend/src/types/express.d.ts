@@ -4,6 +4,7 @@ declare global {
   namespace Express {
     interface Request {
       requestId?: string;
+      idempotencyKey?: string;
       validated?: {
         body?: ValidatedValue;
         params?: ValidatedValue;

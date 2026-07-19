@@ -28,6 +28,7 @@ import {
   products,
   pendingEmailChanges,
   reviews,
+  mutationIdempotency,
   sessions,
   users,
   watchlistEntries,
@@ -51,6 +52,7 @@ import {
   PostgresWatchlistRepository,
 } from '@/repositories/postgres/commerceRepositories';
 import { PostgresSessionRepository } from '@/repositories/postgres/sessionRepository';
+import { PostgresSellerOperationsRepository } from '@/repositories/postgres/sellerOperationsRepository';
 import {
   createAuthService,
   type AuthSessionService,
@@ -71,6 +73,7 @@ import {
 } from '@/services/commerceService';
 import { createUserService } from '@/services/userService';
 import { createSessionService } from '@/services/sessionService';
+import { createSellerOperationsService } from '@/services/sellerOperationsService';
 import { createRoutes } from '@/routes';
 
 const connectionString = process.env.POSTGRESQL_URL;
@@ -114,8 +117,10 @@ const watchlistService = createWatchlistCommerceService(
 );
 const reviewService = createReviewCommerceService(
   new PostgresReviewRepository(db),
-  productRepository,
-  new PostgresNotificationRepository(db),
+  transactionCoordinator,
+);
+const sellerOperationsService = createSellerOperationsService(
+  new PostgresSellerOperationsRepository(db),
 );
 const postgresSessions = new PostgresSessionRepository(db);
 const postgresSessionService = createSessionService(
@@ -138,7 +143,7 @@ const userPayload = {
   username: 'Seller',
   telephone: '123',
 };
-const firstPage = { limit: 20, offset: 0, scope: 'all' as const };
+const firstPage = { limit: 20, offset: 0, scope: 'all' as const, q: '' };
 const accountTokenKeyRing = {
   activeVersion: 'current',
   keys: { current: 'integration-account-token-secret' },
@@ -225,6 +230,7 @@ describe('PostgreSQL user and product repositories', () => {
     await pool.query('truncate table audit_events');
     await db.delete(notifications);
     await db.delete(reviews);
+    await db.delete(mutationIdempotency);
     await db.delete(watchlistEntries);
     await db.delete(sessions);
     await db.delete(pendingEmailChanges);
@@ -1206,6 +1212,7 @@ describe('PostgreSQL user and product repositories', () => {
       id: orderId,
       tenantId: 'mercadozetta',
       buyerId: buyer._id,
+      checkoutIdempotencyKey: randomUUID(),
       status: 'shipped',
       createdAt: orderedAt,
       updatedAt: orderedAt,
@@ -1304,6 +1311,7 @@ describe('PostgreSQL user and product repositories', () => {
       id: orderId,
       tenantId: 'mercadozetta',
       buyerId: other._id,
+      checkoutIdempotencyKey: randomUUID(),
       status: 'delivered',
       createdAt: historyAt,
       updatedAt: historyAt,
@@ -2167,16 +2175,41 @@ describe('PostgreSQL user and product repositories', () => {
       { ...userPayload, email: 'campus-seller@example.com' },
       'campus-market',
     );
+    const productKey = randomUUID();
+    const productInput = {
+      name: ' Keyboard ',
+      description: 'Mechanical keyboard',
+      inventory: 2,
+      image: 'keyboard.png',
+    };
     const product = await productService.createProduct(
-      {
-        name: ' Keyboard ',
-        description: 'Mechanical keyboard',
-        inventory: 2,
-        image: 'keyboard.png',
-      },
+      productInput,
       seller._id,
       'mercadozetta',
+      productKey,
     );
+    await expect(
+      productService.createProduct(
+        productInput,
+        seller._id,
+        'mercadozetta',
+        productKey,
+      ),
+    ).resolves.toMatchObject({ _id: product._id });
+    await expect(
+      productService.createProduct(
+        {
+          ...productInput,
+          inventory: 3,
+        },
+        seller._id,
+        'mercadozetta',
+        productKey,
+      ),
+    ).rejects.toMatchObject({ code: 'IDEMPOTENCY_KEY_REUSED' });
+    expect(
+      await db.select().from(products).where(eq(products.sellerId, seller._id)),
+    ).toHaveLength(1);
 
     expect(isUuid(product._id)).toBe(true);
     expect(product).toMatchObject({
@@ -2201,6 +2234,7 @@ describe('PostgreSQL user and product repositories', () => {
         { name: 'Desk', inventory: 1, image: 'desk.png' },
         otherTenantSeller._id,
         'mercadozetta',
+        randomUUID(),
       );
       throw new Error('Expected cross-tenant product ownership to fail');
     } catch (error) {
@@ -2230,6 +2264,7 @@ describe('PostgreSQL user and product repositories', () => {
       },
       seller._id,
       'mercadozetta',
+      randomUUID(),
     );
     const cable = await productService.createProduct(
       {
@@ -2243,6 +2278,7 @@ describe('PostgreSQL user and product repositories', () => {
       },
       seller._id,
       'mercadozetta',
+      randomUUID(),
     );
     const desk = await productService.createProduct(
       {
@@ -2256,6 +2292,7 @@ describe('PostgreSQL user and product repositories', () => {
       },
       seller._id,
       'mercadozetta',
+      randomUUID(),
     );
     const mouse = await productService.createProduct(
       {
@@ -2266,6 +2303,7 @@ describe('PostgreSQL user and product repositories', () => {
       },
       otherSeller._id,
       'mercadozetta',
+      randomUUID(),
     );
     await productService.createProduct(
       {
@@ -2276,6 +2314,7 @@ describe('PostgreSQL user and product repositories', () => {
       },
       campusSeller._id,
       'campus-market',
+      randomUUID(),
     );
 
     const creationTimes = [
@@ -2409,6 +2448,7 @@ describe('PostgreSQL user and product repositories', () => {
       .set('Cookie', sellerAuth.cookie)
       .set('Origin', 'http://localhost:5173')
       .set('X-CSRF-Token', sellerAuth.csrf!)
+      .set('Idempotency-Key', randomUUID())
       .send({ name: 'Managed', inventory: 2, image: 'managed.png' })
       .expect(201);
     const productId = created.body._id;
@@ -2561,6 +2601,7 @@ describe('PostgreSQL user and product repositories', () => {
       .set('Cookie', sellerAuth.cookie)
       .set('Origin', 'http://localhost:5173')
       .set('X-CSRF-Token', sellerAuth.csrf!)
+      .set('Idempotency-Key', randomUUID())
       .send({
         name: 'HTTP PostgreSQL product',
         description: 'Created through composed routes',
@@ -2890,6 +2931,107 @@ describe('PostgreSQL user and product repositories', () => {
     ).resolves.toMatchObject({ inventory: 0 });
   });
 
+  it('scopes seller operations, inventory history, summaries, and order filters', async () => {
+    const seller = await userService.createUser(userPayload, 'mercadozetta');
+    const buyer = await userService.createUser(
+      { ...userPayload, email: 'operations-buyer@example.com' },
+      'mercadozetta',
+    );
+    const product = await productService.createProduct(
+      {
+        name: 'Operations keyboard',
+        inventory: 4,
+        image: 'operations-keyboard.png',
+      },
+      seller._id,
+      'mercadozetta',
+      randomUUID(),
+    );
+    await productService.updateProductInventory(
+      product._id,
+      { inventory: 2 },
+      seller._id,
+      'mercadozetta',
+    );
+    const orderId = randomUUID();
+    const now = new Date();
+    await db.insert(orders).values({
+      id: orderId,
+      tenantId: 'mercadozetta',
+      buyerId: buyer._id,
+      checkoutIdempotencyKey: randomUUID(),
+      status: 'confirmed',
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.insert(orderItems).values({
+      id: randomUUID(),
+      tenantId: 'mercadozetta',
+      orderId,
+      productId: product._id,
+      sellerId: seller._id,
+      productName: product.name,
+      quantity: 3,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await expect(
+      sellerOperationsService.getSellerOperations(seller._id, 'mercadozetta', {
+        lowStockThreshold: 2,
+        limit: 20,
+        offset: 0,
+      }),
+    ).resolves.toMatchObject({
+      summary: {
+        productCount: 1,
+        activeProductCount: 1,
+        lowStockProductCount: 1,
+        inventoryUnits: 2,
+        orderCount: 1,
+        openOrderCount: 1,
+        orderedUnits: 3,
+      },
+      lowStockProducts: [{ _id: product._id, inventory: 2 }],
+      inventoryHistory: {
+        items: [
+          {
+            eventType: 'inventory.set',
+            product: product._id,
+            previousInventory: 4,
+            nextInventory: 2,
+          },
+        ],
+        page: { total: 1 },
+      },
+    });
+    await expect(
+      sellerOperationsService.getSellerOperations(seller._id, 'campus-market', {
+        lowStockThreshold: 2,
+        limit: 20,
+        offset: 0,
+      }),
+    ).resolves.toMatchObject({ summary: { productCount: 0, orderCount: 0 } });
+    await expect(
+      orderService.listOrders(seller._id, 'mercadozetta', {
+        limit: 20,
+        offset: 0,
+        scope: 'seller',
+        status: 'confirmed',
+        q: 'keyboard',
+      }),
+    ).resolves.toMatchObject({ items: [{ _id: orderId }], page: { total: 1 } });
+    await expect(
+      orderService.listOrders(seller._id, 'mercadozetta', {
+        limit: 20,
+        offset: 0,
+        scope: 'seller',
+        status: 'delivered',
+        q: '',
+      }),
+    ).resolves.toMatchObject({ items: [], page: { total: 0 } });
+  });
+
   it('commits one complete checkout for two concurrent final-unit buyers', async () => {
     const seller = await userService.createUser(userPayload, 'mercadozetta');
     const firstBuyer = await userService.createUser(
@@ -2928,13 +3070,13 @@ describe('PostgreSQL user and product repositories', () => {
           productId: product._id,
           quantity: 1,
         });
-        return { buyerId: buyer._id, cartId };
+        return { buyerId: buyer._id, cartId, idempotencyKey: randomUUID() };
       }),
     );
 
     const attempts = await Promise.allSettled(
-      buyerCarts.map(({ buyerId }) =>
-        checkoutService.createOrder(buyerId, 'mercadozetta'),
+      buyerCarts.map(({ buyerId, idempotencyKey }) =>
+        checkoutService.createOrder(buyerId, 'mercadozetta', idempotencyKey),
       ),
     );
     expect(
@@ -3029,6 +3171,30 @@ describe('PostgreSQL user and product repositories', () => {
       ]),
     );
 
+    const winningAttempt = buyerCarts.find(
+      ({ buyerId }) => buyerId === storedOrders[0].buyerId,
+    )!;
+    await expect(
+      checkoutService.createOrder(
+        winningAttempt.buyerId,
+        'mercadozetta',
+        winningAttempt.idempotencyKey,
+      ),
+    ).resolves.toEqual(placedOrder.value);
+    await expect(
+      Promise.all([
+        db.select().from(orders),
+        db.select().from(orderItems),
+        db.select().from(notifications),
+        db.select().from(auditEvents),
+      ]),
+    ).resolves.toMatchObject([
+      { length: 1 },
+      { length: 1 },
+      { length: 2 },
+      { length: 2 },
+    ]);
+
     const remainingCartItems = await db.select().from(cartItems);
     const winningCart = buyerCarts.find(
       ({ buyerId }) => buyerId === storedOrders[0].buyerId,
@@ -3067,16 +3233,24 @@ describe('PostgreSQL user and product repositories', () => {
       status: 'confirmed',
       items: [{ product: product._id, seller: seller._id }],
     });
-    await expect(db.select().from(auditEvents)).resolves.toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          eventType: 'order.status_changed',
-          actorId: seller._id,
-          resourceId: storedOrders[0].id,
-          metadata: { previousStatus: 'placed', nextStatus: 'confirmed' },
-        }),
-      ]),
+    await expect(
+      orderService.updateOrderStatus(
+        seller._id,
+        'mercadozetta',
+        storedOrders[0].id,
+        'confirmed',
+      ),
+    ).resolves.toEqual(advancedOrder);
+    const orderStatusAudits = (await db.select().from(auditEvents)).filter(
+      ({ eventType }) => eventType === 'order.status_changed',
     );
+    expect(orderStatusAudits).toEqual([
+      expect.objectContaining({
+        actorId: seller._id,
+        resourceId: storedOrders[0].id,
+        metadata: { previousStatus: 'placed', nextStatus: 'confirmed' },
+      }),
+    ]);
 
     const buyerNotices = await notificationService.listNotifications(
       storedOrders[0].buyerId,
@@ -3191,6 +3365,7 @@ describe('PostgreSQL user and product repositories', () => {
         product._id,
         5,
         'Mine',
+        randomUUID(),
       ),
     ).rejects.toMatchObject({ code: 'REVIEW_FORBIDDEN' });
     await expect(
@@ -3200,6 +3375,7 @@ describe('PostgreSQL user and product repositories', () => {
         product._id,
         5,
         'Not purchased',
+        randomUUID(),
       ),
     ).rejects.toMatchObject({ code: 'REVIEW_PURCHASE_REQUIRED' });
 
@@ -3209,6 +3385,7 @@ describe('PostgreSQL user and product repositories', () => {
       id: orderId,
       tenantId: 'mercadozetta',
       buyerId: buyer._id,
+      checkoutIdempotencyKey: randomUUID(),
       status: 'delivered',
       createdAt: now,
       updatedAt: now,
@@ -3225,19 +3402,42 @@ describe('PostgreSQL user and product repositories', () => {
       updatedAt: now,
     });
 
+    const reviewKey = randomUUID();
     const created = await reviewService.createReview(
       buyer._id,
       'mercadozetta',
       product._id,
       4,
       'Good',
+      reviewKey,
     );
+    await expect(
+      reviewService.createReview(
+        buyer._id,
+        'mercadozetta',
+        product._id,
+        4,
+        'Good',
+        reviewKey,
+      ),
+    ).resolves.toMatchObject({ _id: created._id, comment: 'Good' });
+    await expect(
+      reviewService.createReview(
+        buyer._id,
+        'mercadozetta',
+        product._id,
+        3,
+        'Different',
+        reviewKey,
+      ),
+    ).rejects.toMatchObject({ code: 'IDEMPOTENCY_KEY_REUSED' });
     const updated = await reviewService.createReview(
       buyer._id,
       'mercadozetta',
       product._id,
       5,
       'Excellent',
+      randomUUID(),
     );
     expect(updated._id).toBe(created._id);
     expect(created).toMatchObject({

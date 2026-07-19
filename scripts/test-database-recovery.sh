@@ -134,7 +134,7 @@ docker exec -i "$container_name" pg_restore --list < "$pre_migration_backup" \
 run_migrations "$source_url" "$(pwd)/backend/drizzle"
 test "$(core_fingerprint "$source_database")" = "$pre_migration_fingerprint"
 test "$(source_psql --tuples-only --no-align --command \
-  "select count(*) from drizzle.__drizzle_migrations;")" = "5"
+  "select count(*) from drizzle.__drizzle_migrations;")" = "7"
 migration_duration_ms="$(( $(date +%s%3N) - migration_started_ms ))"
 
 source_psql < backend/test/fixtures/recovery-rehearsal-current.sql >/dev/null
@@ -176,7 +176,7 @@ backup_duration_ms="$(( $(date +%s%3N) - backup_started_ms ))"
   echo "postgres_image=$postgres_image"
   echo "backend_image=${BACKEND_IMAGE:-source-$(git rev-parse --short HEAD)}"
   echo "frontend_image=${FRONTEND_IMAGE:-source-$(git rev-parse --short HEAD)}"
-  echo "migration_count=5"
+  echo "migration_count=7"
   echo "sha256=$backup_checksum"
   echo "bytes=$backup_size"
 } > "$metadata_file"
@@ -195,7 +195,7 @@ restore_duration_ms="$(( $(date +%s%3N) - restore_started_ms ))"
 
 test "$(current_fingerprint "$restore_database")" = "$expected_fingerprint"
 test "$(restore_psql --tuples-only --no-align --command \
-  "select count(*) from drizzle.__drizzle_migrations;")" = "5"
+  "select count(*) from drizzle.__drizzle_migrations;")" = "7"
 test "$(restore_psql --tuples-only --no-align --command \
   "select count(*) from order_items oi join orders o
    on o.tenant_id = oi.tenant_id and o.id = oi.order_id

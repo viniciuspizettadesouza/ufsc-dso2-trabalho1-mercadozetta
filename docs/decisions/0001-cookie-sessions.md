@@ -164,7 +164,8 @@ an `Authorization` header. The tenant selector remains `X-Tenant-Id`; it is not
 proof of identity and must match the session tenant.
 
 The backend uses an exact, non-empty production origin allowlist, sets CORS
-`credentials: true`, permits `Content-Type`, `X-Tenant-Id`, and `X-CSRF-Token`,
+`credentials: true`, permits `Content-Type`, `X-Tenant-Id`, `X-CSRF-Token`, and
+`Idempotency-Key`,
 and emits `Vary: Origin`. Wildcard origins, reflected unvalidated origins, and
 credentialed requests from unlisted origins are forbidden. Credentialed CORS
 cannot use `Access-Control-Allow-Origin: *`, as summarized by the

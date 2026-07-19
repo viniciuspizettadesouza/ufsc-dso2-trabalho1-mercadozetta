@@ -95,15 +95,23 @@ describe('AddProduct', () => {
     );
 
     await waitFor(() => {
-      expect(api.post).toHaveBeenCalledWith('/products', {
-        name: 'Coffee',
-        description: 'Fresh beans',
-        category: 'general',
-        subcategory: '',
-        inventory: 3,
-        image: 'coffee.jpg',
-        status: 'active',
-      });
+      expect(api.post).toHaveBeenCalledWith(
+        '/products',
+        {
+          name: 'Coffee',
+          description: 'Fresh beans',
+          category: 'general',
+          subcategory: '',
+          inventory: 3,
+          image: 'coffee.jpg',
+          status: 'active',
+        },
+        {
+          headers: {
+            'Idempotency-Key': expect.stringMatching(/^[0-9a-f-]{36}$/),
+          },
+        },
+      );
     });
     expect(navigate).toHaveBeenCalledWith('/sellers/user-1');
   });
@@ -129,6 +137,11 @@ describe('AddProduct', () => {
         '/products',
         expect.objectContaining({
           status: 'draft',
+        }),
+        expect.objectContaining({
+          headers: {
+            'Idempotency-Key': expect.stringMatching(/^[0-9a-f-]{36}$/),
+          },
         }),
       );
     });
