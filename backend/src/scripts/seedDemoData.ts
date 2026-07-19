@@ -112,7 +112,7 @@ const seedProducts: SeedProduct[] = [
     image:
       'https://images.unsplash.com/photo-1611175694989-4870fafa4494?auto=format&fit=crop&w=900&q=80',
     status: 'active',
-    priceMinor: '1999',
+    priceMinor: '1899',
   },
   {
     id: '67000000-0000-4000-8000-000000000004',
@@ -127,7 +127,7 @@ const seedProducts: SeedProduct[] = [
     image:
       'https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=900&q=80',
     status: 'active',
-    priceMinor: '5900',
+    priceMinor: '5490',
   },
 ];
 

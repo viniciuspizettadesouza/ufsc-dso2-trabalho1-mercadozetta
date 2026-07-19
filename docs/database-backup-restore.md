@@ -123,12 +123,13 @@ Run `npm run test:recovery` from the repository root. The isolated rehearsal:
    catalog, cart, watchlist, order/history, review, notification, token, and
    audit data;
 3. takes and validates a pre-migration backup, then applies `0004` through
-   `0007` and verifies row preservation plus explicit legacy-unpriced monetary
-   shapes;
-4. adds representative account-management and price-history state, verifies
-   the `0005` order-key backfill, `0006` replay table, and `0007` exact-money
-   constraints, and takes a current custom-format backup with checksum and
-   migration metadata;
+   `0007`, loads a representative USD CampusMarket baseline, applies `0008`,
+   and verifies row preservation plus the deliberate EUR transition;
+4. adds representative account-management state, verifies the `0005`
+   order-key backfill, `0006` replay table, `0007` exact-money constraints,
+   retained USD history, current USD MercadoZetta catalog, and current EUR
+   CampusMarket catalog, then takes a current custom-format backup with checksum
+   and migration metadata;
 5. restores into a fresh database, reruns the current migration runner, and
    verifies journal parity, counts, tenant relationships, commerce state,
    security state, and audit evidence; and
@@ -142,12 +143,12 @@ selected provider must run its own equivalent rehearsal before deployment.
 
 ### Verified repository rehearsal
 
-On 2026-07-19, the isolated PostgreSQL 18 rehearsal passed with all eight
+On 2026-07-19, the isolated PostgreSQL 18 rehearsal passed with all nine
 migration journal entries, unchanged pre-`0004` domain counts, restored current
-state, tenant-qualified commerce/currency relationships, and append-only audit
-and price-history triggers. The representative archive was 72,807 bytes; the
+state, tenant-qualified USD/EUR commerce relationships, and append-only audit
+and price-history triggers. The representative archive was 75,131 bytes; the
 measured forward-migration, backup, and fresh-restore/current-migration phases
-took 5.162 seconds, 0.266 seconds, and 2.461 seconds respectively. The script
+took 7.094 seconds, 0.284 seconds, and 2.091 seconds respectively. The script
 verified its run-specific SHA-256 checksum before discarding the isolated
 artifact and container.
 

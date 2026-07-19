@@ -1308,7 +1308,7 @@ describe('PostgreSQL user and product repositories', () => {
       inventory: 5,
       image: 'campus-retained.png',
       status: 'active',
-      price: { currency: 'USD', amountMinor: '1000' },
+      price: { currency: 'EUR', amountMinor: '1000' },
     });
     const historyAt = new Date('2026-07-19T15:10:00.000Z');
     const orderId = randomUUID();
@@ -2351,7 +2351,7 @@ describe('PostgreSQL user and product repositories', () => {
         name: 'Campus keyboard',
         category: 'Peripherals',
         inventory: 99,
-        price: { currency: 'USD', amountMinor: '6000' },
+        price: { currency: 'EUR', amountMinor: '6000' },
         image: 'campus-keyboard.png',
       },
       campusSeller._id,
@@ -2981,42 +2981,73 @@ describe('PostgreSQL user and product repositories', () => {
   });
 
   it('scopes seller operations, inventory history, summaries, and order filters', async () => {
-    const seller = await userService.createUser(userPayload, 'mercadozetta');
+    const seller = await userService.createUser(userPayload, 'campus-market');
     const buyer = await userService.createUser(
       { ...userPayload, email: 'operations-buyer@example.com' },
-      'mercadozetta',
+      'campus-market',
     );
     const product = await productService.createProduct(
       {
         name: 'Operations keyboard',
         inventory: 4,
-        price: { currency: 'USD', amountMinor: '8500' },
+        price: { currency: 'EUR', amountMinor: '8500' },
         image: 'operations-keyboard.png',
       },
       seller._id,
-      'mercadozetta',
+      'campus-market',
       randomUUID(),
     );
     await productService.updateProductInventory(
       product._id,
       { inventory: 2 },
       seller._id,
-      'mercadozetta',
+      'campus-market',
     );
     const orderId = randomUUID();
     const now = new Date();
     await db.insert(orders).values({
       id: orderId,
-      tenantId: 'mercadozetta',
+      tenantId: 'campus-market',
       buyerId: buyer._id,
       checkoutIdempotencyKey: randomUUID(),
       status: 'confirmed',
       createdAt: now,
       updatedAt: now,
     });
+    const historicalUsdOrderId = randomUUID();
+    await db.insert(orders).values({
+      id: historicalUsdOrderId,
+      tenantId: 'campus-market',
+      buyerId: buyer._id,
+      checkoutIdempotencyKey: randomUUID(),
+      pricingState: 'priced',
+      currencyCode: 'USD',
+      currencyMinorUnit: 2,
+      subtotalMinor: 500n,
+      discountMinor: 0n,
+      shippingMinor: 0n,
+      totalMinor: 500n,
+      status: 'delivered',
+      createdAt: now,
+      updatedAt: now,
+    });
     await db.insert(orderItems).values({
       id: randomUUID(),
-      tenantId: 'mercadozetta',
+      tenantId: 'campus-market',
+      orderId: historicalUsdOrderId,
+      productId: product._id,
+      sellerId: seller._id,
+      productName: product.name,
+      quantity: 1,
+      pricingState: 'priced',
+      unitPriceMinor: 500n,
+      lineSubtotalMinor: 500n,
+      createdAt: now,
+      updatedAt: now,
+    });
+    await db.insert(orderItems).values({
+      id: randomUUID(),
+      tenantId: 'campus-market',
       orderId,
       productId: product._id,
       sellerId: seller._id,
@@ -3027,7 +3058,7 @@ describe('PostgreSQL user and product repositories', () => {
     });
 
     await expect(
-      sellerOperationsService.getSellerOperations(seller._id, 'mercadozetta', {
+      sellerOperationsService.getSellerOperations(seller._id, 'campus-market', {
         lowStockThreshold: 2,
         limit: 20,
         offset: 0,
@@ -3038,12 +3069,13 @@ describe('PostgreSQL user and product repositories', () => {
         activeProductCount: 1,
         lowStockProductCount: 1,
         inventoryUnits: 2,
-        orderCount: 1,
+        orderCount: 2,
         openOrderCount: 1,
-        orderedUnits: 3,
+        orderedUnits: 4,
         pricedOrderCount: 0,
+        historicalCurrencyOrderCount: 1,
         legacyUnpricedOrderCount: 1,
-        grossRevenue: { currency: 'USD', amountMinor: '0' },
+        grossRevenue: { currency: 'EUR', amountMinor: '0' },
       },
       lowStockProducts: [{ _id: product._id, inventory: 2 }],
       inventoryHistory: {
@@ -3059,7 +3091,7 @@ describe('PostgreSQL user and product repositories', () => {
       },
     });
     await expect(
-      sellerOperationsService.getSellerOperations(seller._id, 'campus-market', {
+      sellerOperationsService.getSellerOperations(seller._id, 'mercadozetta', {
         lowStockThreshold: 2,
         limit: 20,
         offset: 0,
@@ -3069,12 +3101,13 @@ describe('PostgreSQL user and product repositories', () => {
         productCount: 0,
         orderCount: 0,
         pricedOrderCount: 0,
+        historicalCurrencyOrderCount: 0,
         legacyUnpricedOrderCount: 0,
         grossRevenue: { currency: 'USD', amountMinor: '0' },
       },
     });
     await expect(
-      orderService.listOrders(seller._id, 'mercadozetta', {
+      orderService.listOrders(seller._id, 'campus-market', {
         limit: 20,
         offset: 0,
         scope: 'seller',
@@ -3083,14 +3116,27 @@ describe('PostgreSQL user and product repositories', () => {
       }),
     ).resolves.toMatchObject({ items: [{ _id: orderId }], page: { total: 1 } });
     await expect(
-      orderService.listOrders(seller._id, 'mercadozetta', {
+      orderService.listOrders(seller._id, 'campus-market', {
         limit: 20,
         offset: 0,
         scope: 'seller',
         status: 'delivered',
         q: '',
       }),
-    ).resolves.toMatchObject({ items: [], page: { total: 0 } });
+    ).resolves.toMatchObject({
+      items: [
+        {
+          _id: historicalUsdOrderId,
+          total: null,
+          items: [
+            {
+              lineSubtotal: { currency: 'USD', amountMinor: '500' },
+            },
+          ],
+        },
+      ],
+      page: { total: 1 },
+    });
   });
 
   it('commits one complete checkout for two concurrent final-unit buyers', async () => {
@@ -3278,6 +3324,7 @@ describe('PostgreSQL user and product repositories', () => {
     ).resolves.toMatchObject({
       summary: {
         pricedOrderCount: 1,
+        historicalCurrencyOrderCount: 0,
         legacyUnpricedOrderCount: 0,
         grossRevenue: { currency: 'USD', amountMinor: '1000' },
       },

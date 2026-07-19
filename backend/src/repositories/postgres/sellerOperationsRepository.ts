@@ -52,9 +52,10 @@ export class PostgresSellerOperationsRepository implements SellerOperationsRepos
         .select({
           orderCount: countDistinct(orderItems.orderId),
           orderedUnits: sum(orderItems.quantity),
-          pricedOrderCount: sql<number>`count(distinct ${orderItems.orderId}) filter (where ${orders.pricingState} = 'priced')`,
+          pricedOrderCount: sql<number>`count(distinct ${orderItems.orderId}) filter (where ${orders.pricingState} = 'priced' and ${orders.currencyCode} = ${tenant.currencyCode} and ${orders.currencyMinorUnit} = ${tenant.currencyMinorUnit})`,
+          historicalCurrencyOrderCount: sql<number>`count(distinct ${orderItems.orderId}) filter (where ${orders.pricingState} = 'priced' and (${orders.currencyCode} <> ${tenant.currencyCode} or ${orders.currencyMinorUnit} <> ${tenant.currencyMinorUnit}))`,
           legacyUnpricedOrderCount: sql<number>`count(distinct ${orderItems.orderId}) filter (where ${orders.pricingState} = 'legacy_unpriced')`,
-          grossRevenueMinor: sql<string>`coalesce(sum(${orderItems.lineSubtotalMinor}) filter (where ${orders.pricingState} = 'priced' and ${orders.status} <> 'cancelled'), 0)::text`,
+          grossRevenueMinor: sql<string>`coalesce(sum(${orderItems.lineSubtotalMinor}) filter (where ${orders.pricingState} = 'priced' and ${orders.currencyCode} = ${tenant.currencyCode} and ${orders.currencyMinorUnit} = ${tenant.currencyMinorUnit} and ${orders.status} <> 'cancelled'), 0)::text`,
         })
         .from(orderItems)
         .innerJoin(
@@ -90,6 +91,9 @@ export class PostgresSellerOperationsRepository implements SellerOperationsRepos
       openOrderCount: Number(openOrderCount[0].total),
       orderedUnits: Number(orderRows[0].orderedUnits ?? 0),
       pricedOrderCount: Number(orderRows[0].pricedOrderCount),
+      historicalCurrencyOrderCount: Number(
+        orderRows[0].historicalCurrencyOrderCount,
+      ),
       legacyUnpricedOrderCount: Number(orderRows[0].legacyUnpricedOrderCount),
       grossRevenue: moneyFromMinor(
         tenant.currencyCode,

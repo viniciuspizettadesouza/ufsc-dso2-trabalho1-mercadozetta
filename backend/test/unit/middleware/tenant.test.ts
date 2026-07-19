@@ -33,7 +33,7 @@ describe('tenantMiddleware', () => {
       expect.objectContaining({
         id: 'campus-market',
         name: 'CampusMarket',
-        currencyCode: 'USD',
+        currencyCode: 'EUR',
         currencyMinorUnit: 2,
       }),
     );

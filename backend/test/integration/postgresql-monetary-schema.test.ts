@@ -9,6 +9,7 @@ import {
   orders,
   productPriceHistory,
   products,
+  tenantCurrencies,
   tenants,
   users,
 } from '@/database/schema';
@@ -131,7 +132,28 @@ describe('PostgreSQL authoritative monetary schema', () => {
         },
         {
           id: 'campus-market',
+          currencyCode: 'EUR',
+          currencyMinorUnit: 2,
+        },
+      ]),
+    );
+    const currencyRows = await db
+      .select({
+        tenantId: tenantCurrencies.tenantId,
+        currencyCode: tenantCurrencies.currencyCode,
+        currencyMinorUnit: tenantCurrencies.currencyMinorUnit,
+      })
+      .from(tenantCurrencies);
+    expect(currencyRows).toEqual(
+      expect.arrayContaining([
+        {
+          tenantId: 'mercadozetta',
           currencyCode: 'USD',
+          currencyMinorUnit: 2,
+        },
+        {
+          tenantId: 'campus-market',
+          currencyCode: 'EUR',
           currencyMinorUnit: 2,
         },
       ]),

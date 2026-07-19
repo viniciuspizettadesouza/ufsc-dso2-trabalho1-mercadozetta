@@ -127,6 +127,19 @@ describe('BrandProvider', () => {
   });
 
   it.each([
+    ['MercadoZetta', defaultBrand, 'USD', 'en-US'],
+    ['CampusMarket', campusMarketBrand, 'EUR', 'pt-PT'],
+  ])(
+    'configures %s with its regional money authority',
+    (_, brand, currency, locale) => {
+      expect({ currency: brand.currency, locale: brand.locale }).toEqual({
+        currency,
+        locale,
+      });
+    },
+  );
+
+  it.each([
     ['MercadoZetta', defaultBrand],
     ['CampusMarket', campusMarketBrand],
   ])('advertises the implemented %s marketplace capabilities', (_, brand) => {

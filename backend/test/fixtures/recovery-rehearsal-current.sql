@@ -7,20 +7,6 @@ INSERT INTO pending_email_changes (
   '2026-07-19T12:30:00Z', '2026-07-19T12:00:00Z'
 );
 
-UPDATE products
-SET unit_price_minor = 1250,
-    updated_at = '2026-07-19T12:00:00Z'
-WHERE tenant_id = 'mercadozetta'
-  AND id = '20000000-0000-4000-8000-000000000001';
-
-INSERT INTO product_price_history (
-  tenant_id, product_id, sequence, currency_code, currency_minor_unit,
-  unit_price_minor, actor_id, changed_at
-) VALUES (
-  'mercadozetta', '20000000-0000-4000-8000-000000000001', 1, 'USD', 2,
-  1250, '10000000-0000-4000-8000-000000000002', '2026-07-19T12:00:00Z'
-);
-
 UPDATE users
 SET deactivated_at = '2026-07-19T12:00:00Z',
     username = NULL,

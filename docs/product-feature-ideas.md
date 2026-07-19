@@ -17,15 +17,16 @@ selected for the active implementation roadmap.
   considered.
 
 Snapshot date: 2026-07-19. Statuses are based on the repository after completed
-Steps 1–14 and must be reverified when revisited.
+Steps 1–15 and must be reverified when revisited.
 
 ## Product direction
 
-- First market: Portugal and then the wider EEA.
-- Target live currency: EUR. Existing immutable USD orders remain USD history;
-  active products must receive deliberate EUR prices before live launch.
-- Possible later market: United States through explicit regionalization, not by
-  mixing US assumptions into the Portuguese tenant.
+- First payment market: Portugal through the CampusMarket tenant, then the wider
+  EEA if pilot evidence supports it.
+- CampusMarket uses EUR/`pt-PT`; its immutable pre-transition USD orders remain
+  USD history. MercadoZetta remains a distinct USD/`en-US` configuration.
+- A live United States market requires explicit regional, legal, tax, address,
+  payment, and shipping validation; the USD configuration alone is not readiness.
 - Product type: white-label, multi-tenant, multi-seller marketplace with a cart
   that can contain products from multiple sellers.
 - Selected payment direction: Stripe Checkout and Stripe Connect. Initial
@@ -488,22 +489,22 @@ are already valuable parts of MercadoZetta.
 
 ## 21. Internationalization and regionalization
 
-| Idea                                          | Status | Horizon and notes                                           |
-| --------------------------------------------- | ------ | ----------------------------------------------------------- |
-| Tenant-specific locale/currency configuration | ✅     | Existing typed brand configuration                          |
-| Portuguese Portugal (`pt-PT`) interface       | ○      | V1; current copy is mixed Portuguese/English                |
-| EUR presentation and product prices           | ○      | V1 deliberate migration from current USD catalog            |
-| Immutable historical multi-currency display   | ◐      | Order snapshots support currency; migration must verify UI  |
-| English interface                             | ◐      | Much copy exists in English but is not a coherent locale    |
-| User-selectable language                      | ○      | Next after translation architecture                         |
-| Additional EEA languages                      | ○      | Conditional by market expansion                             |
-| US English/USD tenant                         | ○      | Conditional later market                                    |
-| Regional address formats                      | ○      | V1 for Portugal; later per supported country                |
-| Regional telephone formats                    | ◐      | Telephone exists without complete regional validation       |
-| VAT display and responsibility                | ○      | V1 legal/business decision                                  |
-| Tax calculation                               | ○      | V1/Next according to merchant/seller model                  |
-| Invoice rules                                 | ○      | V1 legal/business decision                                  |
-| Time-zone/date formatting                     | ◐      | Technical timestamps exist; coherent locale UX needs review |
+| Idea                                          | Status | Horizon and notes                                                |
+| --------------------------------------------- | ------ | ---------------------------------------------------------------- |
+| Tenant-specific locale/currency configuration | ✅     | Existing typed brand configuration                               |
+| Portuguese Portugal (`pt-PT`) interface       | ○      | V1; current copy is mixed Portuguese/English                     |
+| EUR presentation and product prices           | ✅     | CampusMarket migrated deliberately; MercadoZetta remains USD     |
+| Immutable historical multi-currency display   | ✅     | Snapshot currencies survive transitions and format independently |
+| English interface                             | ◐      | Much copy exists in English but is not a coherent locale         |
+| User-selectable language                      | ○      | Next after translation architecture                              |
+| Additional EEA languages                      | ○      | Conditional by market expansion                                  |
+| US English/USD tenant                         | ✅     | MercadoZetta is the checked-in USD/`en-US` configuration         |
+| Regional address formats                      | ○      | V1 for Portugal; later per supported country                     |
+| Regional telephone formats                    | ◐      | Telephone exists without complete regional validation            |
+| VAT display and responsibility                | ○      | V1 legal/business decision                                       |
+| Tax calculation                               | ○      | V1/Next according to merchant/seller model                       |
+| Invoice rules                                 | ○      | V1 legal/business decision                                       |
+| Time-zone/date formatting                     | ◐      | Technical timestamps exist; coherent locale UX needs review      |
 
 ## 22. Conversion ideas and ethical constraints
 

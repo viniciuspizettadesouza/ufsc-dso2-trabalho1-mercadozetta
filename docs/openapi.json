@@ -4230,7 +4230,7 @@
                       "subcategory": "keyboards",
                       "inventory": 5,
                       "price": {
-                        "currency": "USD",
+                        "currency": "EUR",
                         "amountMinor": "12999"
                       },
                       "image": "https://example.com/keyboard.jpg",
@@ -4486,7 +4486,7 @@
                       "subcategory": "keyboards",
                       "inventory": 5,
                       "price": {
-                        "currency": "USD",
+                        "currency": "EUR",
                         "amountMinor": "12999"
                       },
                       "image": "https://example.com/keyboard.jpg",
@@ -4660,7 +4660,7 @@
                 "subcategory": "keyboards",
                 "inventory": 5,
                 "price": {
-                  "currency": "USD",
+                  "currency": "EUR",
                   "amountMinor": "12999"
                 },
                 "image": "https://example.com/keyboard.jpg",
@@ -4686,7 +4686,7 @@
                   "subcategory": "keyboards",
                   "inventory": 5,
                   "price": {
-                    "currency": "USD",
+                    "currency": "EUR",
                     "amountMinor": "12999"
                   },
                   "image": "https://example.com/keyboard.jpg",
@@ -4992,7 +4992,7 @@
                   "subcategory": "keyboards",
                   "inventory": 5,
                   "price": {
-                    "currency": "USD",
+                    "currency": "EUR",
                     "amountMinor": "12999"
                   },
                   "image": "https://example.com/keyboard.jpg",
@@ -5173,7 +5173,7 @@
                   "subcategory": "keyboards",
                   "inventory": 5,
                   "price": {
-                    "currency": "USD",
+                    "currency": "EUR",
                     "amountMinor": "12999"
                   },
                   "image": "https://example.com/keyboard.jpg",
@@ -5494,7 +5494,7 @@
                   "subcategory": "keyboards",
                   "inventory": 5,
                   "price": {
-                    "currency": "USD",
+                    "currency": "EUR",
                     "amountMinor": "12999"
                   },
                   "image": "https://example.com/keyboard.jpg",
@@ -5788,7 +5788,7 @@
                   "subcategory": "keyboards",
                   "inventory": 5,
                   "price": {
-                    "currency": "USD",
+                    "currency": "EUR",
                     "amountMinor": "12999"
                   },
                   "image": "https://example.com/keyboard.jpg",
@@ -6247,7 +6247,7 @@
                         "subcategory": "keyboards",
                         "inventory": 5,
                         "price": {
-                          "currency": "USD",
+                          "currency": "EUR",
                           "amountMinor": "12999"
                         },
                         "image": "https://example.com/keyboard.jpg",
@@ -6882,7 +6882,7 @@
                     "subcategory": "keyboards",
                     "inventory": 5,
                     "price": {
-                      "currency": "USD",
+                      "currency": "EUR",
                       "amountMinor": "12999"
                     },
                     "image": "https://example.com/keyboard.jpg",
@@ -7517,19 +7517,19 @@
                   "status": "placed",
                   "pricingState": "priced",
                   "subtotal": {
-                    "currency": "USD",
+                    "currency": "EUR",
                     "amountMinor": "12999"
                   },
                   "discount": {
-                    "currency": "USD",
+                    "currency": "EUR",
                     "amountMinor": "0"
                   },
                   "shipping": {
-                    "currency": "USD",
+                    "currency": "EUR",
                     "amountMinor": "0"
                   },
                   "total": {
-                    "currency": "USD",
+                    "currency": "EUR",
                     "amountMinor": "12999"
                   },
                   "statusHistory": [
@@ -7549,11 +7549,11 @@
                       "quantity": 1,
                       "pricingState": "priced",
                       "unitPrice": {
-                        "currency": "USD",
+                        "currency": "EUR",
                         "amountMinor": "12999"
                       },
                       "lineSubtotal": {
-                        "currency": "USD",
+                        "currency": "EUR",
                         "amountMinor": "12999"
                       }
                     }
@@ -7846,9 +7846,10 @@
                     "openOrderCount": 0,
                     "orderedUnits": 0,
                     "pricedOrderCount": 0,
+                    "historicalCurrencyOrderCount": 0,
                     "legacyUnpricedOrderCount": 0,
                     "grossRevenue": {
-                      "currency": "USD",
+                      "currency": "EUR",
                       "amountMinor": "0"
                     }
                   },
@@ -8038,19 +8039,19 @@
                   "status": "shipped",
                   "pricingState": "priced",
                   "subtotal": {
-                    "currency": "USD",
+                    "currency": "EUR",
                     "amountMinor": "12999"
                   },
                   "discount": {
-                    "currency": "USD",
+                    "currency": "EUR",
                     "amountMinor": "0"
                   },
                   "shipping": {
-                    "currency": "USD",
+                    "currency": "EUR",
                     "amountMinor": "0"
                   },
                   "total": {
-                    "currency": "USD",
+                    "currency": "EUR",
                     "amountMinor": "12999"
                   },
                   "statusHistory": [
@@ -8075,11 +8076,11 @@
                       "quantity": 1,
                       "pricingState": "priced",
                       "unitPrice": {
-                        "currency": "USD",
+                        "currency": "EUR",
                         "amountMinor": "12999"
                       },
                       "lineSubtotal": {
-                        "currency": "USD",
+                        "currency": "EUR",
                         "amountMinor": "12999"
                       }
                     }
@@ -10580,6 +10581,11 @@
                 "minimum": 0,
                 "maximum": 9007199254740991
               },
+              "historicalCurrencyOrderCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
               "legacyUnpricedOrderCount": {
                 "type": "integer",
                 "minimum": 0,
@@ -10611,6 +10617,7 @@
               "openOrderCount",
               "orderedUnits",
               "pricedOrderCount",
+              "historicalCurrencyOrderCount",
               "legacyUnpricedOrderCount",
               "grossRevenue"
             ],

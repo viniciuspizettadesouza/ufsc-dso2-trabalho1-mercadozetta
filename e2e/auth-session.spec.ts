@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { expectPageToBeAccessible, expectVisibleFocus } from './accessibility';
 
+const campusMarket = process.env.E2E_TENANT_ID === 'campus-market';
+const brandName = campusMarket ? 'CampusMarket' : 'MercadoZetta';
+const seller = campusMarket
+  ? { email: 'vinicius@campus-market.test', password: 'campusmarket123' }
+  : { email: 'vinicius@mercadozetta.test', password: 'mercadozetta123' };
+
 test('returns to a protected route, renews cookies, and logs out', async ({
   context,
   page,
@@ -15,13 +21,13 @@ test('returns to a protected route, renews cookies, and logs out', async ({
 
   await page.keyboard.press('Tab');
   await expectVisibleFocus(
-    page.getByRole('link', { name: 'MercadoZetta logo' }),
+    page.getByRole('link', { name: `${brandName} logo` }),
   );
   await page.keyboard.press('Tab');
   await expectVisibleFocus(page.getByLabel('Email'));
 
-  await page.getByPlaceholder('Email').fill('vinicius@mercadozetta.test');
-  await page.getByPlaceholder('Password').fill('mercadozetta123');
+  await page.getByPlaceholder('Email').fill(seller.email);
+  await page.getByPlaceholder('Password').fill(seller.password);
   await page.getByRole('button', { name: 'Entrar' }).click();
 
   await expect(page).toHaveURL('/checkout');

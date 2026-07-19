@@ -39,8 +39,8 @@ export const campusMarketBrand: BrandConfig = {
       surface: '0 1px 3px rgb(15 23 42 / 12%)',
     },
   },
-  currency: 'USD',
-  locale: 'en-US',
+  currency: 'EUR',
+  locale: 'pt-PT',
   supportEmail: 'support@campusmarket.example',
   legalName: 'CampusMarket',
   copy: {

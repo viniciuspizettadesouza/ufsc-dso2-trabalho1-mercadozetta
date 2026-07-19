@@ -55,6 +55,7 @@ describe('SellerOrders', () => {
               openOrderCount: 1,
               orderedUnits: 4,
               pricedOrderCount: 2,
+              historicalCurrencyOrderCount: 1,
               legacyUnpricedOrderCount: 1,
               grossRevenue: { currency: 'USD', amountMinor: '3750' },
             },
@@ -101,7 +102,7 @@ describe('SellerOrders', () => {
             productName: 'Coffee',
             quantity: 2,
             seller: 'seller-1',
-            lineSubtotal: { currency: 'USD', amountMinor: '2500' },
+            lineSubtotal: { currency: 'EUR', amountMinor: '2500' },
           },
         ],
       },
@@ -112,7 +113,7 @@ describe('SellerOrders', () => {
     expect(
       await screen.findByText(
         (_content, node) =>
-          node?.tagName === 'LI' && node.textContent === 'Coffee × 2 — $25.00',
+          node?.tagName === 'LI' && node.textContent === 'Coffee × 2 — €25.00',
       ),
     ).toBeInTheDocument();
     expect(screen.queryByText('Tea × 1')).not.toBeInTheDocument();
@@ -129,6 +130,9 @@ describe('SellerOrders', () => {
     expect(screen.getByText('Priced orders').parentElement).toHaveTextContent(
       '2',
     );
+    expect(
+      screen.getByText('Historical-currency priced orders').parentElement,
+    ).toHaveTextContent('1');
     expect(
       screen.getByText('Legacy unpriced orders').parentElement,
     ).toHaveTextContent('1');

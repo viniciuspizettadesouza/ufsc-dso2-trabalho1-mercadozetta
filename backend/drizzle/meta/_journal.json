@@ -57,6 +57,13 @@
       "when": 1784455545353,
       "tag": "0007_red_marvex",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1784462988550,
+      "tag": "0008_tenant-eur-transition",
+      "breakpoints": true
     }
   ]
 }

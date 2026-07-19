@@ -121,18 +121,29 @@ describe('demo data seeding', () => {
       },
       {
         id: '67000000-0000-4000-8000-000000000003',
-        unitPriceMinor: 1999n,
+        unitPriceMinor: 1899n,
       },
       {
         id: '67000000-0000-4000-8000-000000000004',
-        unitPriceMinor: 5900n,
+        unitPriceMinor: 5490n,
       },
     ]);
     expect(storedPriceHistory).toHaveLength(4);
     expect(
+      storedPriceHistory.map(({ tenantId, currencyCode, sequence }) => ({
+        tenantId,
+        currencyCode,
+        sequence,
+      })),
+    ).toEqual([
+      { tenantId: 'mercadozetta', currencyCode: 'USD', sequence: 1 },
+      { tenantId: 'mercadozetta', currencyCode: 'USD', sequence: 1 },
+      { tenantId: 'campus-market', currencyCode: 'EUR', sequence: 1 },
+      { tenantId: 'campus-market', currencyCode: 'EUR', sequence: 1 },
+    ]);
+    expect(
       storedPriceHistory.every(
-        ({ currencyCode, currencyMinorUnit, sequence }) =>
-          currencyCode === 'USD' && currencyMinorUnit === 2 && sequence === 1,
+        ({ currencyMinorUnit }) => currencyMinorUnit === 2,
       ),
     ).toBe(true);
 

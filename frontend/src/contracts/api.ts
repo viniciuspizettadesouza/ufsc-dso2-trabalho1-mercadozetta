@@ -2065,7 +2065,7 @@ export interface paths {
                          *           "subcategory": "keyboards",
                          *           "inventory": 5,
                          *           "price": {
-                         *             "currency": "USD",
+                         *             "currency": "EUR",
                          *             "amountMinor": "12999"
                          *           },
                          *           "image": "https://example.com/keyboard.jpg",
@@ -2163,7 +2163,7 @@ export interface paths {
                          *           "subcategory": "keyboards",
                          *           "inventory": 5,
                          *           "price": {
-                         *             "currency": "USD",
+                         *             "currency": "EUR",
                          *             "amountMinor": "12999"
                          *           },
                          *           "image": "https://example.com/keyboard.jpg",
@@ -2229,7 +2229,7 @@ export interface paths {
                      *       "subcategory": "keyboards",
                      *       "inventory": 5,
                      *       "price": {
-                     *         "currency": "USD",
+                     *         "currency": "EUR",
                      *         "amountMinor": "12999"
                      *       },
                      *       "image": "https://example.com/keyboard.jpg",
@@ -2256,7 +2256,7 @@ export interface paths {
                          *       "subcategory": "keyboards",
                          *       "inventory": 5,
                          *       "price": {
-                         *         "currency": "USD",
+                         *         "currency": "EUR",
                          *         "amountMinor": "12999"
                          *       },
                          *       "image": "https://example.com/keyboard.jpg",
@@ -2371,7 +2371,7 @@ export interface paths {
                          *       "subcategory": "keyboards",
                          *       "inventory": 5,
                          *       "price": {
-                         *         "currency": "USD",
+                         *         "currency": "EUR",
                          *         "amountMinor": "12999"
                          *       },
                          *       "image": "https://example.com/keyboard.jpg",
@@ -2469,7 +2469,7 @@ export interface paths {
                          *       "subcategory": "keyboards",
                          *       "inventory": 5,
                          *       "price": {
-                         *         "currency": "USD",
+                         *         "currency": "EUR",
                          *         "amountMinor": "12999"
                          *       },
                          *       "image": "https://example.com/keyboard.jpg",
@@ -2599,7 +2599,7 @@ export interface paths {
                          *       "subcategory": "keyboards",
                          *       "inventory": 5,
                          *       "price": {
-                         *         "currency": "USD",
+                         *         "currency": "EUR",
                          *         "amountMinor": "12999"
                          *       },
                          *       "image": "https://example.com/keyboard.jpg",
@@ -2730,7 +2730,7 @@ export interface paths {
                          *       "subcategory": "keyboards",
                          *       "inventory": 5,
                          *       "price": {
-                         *         "currency": "USD",
+                         *         "currency": "EUR",
                          *         "amountMinor": "12999"
                          *       },
                          *       "image": "https://example.com/keyboard.jpg",
@@ -2945,7 +2945,7 @@ export interface paths {
                          *             "subcategory": "keyboards",
                          *             "inventory": 5,
                          *             "price": {
-                         *               "currency": "USD",
+                         *               "currency": "EUR",
                          *               "amountMinor": "12999"
                          *             },
                          *             "image": "https://example.com/keyboard.jpg",
@@ -3246,7 +3246,7 @@ export interface paths {
                          *         "subcategory": "keyboards",
                          *         "inventory": 5,
                          *         "price": {
-                         *           "currency": "USD",
+                         *           "currency": "EUR",
                          *           "amountMinor": "12999"
                          *         },
                          *         "image": "https://example.com/keyboard.jpg",
@@ -3502,19 +3502,19 @@ export interface paths {
                          *       "status": "placed",
                          *       "pricingState": "priced",
                          *       "subtotal": {
-                         *         "currency": "USD",
+                         *         "currency": "EUR",
                          *         "amountMinor": "12999"
                          *       },
                          *       "discount": {
-                         *         "currency": "USD",
+                         *         "currency": "EUR",
                          *         "amountMinor": "0"
                          *       },
                          *       "shipping": {
-                         *         "currency": "USD",
+                         *         "currency": "EUR",
                          *         "amountMinor": "0"
                          *       },
                          *       "total": {
-                         *         "currency": "USD",
+                         *         "currency": "EUR",
                          *         "amountMinor": "12999"
                          *       },
                          *       "statusHistory": [
@@ -3534,11 +3534,11 @@ export interface paths {
                          *           "quantity": 1,
                          *           "pricingState": "priced",
                          *           "unitPrice": {
-                         *             "currency": "USD",
+                         *             "currency": "EUR",
                          *             "amountMinor": "12999"
                          *           },
                          *           "lineSubtotal": {
-                         *             "currency": "USD",
+                         *             "currency": "EUR",
                          *             "amountMinor": "12999"
                          *           }
                          *         }
@@ -3655,9 +3655,10 @@ export interface paths {
                          *         "openOrderCount": 0,
                          *         "orderedUnits": 0,
                          *         "pricedOrderCount": 0,
+                         *         "historicalCurrencyOrderCount": 0,
                          *         "legacyUnpricedOrderCount": 0,
                          *         "grossRevenue": {
-                         *           "currency": "USD",
+                         *           "currency": "EUR",
                          *           "amountMinor": "0"
                          *         }
                          *       },
@@ -3767,19 +3768,19 @@ export interface paths {
                          *       "status": "shipped",
                          *       "pricingState": "priced",
                          *       "subtotal": {
-                         *         "currency": "USD",
+                         *         "currency": "EUR",
                          *         "amountMinor": "12999"
                          *       },
                          *       "discount": {
-                         *         "currency": "USD",
+                         *         "currency": "EUR",
                          *         "amountMinor": "0"
                          *       },
                          *       "shipping": {
-                         *         "currency": "USD",
+                         *         "currency": "EUR",
                          *         "amountMinor": "0"
                          *       },
                          *       "total": {
-                         *         "currency": "USD",
+                         *         "currency": "EUR",
                          *         "amountMinor": "12999"
                          *       },
                          *       "statusHistory": [
@@ -3804,11 +3805,11 @@ export interface paths {
                          *           "quantity": 1,
                          *           "pricingState": "priced",
                          *           "unitPrice": {
-                         *             "currency": "USD",
+                         *             "currency": "EUR",
                          *             "amountMinor": "12999"
                          *           },
                          *           "lineSubtotal": {
-                         *             "currency": "USD",
+                         *             "currency": "EUR",
                          *             "amountMinor": "12999"
                          *           }
                          *         }
@@ -4712,6 +4713,7 @@ export interface components {
                 openOrderCount: number;
                 orderedUnits: number;
                 pricedOrderCount: number;
+                historicalCurrencyOrderCount: number;
                 legacyUnpricedOrderCount: number;
                 grossRevenue: {
                     currency: string;

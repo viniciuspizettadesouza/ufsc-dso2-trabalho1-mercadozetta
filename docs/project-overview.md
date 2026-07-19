@@ -8,7 +8,7 @@ MercadoZetta and CampusMarket, while tenant-owned records share PostgreSQL and a
 isolated by `tenantId`.
 
 The project demonstrates a marketplace's main consistency and authorization
-boundaries: catalog discovery, seller-owned listings, exact USD pricing, buyer
+boundaries: catalog discovery, seller-owned listings, exact tenant-currency pricing, buyer
 state, authoritative checkout totals, inventory, order fulfillment, reviews,
 and notifications. It does not model payments, shipping addresses, refunds, or
 production deployment. It should therefore be understood as a development and
@@ -209,7 +209,8 @@ demo records use fixed UUIDs.
 - A user is unique by tenant and email. Passwords are bcrypt hashes and
   `tokenVersion` supports all-token logout revocation.
 - A product belongs to one seller and records descriptive fields, inventory,
-  image URL, lifecycle status, and an exact minor-unit USD price. Null remains
+  image URL, lifecycle status, and an exact minor-unit price in its tenant's
+  current currency. MercadoZetta uses USD and CampusMarket uses EUR. Null remains
   readable only for legacy rows from the compatibility expansion.
 - A tenant/user has at most one cart. Cart lines reference products and store
   current quantities; they are not historical records.
@@ -427,7 +428,7 @@ recovery automation.
   PostgreSQL. Offset pages can shift when concurrent writes change earlier rows.
 - Product creation, editing, archival/reactivation, current inventory adjustment,
   and seller-scoped inventory history are implemented.
-- Product APIs require and expose exact USD prices, and price changes append
+- Product APIs require and expose exact tenant-currency prices, and price changes append
   immutable history. Checkout locks current prices, creates immutable priced
   lines, and calculates subtotal, zero discount, zero shipping, and total on
   the backend. Historical legacy orders remain visibly unpriced and excluded
@@ -436,6 +437,9 @@ recovery automation.
 - Checkout, product creation, and review upsert use scoped idempotency keys;
   target-state retries suppress duplicate lifecycle, inventory, and profile
   audit writes.
+- Retained tenant-currency anchors keep pre-transition CampusMarket USD orders
+  and price history readable while its current catalog and new checkout use
+  EUR; MercadoZetta remains USD.
 - Review eligibility means “has an order item,” not “has a delivered,
   non-cancelled purchase.”
 - The product does not define privileged administrator roles or a privileged

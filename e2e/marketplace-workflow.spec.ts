@@ -1,23 +1,35 @@
 import { expect, test } from '@playwright/test';
 import { expectPageToBeAccessible } from './accessibility';
 
+const campusMarket = process.env.E2E_TENANT_ID === 'campus-market';
+const tenantId = campusMarket ? 'campus-market' : 'mercadozetta';
+
 const buyer = {
-  email: 'e2e.buyer@mercadozetta.test',
+  email: `e2e.buyer@${tenantId}.test`,
   name: 'E2E Buyer',
   password: 'e2e-buyer-password',
   phone: '(48) 99999-0301',
 };
 
-const seller = {
-  email: 'vinicius@mercadozetta.test',
-  password: 'mercadozetta123',
-};
+const seller = campusMarket
+  ? { email: 'vinicius@campus-market.test', password: 'campusmarket123' }
+  : { email: 'vinicius@mercadozetta.test', password: 'mercadozetta123' };
 
-const product = {
-  id: '67000000-0000-4000-8000-000000000001',
-  initialInventory: 3,
-  name: 'Notebook Dell Latitude',
-};
+const product = campusMarket
+  ? {
+      id: '67000000-0000-4000-8000-000000000003',
+      initialInventory: 8,
+      name: 'Calculadora Cientifica',
+      quotePattern: /Current cart quote: 37,98\s€/,
+      linePattern: /calculadora cientifica × 2 — 37,98\s€/i,
+    }
+  : {
+      id: '67000000-0000-4000-8000-000000000001',
+      initialInventory: 3,
+      name: 'Notebook Dell Latitude',
+      quotePattern: /Current cart quote: \$1,798\.00/,
+      linePattern: /notebook dell latitude × 2 — \$1,798\.00/i,
+    };
 
 async function login(
   page: import('@playwright/test').Page,
@@ -58,11 +70,11 @@ test('registers a tenant buyer and completes checkout and fulfillment', async ({
   const registrationResponse = await registrationResponsePromise;
   expect(registrationResponse.status()).toBe(201);
   expect(registrationResponse.request().headers()['x-tenant-id']).toBe(
-    'mercadozetta',
+    tenantId,
   );
   await expect(registrationResponse.json()).resolves.toMatchObject({
     email: buyer.email,
-    tenantId: 'mercadozetta',
+    tenantId,
     username: buyer.name.toLowerCase(),
   });
   await expect(page).toHaveURL('/');
@@ -85,7 +97,7 @@ test('registers a tenant buyer and completes checkout and fulfillment', async ({
   await expectPageToBeAccessible(page);
   await page.getByLabel(`Quantity for ${product.name}`).selectOption('2');
   await expect(page.getByRole('status')).toHaveText('Cart quantity updated.');
-  await expect(page.getByText('Current cart quote: $1,798.00')).toBeVisible();
+  await expect(page.getByText(product.quotePattern)).toBeVisible();
 
   const orderResponsePromise = page.waitForResponse(
     (response) =>
@@ -107,7 +119,9 @@ test('registers a tenant buyer and completes checkout and fulfillment', async ({
 
   await page.goto(`/products/${product.id}`);
   await expect(
-    page.getByRole('definition').filter({ hasText: /^1$/ }),
+    page
+      .getByRole('definition')
+      .filter({ hasText: new RegExp(`^${product.initialInventory - 2}$`) }),
   ).toBeVisible();
 
   const sellerContext = await browser.newContext();
@@ -119,9 +133,7 @@ test('registers a tenant buyer and completes checkout and fulfillment', async ({
       sellerPage.getByRole('heading', { name: `Order ${order._id}` }),
     ).toBeVisible();
     await expectPageToBeAccessible(sellerPage);
-    await expect(
-      sellerPage.getByText(`${product.name} × 2 — $1,798.00`),
-    ).toBeVisible();
+    await expect(sellerPage.getByText(product.linePattern)).toBeVisible();
 
     for (const status of ['confirmed', 'shipped', 'delivered']) {
       const statusResponsePromise = sellerPage.waitForResponse(

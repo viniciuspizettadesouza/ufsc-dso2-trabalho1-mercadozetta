@@ -1169,3 +1169,31 @@ marketplace demo while evolving the new persistent commerce workflows safely.
       tests, lint, formatting, both coverage gates, frontend and production
       builds, all PostgreSQL scenarios, both Chromium workflows, production
       smoke, and the eight-migration recovery rehearsal.
+
+## Step 15: Payment contract and tenant currency transition (completed)
+
+- [x] Accept ADR 0007 for the bounded Portuguese CampusMarket pilot: Stripe
+      hosted Checkout, Connect separate charges and transfers, platform merchant
+      of record, zero pilot fee, cards as the minimum method, webhook-authoritative
+      paid order creation, reservations, delayed seller transfer eligibility,
+      refund/dispute/reconciliation ownership, and explicit live-mode gates.
+- [x] Keep MercadoZetta as a distinct USD/`en-US` tenant and deliberately move
+      only CampusMarket to EUR/`pt-PT`; do not treat a checked-in USD configuration
+      as proof of US legal or payment readiness.
+- [x] Add migration `0008` and `tenant_currencies` so immutable USD orders and
+      price history remain referentially valid after a tenant authority changes.
+      Apply reviewed EUR prices `1899` and `5490` to the mapped CampusMarket demo
+      products, append EUR history, and make unmapped CampusMarket products
+      non-sellable without conversion or relabelling. Leave MercadoZetta USD
+      prices and sellable states unchanged.
+- [x] Format catalog money through each active brand and historical order money
+      through each immutable snapshot. Count historical-currency priced orders
+      separately and exclude them from the tenant-current-currency seller revenue
+      total.
+- [x] Parameterize the Chromium workflow by tenant and verify checkout and
+      fulfillment for both MercadoZetta USD and CampusMarket EUR.
+- [x] Verify generated-contract parity, typecheck, 259 backend tests across 51
+      files, 196 frontend tests across 41 files, lint, formatting, backend and
+      frontend coverage gates, frontend and production builds, all 31 PostgreSQL
+      integration scenarios, both tenant Chromium runs, production-image smoke,
+      Drizzle schema parity, and the nine-migration USD-to-EUR recovery rehearsal.

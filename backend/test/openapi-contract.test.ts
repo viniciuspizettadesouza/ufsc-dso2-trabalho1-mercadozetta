@@ -735,6 +735,7 @@ describe('OpenAPI contract', () => {
     expect(schemas.SellerOperations.properties.summary.required).toEqual(
       expect.arrayContaining([
         'pricedOrderCount',
+        'historicalCurrencyOrderCount',
         'legacyUnpricedOrderCount',
         'grossRevenue',
       ]),

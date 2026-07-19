@@ -241,14 +241,14 @@ export default function Checkout() {
                     const subtotal = formatMoney(
                       item.lineSubtotal,
                       brand.locale,
-                      brand.currency,
+                      item.lineSubtotal?.currency ?? brand.currency,
                     );
                     return `${item.productName} × ${item.quantity}${subtotal ? ` — ${subtotal}` : ''}`;
                   })
                   .join(', ')}
                 {' — '}
                 {order.pricingState === 'priced'
-                  ? `Total: ${formatMoney(order.total, brand.locale, brand.currency) ?? brand.copy.catalog.priceUnavailableLabel}`
+                  ? `Total: ${formatMoney(order.total, brand.locale, order.total?.currency ?? brand.currency) ?? brand.copy.catalog.priceUnavailableLabel}`
                   : 'Legacy order — price unavailable'}
                 <OrderStatusHistory
                   orderId={order._id}

@@ -16,6 +16,7 @@ import {
   productPriceHistory,
   reviews,
   sessions,
+  tenantCurrencies,
   tenants,
   users,
   watchlistEntries,
@@ -54,10 +55,15 @@ const monetaryModelMigration = readFileSync(
   resolve(process.cwd(), 'drizzle/0007_red_marvex.sql'),
   'utf8',
 );
+const tenantEurTransitionMigration = readFileSync(
+  resolve(process.cwd(), 'drizzle/0008_tenant-eur-transition.sql'),
+  'utf8',
+);
 
 describe('PostgreSQL schema contract', () => {
   const tables = [
     tenants,
+    tenantCurrencies,
     users,
     pendingEmailChanges,
     accountTokens,
@@ -79,6 +85,7 @@ describe('PostgreSQL schema contract', () => {
   it('exports the accepted relational tables', () => {
     expect(tables.map(getTableName)).toEqual([
       'tenants',
+      'tenant_currencies',
       'users',
       'pending_email_changes',
       'account_tokens',
@@ -106,7 +113,7 @@ describe('PostgreSQL schema contract', () => {
 
   it('generates tenant-qualified integrity and inventory constraints', () => {
     const configs = tables.map(getTableConfig);
-    expect(configs.flatMap((config) => config.foreignKeys)).toHaveLength(35);
+    expect(configs.flatMap((config) => config.foreignKeys)).toHaveLength(36);
     expect(configs.flatMap((config) => config.checks).length).toBeGreaterThan(
       10,
     );
@@ -290,6 +297,38 @@ describe('PostgreSQL schema contract', () => {
       monetaryModelMigration.indexOf(
         'ADD CONSTRAINT "order_items_tenant_order_fkey"',
       ),
+    );
+  });
+
+  it('preserves tenant USD history while deliberately moving CampusMarket to EUR', () => {
+    for (const expectedSql of [
+      'tenant_currencies_pkey',
+      'tenant_currencies_tenant_id_tenants_id_fk',
+      'orders_tenant_currency_fkey',
+      'product_price_history_tenant_currency_fkey',
+      "('campus-market', 'EUR', 2)",
+      '1899::bigint',
+      '5490::bigint',
+    ])
+      expect(tenantEurTransitionMigration).toContain(expectedSql);
+
+    expect(tenantEurTransitionMigration).toContain(
+      'SELECT "id", "currency_code", "currency_minor_unit"',
+    );
+    expect(tenantEurTransitionMigration).toContain(
+      "WHEN \"status\" IN ('active', 'sold_out') THEN 'paused'",
+    );
+    expect(tenantEurTransitionMigration).toContain(
+      'INSERT INTO "product_price_history"',
+    );
+    expect(tenantEurTransitionMigration).not.toMatch(
+      /UPDATE\s+"(?:orders|order_items|product_price_history)"/i,
+    );
+    expect(tenantEurTransitionMigration).not.toContain(
+      "('mercadozetta', 'EUR', 2)",
+    );
+    expect(tenantEurTransitionMigration).toContain(
+      'WHERE "id" = \'campus-market\'',
     );
   });
 });

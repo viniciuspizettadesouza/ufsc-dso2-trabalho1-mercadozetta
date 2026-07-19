@@ -333,6 +333,7 @@ export const sellerOperationsResponseSchema = z
       openOrderCount: z.int().min(0),
       orderedUnits: z.int().min(0),
       pricedOrderCount: z.int().min(0),
+      historicalCurrencyOrderCount: z.int().min(0),
       legacyUnpricedOrderCount: z.int().min(0),
       grossRevenue: exactMoneySchema,
     }),

@@ -9,6 +9,7 @@ database_user="mercadozetta"
 database_password="rehearsal-only"
 rehearsal_dir="$(mktemp -d)"
 prior_migrations="$rehearsal_dir/migrations-0000-0003"
+pre_eur_migrations="$rehearsal_dir/migrations-0000-0007"
 pre_migration_backup="$rehearsal_dir/pre-migration.dump"
 current_backup="$rehearsal_dir/current.dump"
 metadata_file="$rehearsal_dir/current.metadata"
@@ -31,6 +32,22 @@ node -e '
   journal.entries = journal.entries.slice(0, 4);
   fs.writeFileSync(process.argv[2], `${JSON.stringify(journal, null, 2)}\n`);
 ' backend/drizzle/meta/_journal.json "$prior_migrations/meta/_journal.json"
+
+mkdir -p "$pre_eur_migrations/meta"
+cp backend/drizzle/0000_initial_postgresql.sql "$pre_eur_migrations/"
+cp backend/drizzle/0001_next_expediter.sql "$pre_eur_migrations/"
+cp backend/drizzle/0002_easy_jasper_sitwell.sql "$pre_eur_migrations/"
+cp backend/drizzle/0003_famous_miek.sql "$pre_eur_migrations/"
+cp backend/drizzle/0004_melted_nekra.sql "$pre_eur_migrations/"
+cp backend/drizzle/0005_special_marauders.sql "$pre_eur_migrations/"
+cp backend/drizzle/0006_yielding_captain_america.sql "$pre_eur_migrations/"
+cp backend/drizzle/0007_red_marvex.sql "$pre_eur_migrations/"
+node -e '
+  const fs = require("node:fs");
+  const journal = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+  journal.entries = journal.entries.slice(0, 8);
+  fs.writeFileSync(process.argv[2], `${JSON.stringify(journal, null, 2)}\n`);
+' backend/drizzle/meta/_journal.json "$pre_eur_migrations/meta/_journal.json"
 
 docker run --detach \
   --name "$container_name" \
@@ -125,7 +142,6 @@ current_fingerprint() {
 migration_started_ms="$(date +%s%3N)"
 run_migrations "$source_url" "$prior_migrations"
 source_psql < backend/test/fixtures/recovery-rehearsal-pre-0004.sql >/dev/null
-pre_migration_fingerprint="$(core_fingerprint "$source_database")"
 
 docker exec "$container_name" pg_dump \
   --username "$database_user" --format custom --no-owner --no-privileges \
@@ -133,15 +149,56 @@ docker exec "$container_name" pg_dump \
 docker exec -i "$container_name" pg_restore --list < "$pre_migration_backup" \
   | grep '__drizzle_migrations' >/dev/null
 
+run_migrations "$source_url" "$pre_eur_migrations"
+source_psql < backend/test/fixtures/recovery-rehearsal-pre-eur.sql >/dev/null
+pre_migration_fingerprint="$(core_fingerprint "$source_database")"
+
 run_migrations "$source_url" "$(pwd)/backend/drizzle"
 test "$(core_fingerprint "$source_database")" = "$pre_migration_fingerprint"
 test "$(source_psql --tuples-only --no-align --command \
-  "select count(*) from drizzle.__drizzle_migrations;")" = "8"
+  "select count(*) from drizzle.__drizzle_migrations;")" = "9"
 test "$(source_psql --tuples-only --no-align --command \
-  "select count(*) from products where unit_price_minor is null;")" = "1"
+  "select count(*) from products where id = '67000000-0000-4000-8000-000000000001'
+    and tenant_id = 'mercadozetta' and status = 'active'
+    and unit_price_minor = 1250;")" = "1"
+test "$(source_psql --tuples-only --no-align --command \
+  "select count(*) from product_price_history
+   where product_id = '67000000-0000-4000-8000-000000000001'
+     and sequence = 1 and currency_code = 'USD'
+     and unit_price_minor = 1250;")" = "1"
+test "$(source_psql --tuples-only --no-align --command \
+  "select count(*) from tenant_currencies
+   where tenant_id = 'mercadozetta' and currency_minor_unit = 2
+     and currency_code = 'USD';")" = "1"
+test "$(source_psql --tuples-only --no-align --command \
+  "select count(*) from tenants
+   where id = 'mercadozetta' and currency_code = 'USD'
+     and currency_minor_unit = 2;")" = "1"
+test "$(source_psql --tuples-only --no-align --command \
+  "select count(*) from products where id = '67000000-0000-4000-8000-000000000003'
+    and tenant_id = 'campus-market' and status = 'active'
+    and unit_price_minor = 1899;")" = "1"
+test "$(source_psql --tuples-only --no-align --command \
+  "select count(*) from product_price_history
+   where product_id = '67000000-0000-4000-8000-000000000003'
+     and ((sequence = 1 and currency_code = 'USD' and unit_price_minor = 1999)
+       or (sequence = 2 and currency_code = 'EUR' and unit_price_minor = 1899));")" = "2"
+test "$(source_psql --tuples-only --no-align --command \
+  "select count(*) from tenant_currencies
+   where tenant_id = 'campus-market' and currency_minor_unit = 2
+     and currency_code in ('USD', 'EUR');")" = "2"
+test "$(source_psql --tuples-only --no-align --command \
+  "select count(*) from tenants
+   where id = 'campus-market' and currency_code = 'EUR'
+     and currency_minor_unit = 2;")" = "1"
 test "$(source_psql --tuples-only --no-align --command \
   "select count(*) from orders where pricing_state = 'legacy_unpriced'
     and currency_code is null and subtotal_minor is null and total_minor is null;")" = "1"
+test "$(source_psql --tuples-only --no-align --command \
+  "select count(*) from orders where id = '51000000-0000-4000-8000-000000000001'
+    and pricing_state = 'priced' and currency_code = 'USD'
+    and tenant_id = 'campus-market'
+    and subtotal_minor = 1999 and total_minor = 1999;")" = "1"
 test "$(source_psql --tuples-only --no-align --command \
   "select count(*) from order_items where pricing_state = 'legacy_unpriced'
     and unit_price_minor is null and line_subtotal_minor is null;")" = "1"
@@ -186,7 +243,7 @@ backup_duration_ms="$(( $(date +%s%3N) - backup_started_ms ))"
   echo "postgres_image=$postgres_image"
   echo "backend_image=${BACKEND_IMAGE:-source-$(git rev-parse --short HEAD)}"
   echo "frontend_image=${FRONTEND_IMAGE:-source-$(git rev-parse --short HEAD)}"
-  echo "migration_count=8"
+  echo "migration_count=9"
   echo "sha256=$backup_checksum"
   echo "bytes=$backup_size"
 } > "$metadata_file"
@@ -205,16 +262,19 @@ restore_duration_ms="$(( $(date +%s%3N) - restore_started_ms ))"
 
 test "$(current_fingerprint "$restore_database")" = "$expected_fingerprint"
 test "$(restore_psql --tuples-only --no-align --command \
-  "select count(*) from drizzle.__drizzle_migrations;")" = "8"
+  "select count(*) from drizzle.__drizzle_migrations;")" = "9"
 test "$(restore_psql --tuples-only --no-align --command \
   "select count(*) from order_items oi join orders o
    on o.tenant_id = oi.tenant_id and o.id = oi.order_id
-   join products p on p.tenant_id = oi.tenant_id and p.id = oi.product_id;")" = "1"
+   join products p on p.tenant_id = oi.tenant_id and p.id = oi.product_id;")" = "2"
 test "$(restore_psql --tuples-only --no-align --command \
   "select count(*) from audit_events where event_type = 'user.deactivated';")" = "1"
 test "$(restore_psql --tuples-only --no-align --command \
   "select count(*) from product_price_history
    where unit_price_minor = 1250 and currency_code = 'USD';")" = "1"
+test "$(restore_psql --tuples-only --no-align --command \
+  "select count(*) from product_price_history
+   where unit_price_minor = 1899 and currency_code = 'EUR';")" = "1"
 
 if restore_psql --command \
   "update audit_events set metadata = '{}' where id = 'b0000000-0000-4000-8000-000000000001';" \
@@ -226,7 +286,7 @@ fi
 if restore_psql --command \
   "update product_price_history set unit_price_minor = 1
    where tenant_id = 'mercadozetta'
-     and product_id = '20000000-0000-4000-8000-000000000001';" \
+     and product_id = '67000000-0000-4000-8000-000000000001';" \
   >/dev/null 2>&1; then
   echo 'restored price-history immutability trigger did not reject update' >&2
   exit 1

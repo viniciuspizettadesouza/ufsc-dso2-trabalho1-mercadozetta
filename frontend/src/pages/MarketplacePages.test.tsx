@@ -415,6 +415,34 @@ describe('marketplace pages', () => {
     ).toBeInTheDocument();
   });
 
+  it('formats priced historical orders using their immutable currency', async () => {
+    mockCheckout({ items: [] }, [
+      {
+        _id: 'eur-order',
+        status: 'delivered',
+        pricingState: 'priced',
+        total: { currency: 'EUR', amountMinor: '1250' },
+        items: [
+          {
+            productName: 'Historical coffee',
+            quantity: 1,
+            lineSubtotal: { currency: 'EUR', amountMinor: '1250' },
+          },
+        ],
+        statusHistory: [],
+      },
+    ]);
+
+    renderAt('/checkout', '/checkout', <Checkout />);
+
+    const historicalOrder = await screen.findByText(
+      (_content, node) =>
+        node?.tagName === 'LI' &&
+        Boolean(node.textContent?.includes('Total: €12.50')),
+    );
+    expect(historicalOrder).toHaveTextContent('Historical coffee × 1 — €12.50');
+  });
+
   it('shows checkout loading and order API errors', async () => {
     mockCheckout({ items: [{ product, quantity: 1 }] });
     vi.mocked(api.post).mockRejectedValue(new Error('network error'));

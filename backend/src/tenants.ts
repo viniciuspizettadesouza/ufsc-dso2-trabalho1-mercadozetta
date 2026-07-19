@@ -20,7 +20,7 @@ export const tenants: Record<string, Tenant> = {
     id: 'campus-market',
     name: 'CampusMarket',
     active: true,
-    currencyCode: 'USD',
+    currencyCode: 'EUR',
     currencyMinorUnit: 2,
   },
 };

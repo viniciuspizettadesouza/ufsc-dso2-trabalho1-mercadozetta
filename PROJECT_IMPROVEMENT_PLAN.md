@@ -2,16 +2,17 @@
 
 ## Goal
 
-Deploy MercadoZetta as a reliable Portugal-first, EUR, multi-tenant and
-multi-seller ecommerce MVP that can accept live payments safely for a bounded
-pilot. Preserve the white-label demo value while prioritizing only the buyer,
+Deploy MercadoZetta as a reliable regional, multi-tenant and multi-seller
+ecommerce MVP whose CampusMarket tenant can accept EUR payments safely for a
+bounded Portuguese pilot while MercadoZetta remains a distinct USD tenant.
+Preserve the white-label demo value while prioritizing only the buyer,
 seller, payment, fulfillment, support, legal, and operational capabilities
 required for the first real transaction. Defer conversion, personalization,
 promotion, and advanced-platform work until pilot evidence justifies it.
 
 ## Current Verified State
 
-- Steps 1 through 14 are complete.
+- Steps 1 through 15 are complete.
 - Local development, CI, and Docker target Node.js 24.18.0 LTS. PostgreSQL is
   the sole persistence runtime, with reviewed Drizzle migrations and
   tenant-qualified repository boundaries.
@@ -54,12 +55,13 @@ promotion, and advanced-platform work until pilot evidence justifies it.
   history. A clean eight-migration PostgreSQL run, all 31 integration scenarios,
   and the updated backup/restore rehearsal verify the expansion without
   backfilling fabricated amounts.
-- Product create/update APIs now require canonical exact USD prices, expose
-  decimal-string minor units, and append initial or changed prices atomically.
+- Product create/update APIs now require canonical exact tenant-currency
+  prices, expose decimal-string minor units, and append initial or changed
+  prices atomically.
   Exact retries do not duplicate products or price-history entries; unchanged
-  price updates do not create false history. Both tenant demo catalogs have
-  deliberate USD prices, and catalog/detail/product-management UI parses and
-  formats those amounts without binary floating-point arithmetic.
+  price updates do not create false history. MercadoZetta uses USD/`en-US` and
+  CampusMarket uses EUR/`pt-PT`; catalog/detail/product-management UI parses and
+  formats both without binary floating-point arithmetic.
 - Checkout locks tenant product rows, rejects absent or overflowing prices,
   computes line subtotals and order subtotal/zero discount/zero shipping/total
   with `bigint`, and persists immutable priced snapshots atomically with
@@ -74,48 +76,54 @@ promotion, and advanced-platform work until pilot evidence justifies it.
   formatting, both coverage gates, the frontend and production builds, all 31
   PostgreSQL scenarios, both Chromium workflows, the production-image smoke,
   and the eight-migration recovery rehearsal.
-- Latest Step 13 verification passes generated-contract parity, typecheck, 252
-  backend tests across 51 files, 189 frontend tests across 40 files, lint,
-  formatting, both coverage gates, frontend and production builds, all 29
-  PostgreSQL scenarios, both Chromium workflows, the seven-migration recovery
-  rehearsal, and the production-image smoke.
+- Step 15's payment and marketplace-funds contract is accepted in
+  [ADR 0007](docs/decisions/0007-portugal-payments-and-marketplace-funds.md).
+  It selects a Portugal-account, platform-merchant-of-record, zero-fee bounded
+  pilot; Stripe-hosted Checkout; one platform charge with Connect separate
+  transfers; provider-neutral attempts, reservations, allocations, movements,
+  and reconciliation; webhook-authoritative paid order creation; delivered plus
+  14-day seller transfer eligibility; and explicit live-mode gates.
+- Cards are the only required pilot method. Eligible Apple Pay and Google Pay
+  card wallets may join after the card test matrix; MB WAY is a reviewed
+  Portugal/Connect candidate but is deferred from the minimum pilot, and other
+  methods require their own compatibility and operating review.
+- Migration `0008` introduces retained tenant-currency anchors, preserves USD
+  order and price-history snapshots, keeps MercadoZetta authoritative in USD,
+  and deliberately migrates mapped CampusMarket products to EUR. Unmapped
+  CampusMarket products become non-sellable rather than converted or relabelled.
+- Seller revenue includes only non-cancelled priced lines in the tenant's
+  current currency and reports historical-currency priced orders separately.
+- Final Step 15 verification passes generated-contract parity, typecheck, 259
+  backend tests across 51 files, 196 frontend tests across 41 files, lint,
+  formatting, both coverage gates, frontend and production builds, all 31
+  PostgreSQL scenarios, Chromium workflows for both tenants, the
+  production-image smoke, and the nine-migration recovery rehearsal.
 
 ## Next Action
 
-Start Step 15 by accepting a payment and marketplace-funds ADR before adding a
-Stripe SDK or payment schema. Use Stripe Checkout Sessions with the
-Stripe-hosted checkout as the first payment UI and Stripe Connect as the target
-marketplace boundary. Treat Portugal and the EEA as the first launch context,
-with EUR as the target live currency and the United States as a possible later
-expansion. Preserve the current multi-seller cart: model one platform charge
-with seller allocations and, before accepting live money, Stripe Connect
-separate charges and transfers rather than silently constraining checkout to
-one seller or treating sellers as ordinary platform users.
+Start Step 16 by recording the deployment constraints that cannot be inferred
+from the repository: acceptable monthly and one-time budget, expected pilot
+traffic and seller count, Portugal/EEA data-residency needs, availability
+target, RTO/RPO, support expectations, team operational experience, and the
+owner of deployment incidents. Then compare at least three viable provider
+approaches against the accepted payment, webhook, background-work, PostgreSQL,
+recovery, observability, rollback, cost, and exit requirements.
 
-The ADR must settle the merchant-of-record and platform-fee assumptions, target
-country and authoritative tenant currency, order/inventory behavior while a
-redirected payment is pending, payment attempts, webhook authority,
-idempotency, reconciliation, refunds, disputes, seller onboarding, transfer
-timing, and the boundary between payment, order, and fulfillment state. Base
-amounts on the immutable exact totals accepted in
-[ADR 0006](docs/decisions/0006-authoritative-money.md). Keep all live payment
-and payout capabilities disabled until the later Stripe Connect and launch
-readiness gates are complete. The current USD catalog and immutable USD order
-history remain the verified baseline until a reviewed expand/migrate/contract
-change deliberately prices active products in EUR; never relabel historical
-amounts or reinterpret their currency.
+Do not install a Stripe SDK, add payment tables, enable payment surfaces, or
+choose a deployment provider before that constraint record and staging spike
+are complete.
 
 ## Completed Roadmap History
 
-The detailed chronological handoff and completed Steps 1–14 are archived in
+The detailed chronological handoff and completed Steps 1–15 are archived in
 [docs/improvement-plan-history.md](docs/improvement-plan-history.md).
 `PROJECT_IMPROVEMENT_PLAN.md` remains the source of truth for the current state,
 next action, and active roadmap.
 
 ## Remaining Roadmap
 
-Steps 15 through 20 are the launch-critical path for the first sellable MVP.
-Steps 21 onward are post-MVP work and must not delay the bounded pilot unless
+Steps 16 through 21 are the launch-critical path for the first sellable MVP.
+Steps 22 onward are post-MVP work and must not delay the bounded pilot unless
 verification exposes a launch risk. The complete inventory of implemented,
 partial, missing, deferred, and exploratory user-facing ideas is maintained in
 [Product Feature Ideas](docs/product-feature-ideas.md). Agents must consult that
@@ -130,19 +138,17 @@ authorize implementation or override the `Next Action` above.
   multiple connected sellers through separate charges and transfers. Keep a
   provider-neutral local payment model so provider state does not become the
   order model.
-- EUR is the target live currency. The current authoritative USD catalog is
-  development history, not the intended Portuguese launch contract. Migrate
-  deliberately: preserve immutable USD orders and price active catalog items in
-  EUR through reviewed product/tenant changes rather than applying a fabricated
-  conversion or changing currency labels.
+- EUR is the target live currency for the Portuguese CampusMarket tenant.
+  MercadoZetta remains a distinct USD tenant. Preserve immutable USD history
+  across tenant transitions and never apply implicit conversion or relabelling.
 - Start with cards as the minimum Portuguese EUR payment method. Treat
   dynamically eligible wallets and MB WAY as pilot candidates, and evaluate
   Multibanco, SEPA Direct Debit, PayPal, and other EEA methods separately against
   Checkout, Connect, refund, dispute, settlement, delayed-confirmation, and
   multi-seller requirements before enabling them.
-- The United States remains a possible later market with its own USD tenant or
-  explicit regionalization phase. Do not mix US tax, address, payment, shipping,
-  or legal assumptions into the first Portuguese release.
+- A live USD market remains a later decision even though MercadoZetta provides
+  the checked-in USD configuration. Do not infer US tax, address, payment,
+  shipping, or legal readiness from its currency and locale.
 - The first Stripe milestone uses test mode and a Stripe-hosted page. Live
   payments remain disabled until seller onboarding, payout allocation, refunds,
   disputes, legal ownership, support, observability, and operational runbooks
@@ -150,10 +156,10 @@ authorize implementation or override the `Next Action` above.
 - Address, delivery choice, a clear cart, and a final order review precede live
   payment activation. Payment infrastructure alone does not make the checkout
   useful to a buyer.
-- The first live release is a bounded Portuguese pilot: one production tenant,
-  an explicitly approved seller cohort, Portugal delivery addresses, EUR-only
-  sellable inventory, a documented support owner, and live payments behind a
-  tenant feature flag and kill switch. Expand tenants, sellers, countries, or
+- The first live release is a bounded Portuguese pilot on CampusMarket: one
+  production tenant, an explicitly approved seller cohort, Portugal delivery
+  addresses, EUR-only sellable inventory, a documented support owner, and live
+  payments behind a tenant feature flag and kill switch. Expand tenants, sellers, countries, or
   payment methods only after the pilot is reconciled and supportable.
 - Cards are the minimum launch payment method. Enable dynamically eligible
   wallets and MB WAY only after their Checkout, Connect, refund, dispute, and
@@ -163,6 +169,11 @@ authorize implementation or override the `Next Action` above.
   conversion, fulfilled orders, cancellations/refunds, unreconciled money
   movements, support incidents, and time to resolve operational exceptions.
   Do not add growth features before these signals are observable.
+- The deployment provider is intentionally undecided. Select it through Step 16
+  using verified Portugal/EEA availability, total monthly cost, operational
+  burden, managed PostgreSQL and recovery, container and scheduled-job support,
+  secure configuration, observability, rollback, scaling, and exit costs. Do
+  not choose a platform from popularity or introductory pricing alone.
 - AI search, image search, AI chat, PWA, voice search, 360-degree media,
   loyalty, subscriptions, social proof counters, and gift lists stay outside
   the first sellable version until measured demand justifies them. Scarcity and
@@ -176,51 +187,47 @@ Research basis: [Stripe Checkout](https://docs.stripe.com/payments/checkout),
 [Stripe payment-method support](https://docs.stripe.com/payments/payment-methods/payment-method-support),
 [Stripe MB WAY](https://docs.stripe.com/payments/mb-way), and
 [Stripe Connect cross-border payouts](https://docs.stripe.com/connect/cross-border-payouts).
+Accepted contract:
+[ADR 0007](docs/decisions/0007-portugal-payments-and-marketplace-funds.md).
 
-### 15. Accept the Stripe payment and marketplace-funds contract
+### 16. Select and validate the MVP deployment platform
 
-- [ ] Record Portugal/EEA and EUR as the first launch context, then settle the
-      legal entity and account country, merchant of record, platform fee, VAT
-      and invoice responsibility, seller payout responsibility, refund and
-      dispute liability, supported seller countries, and whether live
-      multi-seller commerce is legally and operationally in scope. Do not infer
-      these decisions from the provider API.
-- [ ] Accept an amendment or successor to ADR 0006 for the USD-to-EUR product
-      transition. Preserve every immutable USD order snapshot, assign deliberate
-      EUR prices to active products, update both demo tenants and brand locales,
-      and cover mixed historical currencies without pretending to perform
-      foreign-exchange conversion.
-- [ ] Select Stripe Checkout Sessions with Stripe-hosted Checkout for the first
-      payment UI and Stripe Connect separate charges and transfers for the
-      existing multi-seller cart. Use Stripe-hosted seller onboarding to reduce
-      KYC maintenance; do not build custom collection of identity documents.
-- [ ] Select cards as the minimum Portuguese payment-method scope. Record the
-      eligibility and behavioral differences for dynamically eligible wallets
-      and MB WAY before deciding whether each joins the pilot, especially
-      asynchronous confirmation, refunds, disputes, Connect support, and
-      inability to reuse a method. Apply the same review before adding
-      Multibanco, SEPA Direct Debit, PayPal, or other EEA-local methods.
-- [ ] Define provider-neutral payment attempts, seller allocations, transfers,
-      refunds, disputes, reconciliation observations, and append-only audit
-      evidence. Store Stripe identifiers as external references, not as domain
-      primary keys.
-- [ ] Keep payment state separate from order and fulfillment state. Define
-      precisely when an order is created, when inventory is reserved or
-      decremented, how abandoned or expired Checkout Sessions release stock,
-      and which payment facts permit fulfillment.
-- [ ] Treat authenticated Stripe webhooks as authoritative for asynchronous
-      completion. Define signature verification over the raw request body,
-      event deduplication, object-level idempotency, retrieval of current
-      provider state, and safe handling of duplicate, delayed, and out-of-order
-      events.
-- [ ] Define one idempotency lineage from the buyer checkout command to the local
-      payment attempt and Stripe Checkout Session. Never trust client-submitted
-      currency, totals, seller allocation, success redirects, or payment state.
-- [ ] Define refund allocation, transfer reversal, negative-balance, dispute,
-      reconciliation, retention, secret rotation, and test-clock/test-mode
-      expectations before schema or SDK work begins.
+- [ ] Record the launch constraints before comparing providers: acceptable
+      monthly and one-time budget, expected pilot traffic and seller count,
+      Portugal/EEA region and data-residency needs, availability target,
+      recovery-time and recovery-point objectives, support expectations, team
+      operational experience, and the owner of deployment incidents.
+- [ ] Compare at least three viable approaches: a managed application platform,
+      a container/VPS host paired with managed PostgreSQL, and a major-cloud
+      container service. Use current official capabilities and prices, and score
+      twelve-month total cost rather than headline compute price. Include
+      database, backups, storage, bandwidth/egress, logs/metrics, scheduled jobs,
+      domains/TLS, staging, support, taxes, and expected operator time.
+- [ ] Require production images, stable HTTPS and Stripe webhook URLs, custom
+      domains, managed secrets, an EEA deployment region, authenticated and
+      encrypted PostgreSQL, versioned migrations, scheduled one-shot jobs,
+      health/readiness probes, centralized logs, actionable alerts, automated
+      backups, tested restore, immutable releases, and safe rollback. Reject
+      hidden sleep, ephemeral storage, connection, or job limits that break the
+      accepted pilot behavior.
+- [ ] Evaluate security ownership, provider incident history and status
+      visibility, least-privilege access, data portability, database export,
+      image portability, infrastructure automation, scaling path, contract and
+      billing risk, vendor lock-in, and a documented exit procedure.
+- [ ] Run a time-boxed staging spike on the two highest-scoring candidates using
+      the real production images and an isolated non-live Stripe configuration.
+      Verify deployment, migration, probes, login, catalog, checkout smoke,
+      webhook ingress, scheduled cleanup, backup/restore, logs, alerts, restart,
+      rollback, and representative latency from Portugal. Record measured cost,
+      limitations, manual steps, and failed assumptions.
+- [ ] Accept a deployment ADR that selects the provider, EEA region, application
+      and database topology, staging/production isolation, DNS/TLS ownership,
+      image registry, deployment and migration workflow, scheduled jobs,
+      observability, backup/restore, scaling triggers, budget alerts, and exit
+      plan. Keep provider-specific code behind deployment boundaries where
+      practical, and record why the rejected candidates lost.
 
-### 16. Complete the buyer checkout foundation
+### 17. Complete the buyer checkout foundation
 
 - [ ] Separate the current combined checkout screen into a persistent cart,
       final checkout review, and buyer order history. Add a visible cart count
@@ -241,11 +248,11 @@ Research basis: [Stripe Checkout](https://docs.stripe.com/payments/checkout),
       subtotal, discount, shipping, and total. Make every pending, recovery,
       validation, and API-error state keyboard and screen-reader usable.
 - [ ] Finish the user-visible password-reset and email-verification flows with a
-      development delivery sink. Step 19 must activate reliable production
+      development delivery sink. Step 20 must activate reliable production
       delivery before live payment makes account recovery operationally
       required.
 
-### 17. Implement the Stripe test-mode payment MVP
+### 18. Implement the Stripe test-mode payment MVP
 
 - [ ] Add the official server-side Stripe SDK only after the ADR is accepted.
       Pin its version and API version, keep the secret key server-only, expose
@@ -277,7 +284,7 @@ Research basis: [Stripe Checkout](https://docs.stripe.com/payments/checkout),
       a separately gated Stripe CLI sandbox workflow; the normal test suite must
       not depend on the public Stripe service.
 
-### 18. Add Stripe Connect seller onboarding and multi-seller settlement
+### 19. Add Stripe Connect seller onboarding and multi-seller settlement
 
 - [ ] Add a tenant/seller-scoped connected-account record and Stripe-hosted
       onboarding links. Expose requirements, charges capability, transfers
@@ -300,9 +307,9 @@ Research basis: [Stripe Checkout](https://docs.stripe.com/payments/checkout),
       transfers, refunds before/after transfer, disputes, negative balances,
       delayed events, and manual reconciliation.
 - [ ] Add test-mode browser workflows for buyer payment and seller onboarding.
-      Live mode remains blocked until Step 20 launch readiness is complete.
+      Live mode remains blocked until Step 21 launch readiness is complete.
 
-### 19. Complete the minimum post-sale, communication, and support workflows
+### 20. Complete the minimum post-sale, communication, and support workflows
 
 - [ ] Model shipments separately from orders, including seller ownership,
       address snapshot, carrier, service, tracking identifier, fulfillment state,
@@ -339,7 +346,7 @@ Research basis: [Stripe Checkout](https://docs.stripe.com/payments/checkout),
 - [ ] Cover buyer, seller, support, cross-tenant, concurrency, retry, audit,
       notification, partial fulfillment, and partial-failure behavior.
 
-### 20. Pass the Stripe live-payment readiness gate
+### 21. Pass the Stripe live-payment readiness gate
 
 - [ ] Complete Stripe platform and connected-account test-mode verification,
       business/KYC requirements, terms, privacy, refund/cancellation, delivery,
@@ -347,9 +354,10 @@ Research basis: [Stripe Checkout](https://docs.stripe.com/payments/checkout),
       accessibility, and merchant-of-record review for Portugal and intended EEA
       seller/customer countries. Obtain qualified legal/accounting advice where
       the platform business model requires it.
-- [ ] Verify that the EUR migration is complete for every sellable product and
-      both checked-in brands while historical USD orders remain readable and
-      correctly labelled. Do not permit a cart, order, Stripe Session, seller
+- [ ] Reverify that every sellable CampusMarket product and payment input uses
+      EUR while MercadoZetta remains isolated in USD and historical CampusMarket
+      USD orders remain readable and correctly labelled. Do not permit a cart,
+      order, Stripe Session, seller
       allocation, transfer, or refund to mix currencies.
 - [ ] Verify cards, eligible wallets, and MB WAY in Stripe test mode for the
       Portuguese buyer journey and Connect funds flow where each method is in
@@ -364,11 +372,12 @@ Research basis: [Stripe Checkout](https://docs.stripe.com/payments/checkout),
       webhook age/backlog, reconciliation differences, refunds, disputes,
       transfer failures, connected-account restrictions, and inventory
       reservations approaching expiry.
-- [ ] Provision the real production domain, HTTPS termination, managed secrets,
-      authenticated and encrypted PostgreSQL storage, immutable application
-      images, scheduled cleanup/outbox/reconciliation/reservation-expiry jobs,
-      centralized logs, retention, and automated backups whose restore path has
-      been rehearsed in the target environment.
+- [ ] Provision the Step 16 deployment ADR's real production domain, HTTPS
+      termination, managed secrets, authenticated and encrypted PostgreSQL
+      storage, immutable application images, scheduled
+      cleanup/outbox/reconciliation/reservation-expiry jobs, centralized logs,
+      retention, and automated backups whose restore path has been rehearsed in
+      the target environment.
 - [ ] Add a Stripe-compatible frontend Content Security Policy, explicit request
       size limits including the webhook route, dependency and secret scanning,
       container-image scanning, payment-aware abuse controls, and a documented
@@ -385,11 +394,11 @@ Research basis: [Stripe Checkout](https://docs.stripe.com/payments/checkout),
 
 ## Post-MVP Roadmap
 
-The following phases begin only after Step 20 passes and the bounded pilot is
+The following phases begin only after Step 21 passes and the bounded pilot is
 deployed. They may be promoted earlier only when pilot evidence or a verified
 launch risk makes them necessary.
 
-### 21. Improve product discovery and catalog conversion
+### 22. Improve product discovery and catalog conversion
 
 - [ ] Add managed category navigation only when a deliberate category hierarchy
       is accepted; until then, expose consistent category/subcategory facets from
@@ -405,7 +414,7 @@ launch risk makes them necessary.
 - [ ] Add related products using explainable category/subcategory signals before
       considering personalized or AI recommendations.
 
-### 22. Complete product detail, trust, and convenience
+### 23. Complete product detail, trust, and convenience
 
 - [ ] Add a product gallery, zoom, quantity selector, explicit buy-now path,
       stock messaging, share/copy-link action, delivery estimate, return summary,
@@ -419,7 +428,7 @@ launch risk makes them necessary.
 - [ ] Add recently viewed and buy-again convenience with explicit retention and
       privacy behavior. Measure use before adding personalized recommendations.
 
-### 23. Add promotions only after checkout and refunds are stable
+### 24. Add promotions only after checkout and refunds are stable
 
 - [ ] Accept a promotion contract covering coupon ownership, eligibility,
       stacking, allocation across sellers, expiry, usage limits, concurrency,
@@ -431,7 +440,7 @@ launch risk makes them necessary.
       flash sales, and loyalty only in response to a concrete product need and
       after their multi-seller accounting and refund behavior is defined.
 
-### 24. Expand asynchronous communication and account delivery
+### 25. Expand asynchronous communication and account delivery
 
 - [ ] Add tenant-aware notification preferences and explicit transactional,
       security, marketplace, and optional-message categories. Users may not
@@ -447,7 +456,7 @@ launch risk makes them necessary.
       unsubscribe behavior, and measured value. Defer SMS, WhatsApp, and push
       until a supported user communication requirement exists.
 
-### 25. Expand administration and support for active commerce workflows
+### 26. Expand administration and support for active commerce workflows
 
 - [ ] Expand the minimum launch operator workflows only for demonstrated payment
       reconciliation, refund, dispute, seller restriction, fulfillment, return,
@@ -460,7 +469,7 @@ launch risk makes them necessary.
       negative authorization, cross-tenant, stale-session, dual-action,
       concurrency, and browser-level tests.
 
-### 26. Improve mobile, accessibility, performance, and transparency
+### 27. Improve mobile, accessibility, performance, and transparency
 
 - [ ] Establish Web Vitals and representative low-end mobile budgets before
       claiming fast loading. Add route splitting, image dimensions/responsive
@@ -474,7 +483,7 @@ launch risk makes them necessary.
 - [ ] Evaluate PWA installability and offline behavior only after analytics show
       repeat mobile use that a PWA would materially improve.
 
-### 27. Scale production operations and security
+### 28. Scale production operations and security
 
 - [ ] Add service metrics, distributed tracing where it answers a measured need,
       service-level objectives, dashboards, and actionable alerts across
@@ -482,7 +491,7 @@ launch risk makes them necessary.
 - [ ] Replace process-local rate limiting when horizontal deployment requires a
       shared abuse-control boundary. Add payment-aware abuse and fraud signals
       without treating provider risk decisions as the only authorization layer.
-- [ ] Scale the Step 20 scheduling, encrypted storage, database authentication,
+- [ ] Scale the Step 21 scheduling, encrypted storage, database authentication,
       secret management, backups, scanning, and recovery controls as traffic,
       worker concurrency, provider count, and operational ownership grow.
 - [ ] Add representative load, capacity, provider degradation, failure,

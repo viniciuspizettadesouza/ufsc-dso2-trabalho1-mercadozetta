@@ -192,7 +192,7 @@ describe('productService', () => {
         {
           name: ' Keyboard ',
           inventory: '2',
-          price: { currency: 'USD', amountMinor: '2500' },
+          price: { currency: 'EUR', amountMinor: '2500' },
           image: 'keyboard.png',
         },
         sellerId,
@@ -206,7 +206,7 @@ describe('productService', () => {
       category: 'general',
       subcategory: '',
       inventory: 2,
-      price: { currency: 'USD', amountMinor: '2500' },
+      price: { currency: 'EUR', amountMinor: '2500' },
       image: 'keyboard.png',
       status: 'active',
       seller: sellerId,
@@ -217,7 +217,7 @@ describe('productService', () => {
         tenantId: 'campus-market',
         productId: 'product-1',
         actorId: sellerId,
-        price: { currency: 'USD', amountMinor: '2500' },
+        price: { currency: 'EUR', amountMinor: '2500' },
       }),
     );
   });

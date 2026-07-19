@@ -52,17 +52,26 @@ an insert.
 
 ### `tenants`
 
-| Column                | Type          | Rules                                                             |
-| --------------------- | ------------- | ----------------------------------------------------------------- |
-| `id`                  | `text`        | Primary key; current rows are `mercadozetta` and `campus-market`. |
-| `currency_code`       | `char(3)`     | Non-null uppercase ISO 4217 code; both current tenants use `USD`. |
-| `currency_minor_unit` | `smallint`    | Non-null accepted exponent; both current tenants use `2`.         |
-| `created_at`          | `timestamptz` | Non-null; defaults to the current time.                           |
+| Column                | Type          | Rules                                                                        |
+| --------------------- | ------------- | ---------------------------------------------------------------------------- |
+| `id`                  | `text`        | Primary key; current rows are `mercadozetta` and `campus-market`.            |
+| `currency_code`       | `char(3)`     | Non-null ISO 4217 code; MercadoZetta uses `USD` and CampusMarket uses `EUR`. |
+| `currency_minor_unit` | `smallint`    | Non-null accepted exponent; both current tenants use `2`.                    |
+| `created_at`          | `timestamptz` | Non-null; defaults to the current time.                                      |
 
 Tenant branding remains application configuration. This table is the
 persistence integrity and authoritative-currency anchor and is seeded
 transactionally by migrations. The application must reject a request tenant
 through the existing resolver before querying the database.
+
+### `tenant_currencies`
+
+Each row retains one currency authority that has been valid for a tenant. Its
+primary key is `(tenant_id, currency_code, currency_minor_unit)`, with bounded
+ISO-code and exponent checks and restricted tenant deletion. MercadoZetta has a
+USD row; CampusMarket retains USD for historical snapshots and has EUR for its
+current catalog. Orders and product price history reference this table so a
+tenant currency change cannot invalidate or silently relabel immutable history.
 
 ### `users`
 
@@ -147,8 +156,8 @@ remove is tenant/user/product scoped.
 | `status`                                                            | `text`                | Non-null, default `placed`; allowed values are `placed`, `confirmed`, `shipped`, `delivered`, and `cancelled`. |
 | `created_at`, `updated_at`                                          | `timestamptz`         | Non-null.                                                                                                      |
 
-Constraints bind buyer and priced currency to the same tenant and enforce the
-component equation from ADR 0006. A PostgreSQL trigger permits lifecycle/status
+Constraints bind buyer and priced currency to a retained currency authority for
+the same tenant and enforce the component equation from ADR 0006. A PostgreSQL trigger permits lifecycle/status
 updates but rejects changes to inserted monetary fields. Orders are historical
 records and cannot be hard-deleted by the application role.
 
@@ -186,9 +195,10 @@ reject ordinary `UPDATE` and `DELETE` operations on this table.
 Each row contains tenant/product, a positive monotonic sequence, the tenant's
 currency code and minor-unit exponent, bounded `unit_price_minor`, seller actor,
 and `changed_at`. The primary key is `(tenant_id, product_id, sequence)` and
-tenant-qualified foreign keys bind the product, actor, and authoritative
-currency. PostgreSQL triggers reject updates and deletes so catalog edits append
-history rather than rewrite it.
+tenant-qualified foreign keys bind the product and actor, while a retained
+tenant-currency key permits immutable historical currencies. PostgreSQL
+triggers reject updates and deletes so catalog edits append history rather than
+rewrite it.
 
 ### `order_status_history`
 

@@ -17,12 +17,21 @@ describe('exact money presentation', () => {
     expect(majorInputToMinor('90000000000000.01')).toBeNull();
   });
 
-  it('formats exact USD strings and rejects currency mismatches', () => {
-    const money = { currency: 'USD', amountMinor: '123456' };
-    expect(formatMoney(money, 'en-US', 'USD')).toBe('$1,234.56');
-    expect(moneyToMajorInput(money)).toBe('1234.56');
-    expect(formatMoney(money, 'en-US', 'EUR')).toBeNull();
-    expect(formatMoney(null, 'en-US', 'USD')).toBeNull();
+  it('formats exact USD and EUR tenant snapshots', () => {
+    expect(
+      formatMoney({ currency: 'USD', amountMinor: '123456' }, 'en-US', 'USD'),
+    ).toBe('$1,234.56');
+    expect(
+      formatMoney({ currency: 'EUR', amountMinor: '123456' }, 'pt-PT', 'EUR'),
+    ).toMatch(/1[.\s\u00a0]234,56\s€/);
+
+    const historicalMoney = { currency: 'USD', amountMinor: '123456' };
+    expect(formatMoney(historicalMoney, 'pt-PT', 'USD')).toMatch(
+      /1[.\s\u00a0]234,56\sUS\$/,
+    );
+    expect(moneyToMajorInput(historicalMoney)).toBe('1234.56');
+    expect(formatMoney(historicalMoney, 'pt-PT', 'EUR')).toBeNull();
+    expect(formatMoney(null, 'pt-PT', 'EUR')).toBeNull();
   });
 
   it('calculates exact bounded cart quotes', () => {

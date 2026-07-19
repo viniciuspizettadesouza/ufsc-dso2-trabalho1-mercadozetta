@@ -56,6 +56,37 @@ export const tenants = pgTable(
   ],
 );
 
+export const tenantCurrencies = pgTable(
+  'tenant_currencies',
+  {
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id, {
+        onDelete: 'restrict',
+        onUpdate: 'restrict',
+      }),
+    currencyCode: char('currency_code', { length: 3 }).notNull(),
+    currencyMinorUnit: smallint('currency_minor_unit').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    primaryKey({
+      name: 'tenant_currencies_pkey',
+      columns: [table.tenantId, table.currencyCode, table.currencyMinorUnit],
+    }),
+    check(
+      'tenant_currencies_currency_code_check',
+      sql`${table.currencyCode} ~ '^[A-Z]{3}$'`,
+    ),
+    check(
+      'tenant_currencies_minor_unit_check',
+      sql`${table.currencyMinorUnit} between 0 and 4`,
+    ),
+  ],
+);
+
 export const users = pgTable(
   'users',
   {
@@ -429,9 +460,9 @@ export const orders = pgTable(
       name: 'orders_tenant_currency_fkey',
       columns: [table.tenantId, table.currencyCode, table.currencyMinorUnit],
       foreignColumns: [
-        tenants.id,
-        tenants.currencyCode,
-        tenants.currencyMinorUnit,
+        tenantCurrencies.tenantId,
+        tenantCurrencies.currencyCode,
+        tenantCurrencies.currencyMinorUnit,
       ],
     })
       .onDelete('restrict')
@@ -581,9 +612,9 @@ export const productPriceHistory = pgTable(
       name: 'product_price_history_tenant_currency_fkey',
       columns: [table.tenantId, table.currencyCode, table.currencyMinorUnit],
       foreignColumns: [
-        tenants.id,
-        tenants.currencyCode,
-        tenants.currencyMinorUnit,
+        tenantCurrencies.tenantId,
+        tenantCurrencies.currencyCode,
+        tenantCurrencies.currencyMinorUnit,
       ],
     })
       .onDelete('restrict')

@@ -15,7 +15,7 @@ INSERT INTO products (
   id, tenant_id, seller_id, name, description, category, subcategory,
   inventory, image_url, status, created_at, updated_at
 ) VALUES (
-  '20000000-0000-4000-8000-000000000001', 'mercadozetta',
+  '67000000-0000-4000-8000-000000000001', 'mercadozetta',
   '10000000-0000-4000-8000-000000000002', 'rehearsal product',
   'synthetic recovery fixture', 'general', '', 9, '/rehearsal.png', 'active',
   '2026-07-02T00:00:00Z', '2026-07-02T00:00:00Z'
@@ -29,7 +29,7 @@ INSERT INTO carts (id, tenant_id, buyer_id, created_at, updated_at) VALUES (
 
 INSERT INTO cart_items (tenant_id, cart_id, product_id, quantity) VALUES (
   'mercadozetta', '30000000-0000-4000-8000-000000000001',
-  '20000000-0000-4000-8000-000000000001', 2
+  '67000000-0000-4000-8000-000000000001', 2
 );
 
 INSERT INTO watchlist_entries (
@@ -37,7 +37,7 @@ INSERT INTO watchlist_entries (
 ) VALUES (
   '40000000-0000-4000-8000-000000000001', 'mercadozetta',
   '10000000-0000-4000-8000-000000000001',
-  '20000000-0000-4000-8000-000000000001',
+  '67000000-0000-4000-8000-000000000001',
   '2026-07-03T00:00:00Z', '2026-07-03T00:00:00Z'
 );
 
@@ -54,7 +54,7 @@ INSERT INTO order_items (
 ) VALUES (
   '60000000-0000-4000-8000-000000000001', 'mercadozetta',
   '50000000-0000-4000-8000-000000000001',
-  '20000000-0000-4000-8000-000000000001',
+  '67000000-0000-4000-8000-000000000001',
   '10000000-0000-4000-8000-000000000002', 'rehearsal product', 1,
   '2026-07-04T00:00:00Z', '2026-07-04T00:00:00Z'
 );
@@ -71,7 +71,7 @@ INSERT INTO reviews (
   id, tenant_id, product_id, author_id, rating, comment, created_at, updated_at
 ) VALUES (
   '70000000-0000-4000-8000-000000000001', 'mercadozetta',
-  '20000000-0000-4000-8000-000000000001',
+  '67000000-0000-4000-8000-000000000001',
   '10000000-0000-4000-8000-000000000001', 5, 'synthetic review',
   '2026-07-05T00:00:00Z', '2026-07-05T00:00:00Z'
 );

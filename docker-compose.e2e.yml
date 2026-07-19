@@ -51,7 +51,7 @@ services:
       target: development
     environment:
       VITE_API_URL: http://localhost:4333
-      VITE_TENANT_ID: mercadozetta
+      VITE_TENANT_ID: ${E2E_TENANT_ID:-mercadozetta}
     ports:
       - '6173:5173'
     depends_on:

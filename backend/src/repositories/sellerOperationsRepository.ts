@@ -29,6 +29,7 @@ export type SellerOperationsSummary = {
   openOrderCount: number;
   orderedUnits: number;
   pricedOrderCount: number;
+  historicalCurrencyOrderCount: number;
   legacyUnpricedOrderCount: number;
   grossRevenue: Money;
 };

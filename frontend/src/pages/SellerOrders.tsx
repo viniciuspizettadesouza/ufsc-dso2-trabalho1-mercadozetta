@@ -166,6 +166,12 @@ function SellerOrdersPage({
                 <dd>{operationsQuery.data.summary.pricedOrderCount}</dd>
               </div>
               <div>
+                <dt>Historical-currency priced orders</dt>
+                <dd>
+                  {operationsQuery.data.summary.historicalCurrencyOrderCount}
+                </dd>
+              </div>
+              <div>
                 <dt>Legacy unpriced orders</dt>
                 <dd>{operationsQuery.data.summary.legacyUnpricedOrderCount}</dd>
               </div>
@@ -270,7 +276,7 @@ function SellerOrdersPage({
                             {formatMoney(
                               item.lineSubtotal,
                               brand.locale,
-                              brand.currency,
+                              item.lineSubtotal.currency,
                             ) ?? brand.copy.catalog.priceUnavailableLabel}
                           </>
                         )}
