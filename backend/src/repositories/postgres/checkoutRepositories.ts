@@ -126,6 +126,10 @@ export class PostgresCartRepository implements CartRepository {
         target: [cartItems.tenantId, cartItems.cartId, cartItems.productId],
         set: { quantity },
       });
+    await this.db
+      .update(carts)
+      .set({ updatedAt: now })
+      .where(and(eq(carts.tenantId, tenantId), eq(carts.id, cart.id)));
   }
 
   async removeItem(tenantId: string, buyerId: string, productId: string) {
@@ -144,6 +148,10 @@ export class PostgresCartRepository implements CartRepository {
           eq(cartItems.productId, productId),
         ),
       );
+    await this.db
+      .update(carts)
+      .set({ updatedAt: new Date() })
+      .where(and(eq(carts.tenantId, tenantId), eq(carts.id, cart.id)));
   }
 
   async findForCheckout(tenantId: string, buyerId: string) {

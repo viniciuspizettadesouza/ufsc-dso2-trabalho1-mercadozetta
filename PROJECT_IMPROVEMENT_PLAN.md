@@ -733,13 +733,49 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   96.68% functions, and generated-type parity, typecheck, lint, formatting, and
   the frontend production build pass. Provider selection, adapter activation,
   and browser-stack expansion remain deferred. Step 11 is complete.
-- Next action: begin Step 12 by documenting application/schema compatibility and
-  rollback rules for the existing versioned Drizzle migrations. Audit migrations
-  `0000` through `0004` and the migrate-before-start Compose topology; define
-  expand/contract expectations, supported old/new application overlap, backfill
-  validation, deployment abort criteria, and when rollback means application
-  rollback, a compensating forward migration, or database restore. Do not change
-  the schema until that policy is accepted.
+- The Step 12 application/schema compatibility and rollback policy is accepted
+  in `docs/database-evolution.md`. It audits migrations `0000` through `0004`
+  and the one-shot migrate-before-start Compose topology, including the fact
+  that Compose does not drain an already running old backend. It defines
+  expand/migrate/validate/switch/contract phases, supported old/new application
+  overlap, backfill and invariant evidence, deployment abort gates, immutable
+  migration history, and when recovery uses application rollback, a
+  compensating forward migration, or database restore. No schema changed.
+- The accepted Step 12 data-lifecycle policy in `docs/data-lifecycle.md`
+  classifies all 15 tables and keeps commerce/account history plus append-only
+  audit evidence outside automatic cleanup. Sessions and account tokens retain
+  seven-day terminal grace, pending email changes retain 24-hour post-expiry
+  grace, read/unread notifications retain 30/180 days after their last explicit
+  state update, carts and cascading items retain 30 days after activity, and
+  watchlists remain until explicit removal or deactivation. Cart set/removal now
+  updates parent activity in the same mutation.
+- A provider-neutral one-shot cleanup runner uses a safe dry-run default,
+  validated batch/run bounds, stable cutoffs, deterministic `SKIP LOCKED`
+  selection, atomic eligibility rechecks, idempotent retry behavior, structured
+  summaries, and externally owned daily scheduling/alerts. Focused tests and
+  three PostgreSQL scenarios cover configuration, cutoffs, batching, dry-run,
+  concurrency, cart activity/cascade, retained relational state, and protection of
+  watchlist/audit state. The compiled command passes the production-image smoke
+  lane in dry-run mode.
+- Backup and recovery objectives, roles, encrypted/isolated artifact metadata,
+  verification, restore, and failure procedures are accepted in
+  `docs/database-backup-restore.md`. The isolated PostgreSQL 18 rehearsal applies
+  `0000` through `0003`, loads representative non-personal data, verifies a
+  pre-migration backup, applies `0004`, creates/checksums a current custom-format
+  backup, restores into a fresh database, reruns migrations, and validates
+  journal parity, counts, tenant-qualified commerce relationships, security
+  state, and audit immutability. Measured migration, backup, and restore phases
+  pass within the documented baseline; deployment must repeat at expected scale.
+- All 227 backend tests across 46 files and 171 frontend tests across 35 files
+  pass. Backend coverage passes with 88.15% branches and 89.8% functions;
+  frontend coverage passes with 90.12% branches and 96.68% functions. Typecheck,
+  lint, formatting, generated-contract parity, Drizzle history checks, all 28
+  PostgreSQL scenarios, the production-image smoke, and recovery rehearsal pass.
+  Step 12 is complete.
+- Next action: begin Step 13 with a focused idempotent-checkout contract. Define
+  request-key scope, tenant/buyer binding, payload fingerprinting, concurrent
+  duplicate behavior, stored response/error semantics, expiry, cleanup, and
+  audit/notification interaction before changing checkout persistence.
 
 ## Recommended Order
 
@@ -949,17 +985,17 @@ marketplace demo while evolving the new persistent commerce workflows safely.
   use `nodemailer` only when generic SMTP or local email testing is explicitly
   required.
 
-### 12. Manage database evolution and data lifecycle
+### 12. Manage database evolution and data lifecycle (completed)
 
 - [x] Establish versioned, repeatable migrations for schema changes, data
       backfills, and index creation instead of relying on implicit startup changes.
-- [ ] Document compatibility and rollback rules for deployments that span old
+- [x] Document compatibility and rollback rules for deployments that span old
       and new application versions.
-- [ ] Define retention and cleanup for sessions, recovery tokens,
-      notifications, abandoned carts, and other temporary records, using
-      scheduled, observable cleanup jobs where automatic expiry is unavailable.
-- [ ] Document backup and restore procedures and rehearse a migration and
-      restore using production-like data without exposing secrets or personal data.
+- [x] Define retention and observable cleanup for temporary security records,
+      notifications, abandoned carts, watchlists, and other disposable state
+      while preserving commerce/account history and append-only audit evidence.
+- [x] Document backup and restore procedures and rehearse a migration and
+      restore using production-like, non-personal data.
 
 ### 13. Add later marketplace capabilities only after the baseline is stable
 

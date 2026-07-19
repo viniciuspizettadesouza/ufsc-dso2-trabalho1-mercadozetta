@@ -31,7 +31,9 @@ docker compose -p "$project_name" -f "$compose_file" up \
   --wait
 
 docker compose -p "$project_name" -f "$compose_file" exec --no-TTY backend \
-  sh -c 'test "$(id -u)" -ne 0 && test -f dist/server.js'
+  sh -c 'test "$(id -u)" -ne 0 && test -f dist/server.js && test -f dist/scripts/cleanupPostgresData.js'
+docker compose -p "$project_name" -f "$compose_file" exec --no-TTY backend \
+  npm run cleanup:data:runtime
 docker compose -p "$project_name" -f "$compose_file" exec --no-TTY frontend \
   sh -c 'test "$(id -u)" -ne 0 && test -f /usr/share/nginx/html/index.html'
 

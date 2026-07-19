@@ -230,23 +230,25 @@ defaults to 0. Responses use
 
 Run these from the repository root unless noted otherwise.
 
-| Command                                | Purpose                                                                          |
-| -------------------------------------- | -------------------------------------------------------------------------------- |
-| `npm test`                             | Backend type-check, backend focused/contract tests, and frontend tests           |
-| `npm run test:integration`             | PostgreSQL database-backed integration tests; requires Docker                    |
-| `npm run test:e2e`                     | Chromium workflows against an isolated PostgreSQL stack; requires Docker         |
-| `npm run test:production`              | Build and smoke-test the isolated production container topology; requires Docker |
-| `npm run test:coverage`                | Backend and frontend coverage suites with configured thresholds                  |
-| `npm run typecheck`                    | Backend TypeScript check without emitting                                        |
-| `npm run lint`                         | Backend and frontend ESLint checks                                               |
-| `npm run format:check`                 | Check Prettier formatting without rewriting files                                |
-| `npm run format`                       | Format supported repository files                                                |
-| `npm --prefix frontend run build`      | Type-check and create the frontend production bundle                             |
-| `npm run generate:openapi`             | Regenerate `docs/openapi.json` from validators and route metadata                |
-| `npm --prefix backend run db:generate` | Generate a reviewable Drizzle SQL migration from the PostgreSQL schema           |
-| `npm --prefix backend run db:check`    | Check the consistency of the Drizzle migration history                           |
-| `npm --prefix backend run db:migrate`  | Apply committed PostgreSQL migrations using `POSTGRESQL_URL`                     |
-| `npm run seed:demo`                    | Refresh repeatable demo data                                                     |
+| Command                                 | Purpose                                                                          |
+| --------------------------------------- | -------------------------------------------------------------------------------- |
+| `npm test`                              | Backend type-check, backend focused/contract tests, and frontend tests           |
+| `npm run test:integration`              | PostgreSQL database-backed integration tests; requires Docker                    |
+| `npm run test:e2e`                      | Chromium workflows against an isolated PostgreSQL stack; requires Docker         |
+| `npm run test:production`               | Build and smoke-test the isolated production container topology; requires Docker |
+| `npm run test:recovery`                 | Rehearse PostgreSQL forward migration, backup, fresh restore, and validation     |
+| `npm run test:coverage`                 | Backend and frontend coverage suites with configured thresholds                  |
+| `npm run typecheck`                     | Backend TypeScript check without emitting                                        |
+| `npm run lint`                          | Backend and frontend ESLint checks                                               |
+| `npm run format:check`                  | Check Prettier formatting without rewriting files                                |
+| `npm run format`                        | Format supported repository files                                                |
+| `npm --prefix frontend run build`       | Type-check and create the frontend production bundle                             |
+| `npm run generate:openapi`              | Regenerate `docs/openapi.json` from validators and route metadata                |
+| `npm --prefix backend run db:generate`  | Generate a reviewable Drizzle SQL migration from the PostgreSQL schema           |
+| `npm --prefix backend run db:check`     | Check the consistency of the Drizzle migration history                           |
+| `npm --prefix backend run db:migrate`   | Apply committed PostgreSQL migrations using `POSTGRESQL_URL`                     |
+| `npm --prefix backend run cleanup:data` | Preview or run bounded retention cleanup using the configured dry-run mode       |
+| `npm run seed:demo`                     | Refresh repeatable demo data                                                     |
 
 See the [accessibility verification guide](docs/accessibility.md) for automated
 checks and the manual keyboard and screen-reader smoke test.

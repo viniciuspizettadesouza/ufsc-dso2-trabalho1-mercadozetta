@@ -133,7 +133,31 @@ curl --fail -H 'X-Tenant-Id: mercadozetta' \
 Then perform the login, checkout, seller fulfillment, and notification checks
 from the README smoke workflow. `npm run test:production` automates image
 building, non-root checks, frontend loading, both probes, and a proxied catalog
-request against an isolated temporary Compose project.
+request against an isolated temporary Compose project. It also runs the compiled
+data-cleanup command in its safe dry-run mode.
+
+## Scheduled data cleanup
+
+Run cleanup once per UTC day as an external scheduled one-shot task using the
+same immutable backend image and database migration level as the application.
+Do not add an in-process timer to Express. Preview a deployment first:
+
+```bash
+docker compose -f docker-compose.prod.yml run --rm \
+  -e DATA_CLEANUP_DRY_RUN=true \
+  backend npm run cleanup:data:runtime
+```
+
+After reviewing bounded candidate counts and database query plans, activate the
+scheduled command with `DATA_CLEANUP_DRY_RUN=false`. Optional batch settings and
+the required concurrency, logging, alert, role, and retry rules are defined in
+the [data-lifecycle policy](data-lifecycle.md). Retention windows are policy
+constants and cannot be changed through deployment environment values.
+
+Alert if the command exits nonzero, no successful scheduled completion exists
+for 26 hours, or a target reaches its per-run limit for three consecutive runs.
+The cleanup role must not own the database or have update/delete access to audit
+or retained commerce/account tables.
 
 ## Rollback
 
@@ -151,3 +175,9 @@ Do not roll application images backward across an incompatible database change.
 Restore data only from a verified backup and only under that migration's
 documented rollback procedure. Capture container logs before replacing a failed
 release so the cause remains diagnosable.
+
+The required old/new application overlap decision, migration validation gates,
+abort criteria, and choice between application rollback, a compensating forward
+migration, and database restore are defined in the
+[database evolution policy](database-evolution.md). Compose start ordering does
+not by itself prove an old application is safe against the migrated schema.

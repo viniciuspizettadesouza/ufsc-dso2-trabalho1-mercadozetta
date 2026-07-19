@@ -214,8 +214,10 @@ demo records use fixed UUIDs.
   purchased name even if the product later changes.
 - A review is unique per tenant/product/author and can be updated through an
   upsert after purchase eligibility is established.
-- Notifications are user-owned messages with a read flag. They are persisted
-  but have no delivery channel or retention policy.
+- Notifications are user-owned messages with a read flag and no external
+  delivery channel. The data-lifecycle policy retains read notifications for 30
+  days and unread notifications for 180 days after their latest state change;
+  the scheduled cleanup runner is not implemented yet.
 
 Compound indexes reinforce common tenant/owner lookup boundaries. They are not
 a substitute for including `tenantId` in each service query.
@@ -397,10 +399,12 @@ and production database operations before hosting real data.
   close the PostgreSQL pool, and exit. There is no explicit shutdown deadline or forced
   fallback.
 
-Operational gaps include unstructured application/error logging outside the
-request completion record, no metrics or tracing, no append-only audit events,
-no distributed rate-limit store, and no documented backup, restore, migration,
-or data-retention process.
+The operational baseline includes structured application/request logging,
+append-only audit events, reviewed migrations, an externally scheduled bounded
+data-cleanup command, and documented/rehearsed backup and restore procedures.
+Remaining gaps include no metrics or tracing, no distributed rate-limit store,
+and no deployed scheduler, backup storage, or provider-specific disaster
+recovery automation.
 
 ## 15. Known limitations
 
@@ -417,15 +421,17 @@ or data-retention process.
   non-cancelled purchase.”
 - The product does not define privileged administrator roles or a privileged
   administration surface.
-- Notifications have no preferences, external delivery, retention, or cleanup.
+- Notifications have no preferences or external delivery. Their retention
+  policy and cleanup implementation exist, but no deployment scheduler is
+  provisioned by the repository.
 - Brand capability flags are stale relative to implemented commerce UI.
 - Product images support safe relative paths or HTTPS URLs whose exact host is
   listed in `PRODUCT_IMAGE_HOSTS` (local HTTP is accepted only for loopback
   hosts). There is intentionally no upload or binary database storage until an
   object-storage provider is selected.
 - The production container baseline does not supply managed TLS, secrets,
-  monitoring, database authentication, backup/restore automation, retention, or
-  disaster recovery.
+  monitoring, database authentication, backup storage/scheduling, or
+  provider-specific disaster recovery.
 
 These are descriptions of verified current behavior, not commitments about
 scope or sequence.
