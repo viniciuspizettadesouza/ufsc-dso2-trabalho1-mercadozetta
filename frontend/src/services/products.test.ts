@@ -78,6 +78,7 @@ describe('product service', () => {
       category: 'grocery',
       subcategory: 'coffee',
       image: 'coffee.png',
+      price: { currency: 'USD', amountMinor: '1250' },
       inventory: 2,
       status: 'active' as const,
       idempotencyKey: '11111111-1111-4111-8111-111111111111',
@@ -99,6 +100,7 @@ describe('product service', () => {
       category: 'grocery',
       subcategory: 'coffee',
       image: 'coffee.png',
+      price: { currency: 'USD', amountMinor: '1250' },
     };
 
     await expect(updateProductDetails('product-1', details)).resolves.toBe(

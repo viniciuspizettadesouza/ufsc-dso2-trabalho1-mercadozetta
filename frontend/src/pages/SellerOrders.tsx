@@ -19,6 +19,8 @@ import {
 } from '@/serverState/orders';
 import { useSellerOperations } from '@/serverState/sellerOperations';
 import type { SellerOperationsRequest } from '@/services/sellerOperations';
+import { useBrand } from '@/brands/brandContext';
+import { formatMoney } from '@/money';
 
 const nextStatus: Partial<Record<OrderStatus, OrderStatus>> = {
   placed: 'confirmed',
@@ -46,6 +48,7 @@ function SellerOrdersPage({
   sellerId: string;
   enabled: boolean;
 }) {
+  const brand = useBrand();
   const [pendingOrder, setPendingOrder] = useState('');
   const [feedback, setFeedback] = useState<MutationFeedback>(null);
   const [orderRequest, setOrderRequest] = useState<OrderListRequest>(() => ({
@@ -148,6 +151,24 @@ function SellerOrdersPage({
                 <dt>Ordered units</dt>
                 <dd>{operationsQuery.data.summary.orderedUnits}</dd>
               </div>
+              <div>
+                <dt>Gross revenue (non-cancelled priced orders)</dt>
+                <dd>
+                  {formatMoney(
+                    operationsQuery.data.summary.grossRevenue,
+                    brand.locale,
+                    brand.currency,
+                  ) ?? brand.copy.catalog.priceUnavailableLabel}
+                </dd>
+              </div>
+              <div>
+                <dt>Priced orders</dt>
+                <dd>{operationsQuery.data.summary.pricedOrderCount}</dd>
+              </div>
+              <div>
+                <dt>Legacy unpriced orders</dt>
+                <dd>{operationsQuery.data.summary.legacyUnpricedOrderCount}</dd>
+              </div>
             </dl>
             <h3>Low-stock warnings</h3>
             {operationsQuery.data.lowStockProducts.length ? (
@@ -243,6 +264,16 @@ function SellerOrdersPage({
                     {order.items.map((item) => (
                       <li key={`${order._id}-${item.productName}`}>
                         {item.productName} × {item.quantity}
+                        {item.lineSubtotal && (
+                          <>
+                            {' — '}
+                            {formatMoney(
+                              item.lineSubtotal,
+                              brand.locale,
+                              brand.currency,
+                            ) ?? brand.copy.catalog.priceUnavailableLabel}
+                          </>
+                        )}
                       </li>
                     ))}
                   </ul>

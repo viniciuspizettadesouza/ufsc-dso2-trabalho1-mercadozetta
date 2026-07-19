@@ -83,7 +83,13 @@ describe('structured logging', () => {
 
     requestContext(req, res, () => undefined);
     createHttpLogger(logger, true)(req, res, () => undefined);
-    req.tenant = { id: 'mercadozetta', name: 'MercadoZetta', active: true };
+    req.tenant = {
+      id: 'mercadozetta',
+      name: 'MercadoZetta',
+      active: true,
+      currencyCode: 'USD',
+      currencyMinorUnit: 2,
+    };
     req.userId = '607f1f77-bcf8-4ecd-8994-390120000002';
     res.statusCode = 204;
     res.emit('finish');

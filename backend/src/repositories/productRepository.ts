@@ -1,5 +1,6 @@
 import type { ProductStatus } from '@/productStatus';
 import type { Paginated } from '@/pagination';
+import type { Money } from '@/money';
 
 export type ProductRecord = {
   _id: string;
@@ -10,6 +11,7 @@ export type ProductRecord = {
   category?: string | null;
   subcategory?: string | null;
   inventory: number;
+  price: Money | null;
   image?: string;
   status?: ProductStatus | null;
   createdAt?: Date;
@@ -18,13 +20,14 @@ export type ProductRecord = {
 
 export type CreateProductRecord = Omit<
   ProductRecord,
-  '_id' | 'createdAt' | 'updatedAt'
+  '_id' | 'createdAt' | 'updatedAt' | 'price'
 > & {
   seller: string;
   category: string;
   subcategory: string;
   image: string;
   status: ProductStatus;
+  price: Money;
 };
 
 export type ProductListQuery = {
@@ -49,8 +52,17 @@ export type UpdateProductRecord = Partial<
     | 'image'
     | 'status'
     | 'inventory'
+    | 'price'
   >
 >;
+
+export type AppendProductPriceHistory = {
+  tenantId: string;
+  productId: string;
+  actorId: string;
+  price: Money;
+  changedAt: Date;
+};
 
 export interface ProductRepository {
   list(
@@ -65,6 +77,11 @@ export interface ProductRepository {
     update: UpdateProductRecord,
   ): Promise<ProductRecord | null>;
   findById(tenantId: string, productId: string): Promise<ProductRecord | null>;
+  findByIdForUpdate(
+    tenantId: string,
+    productId: string,
+  ): Promise<ProductRecord | null>;
+  appendPriceHistory(entry: AppendProductPriceHistory): Promise<void>;
   findActiveById(
     tenantId: string,
     productId: string,

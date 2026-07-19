@@ -37,8 +37,8 @@ export const defaultBrand: BrandConfig = {
       surface: '0 1px 2px rgb(15 23 42 / 8%)',
     },
   },
-  currency: 'BRL',
-  locale: 'pt-BR',
+  currency: 'USD',
+  locale: 'en-US',
   supportEmail: 'support@mercadozetta.example',
   legalName: 'MercadoZetta',
   copy: {

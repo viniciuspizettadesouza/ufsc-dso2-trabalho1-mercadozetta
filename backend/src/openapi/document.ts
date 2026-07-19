@@ -131,6 +131,7 @@ const productExample = {
   category: 'electronics',
   subcategory: 'keyboards',
   inventory: 5,
+  price: { currency: 'USD', amountMinor: '12999' },
   image: 'https://example.com/keyboard.jpg',
   status: 'active',
   seller: '507f1f77-bcf8-4ecd-8994-390110000001',
@@ -170,6 +171,11 @@ const orderExample = {
   tenantId: 'mercadozetta',
   buyer: userExample._id,
   status: 'placed',
+  pricingState: 'priced',
+  subtotal: { currency: 'USD', amountMinor: '12999' },
+  discount: { currency: 'USD', amountMinor: '0' },
+  shipping: { currency: 'USD', amountMinor: '0' },
+  total: { currency: 'USD', amountMinor: '12999' },
   statusHistory: [
     {
       status: 'placed',
@@ -185,6 +191,9 @@ const orderExample = {
       seller: productExample.seller,
       productName: productExample.name,
       quantity: 1,
+      pricingState: 'priced',
+      unitPrice: { currency: 'USD', amountMinor: '12999' },
+      lineSubtotal: { currency: 'USD', amountMinor: '12999' },
     },
   ],
   createdAt: '2026-07-13T10:00:00.000Z',
@@ -939,6 +948,7 @@ export function createOpenApiDocument() {
               category: 'electronics',
               subcategory: 'keyboards',
               inventory: 5,
+              price: { currency: 'USD', amountMinor: '12999' },
               image: 'https://example.com/keyboard.jpg',
               status: 'active',
             }),
@@ -1319,10 +1329,14 @@ export function createOpenApiDocument() {
               orderErrorCodes.csrf,
             ),
             409: appErrors(
-              'A cart item is unavailable',
+              'A cart item is unavailable or the order amount is invalid',
               orderErrorCodes.inventoryConflict,
               {
                 INSUFFICIENT_INVENTORY: orderInvalidRequestExamples.inventory,
+                PRODUCT_PRICE_REQUIRED:
+                  orderInvalidRequestExamples.priceRequired,
+                ORDER_TOTAL_LIMIT_EXCEEDED:
+                  orderInvalidRequestExamples.totalLimit,
               },
             ),
           },
@@ -1347,6 +1361,9 @@ export function createOpenApiDocument() {
                   orderCount: 0,
                   openOrderCount: 0,
                   orderedUnits: 0,
+                  pricedOrderCount: 0,
+                  legacyUnpricedOrderCount: 0,
+                  grossRevenue: { currency: 'USD', amountMinor: '0' },
                 },
                 lowStockProducts: [],
                 inventoryHistory: {

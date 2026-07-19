@@ -99,3 +99,21 @@ an undocumented compatibility field. This is a direct contract correction for
 an undeployed application; there is no production client or data migration.
 Frontend creation consumes the generated `Product` response, and focused,
 OpenAPI, and PostgreSQL integration tests verify the accepted shape.
+
+## Exact product-price boundary
+
+Step 14 adds required exact USD prices to product creation and descriptive
+updates. JSON represents the minor-unit amount as a canonical decimal string,
+for example `{ "currency": "USD", "amountMinor": "12999" }`; neither side of
+the API converts prices through binary floating-point arithmetic. Product
+responses expose the same shape, with `null` retained only for legacy catalog
+rows created before the pricing boundary.
+
+The backend rejects malformed, out-of-range, or tenant-currency-mismatched
+prices. Creating a product appends its initial price-history record in the same
+transaction as the product and persisted idempotency result. Changing the exact
+amount appends one new record; replaying the same amount does not. The catalog
+and detail UI format the server amount using the active brand's USD locale
+configuration. Checkout remains deliberately legacy-unpriced until the next
+monetary slice snapshots locked catalog prices and calculates totals on the
+backend.

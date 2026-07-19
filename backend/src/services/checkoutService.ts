@@ -1,5 +1,7 @@
 import AppError from '@/errors/AppError';
 import type { CheckoutTransactionCoordinator } from '@/repositories/checkoutTransaction';
+import { checkedMoneyAdd, checkedMoneyMultiply, moneyFromMinor } from '@/money';
+import { resolveTenant } from '@/tenants';
 
 async function createOrderInTransaction(
   transactions: CheckoutTransactionCoordinator,
@@ -44,25 +46,73 @@ async function createOrderInTransaction(
           'INSUFFICIENT_INVENTORY',
           'A cart item is unavailable',
         );
+      if (!product.price)
+        throw new AppError(
+          409,
+          'PRODUCT_PRICE_REQUIRED',
+          'A cart item has no current price',
+        );
     }
+
+    const tenant = resolveTenant(tenantId);
+    if (!tenant) throw new Error('Checkout tenant is missing');
+    let subtotalMinor = 0n;
+    const pricedItems = cart.items.map((item) => {
+      const product = productMap.get(item.productId)!;
+      if (product.price!.currency !== tenant.currencyCode)
+        throw new Error('Locked product currency does not match its tenant');
+      const unitPriceMinor = BigInt(product.price!.amountMinor);
+      const lineSubtotalMinor = checkedMoneyMultiply(
+        unitPriceMinor,
+        item.quantity,
+      );
+      if (lineSubtotalMinor === null)
+        throw new AppError(
+          409,
+          'ORDER_TOTAL_LIMIT_EXCEEDED',
+          'Order amount exceeds the supported limit',
+        );
+      const nextSubtotal = checkedMoneyAdd(subtotalMinor, lineSubtotalMinor);
+      if (nextSubtotal === null)
+        throw new AppError(
+          409,
+          'ORDER_TOTAL_LIMIT_EXCEEDED',
+          'Order amount exceeds the supported limit',
+        );
+      subtotalMinor = nextSubtotal;
+      return { item, product, unitPriceMinor, lineSubtotalMinor };
+    });
+    const pricing = {
+      currency: tenant.currencyCode,
+      currencyMinorUnit: tenant.currencyMinorUnit,
+      subtotalMinor,
+      discountMinor: 0n,
+      shippingMinor: 0n,
+      totalMinor: subtotalMinor,
+    };
 
     const order = await repositories.orders.createPlaced(
       tenantId,
       userId,
       idempotencyKey,
+      pricing,
       now,
     );
-    const items = cart.items.map((item) => {
-      const product = productMap.get(item.productId)!;
-      return {
-        tenantId,
-        order: order._id,
-        product: product._id,
-        seller: String(product.seller),
-        productName: product.name,
-        quantity: item.quantity,
-      };
-    });
+    const items = pricedItems.map(
+      ({ item, product, unitPriceMinor, lineSubtotalMinor }) => {
+        return {
+          tenantId,
+          order: order._id,
+          product: product._id,
+          seller: String(product.seller),
+          productName: product.name,
+          quantity: item.quantity,
+          pricingState: 'priced' as const,
+          unitPrice: moneyFromMinor(tenant.currencyCode, unitPriceMinor),
+          lineSubtotal: moneyFromMinor(tenant.currencyCode, lineSubtotalMinor),
+        };
+      },
+    );
     await repositories.orderItems.createMany(items, now);
 
     for (const item of items) {

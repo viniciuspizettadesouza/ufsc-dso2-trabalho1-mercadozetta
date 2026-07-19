@@ -1,6 +1,7 @@
 import type { ProductRepository } from '@/repositories/productRepository';
 import type { CheckoutTransactionCoordinator } from '@/repositories/checkoutTransaction';
-import { defaultTenantId } from '@/tenants';
+import { defaultTenantId, resolveTenant } from '@/tenants';
+import { sameMoney, type Money } from '@/money';
 import {
   type CreateProductData,
   type CreateProductRequestBody,
@@ -55,6 +56,15 @@ export function createProductService(
   }
   const ownedProduct = (productId: string, seller: string, tenantId: string) =>
     ownedProductWithRepository(repository, productId, seller, tenantId);
+  function requireTenantCurrency(price: Money, tenantId: string) {
+    const tenant = resolveTenant(tenantId);
+    if (!tenant || price.currency !== tenant.currencyCode)
+      throw new AppError(
+        400,
+        'INVALID_PRODUCT_CURRENCY',
+        'Product price currency must match the tenant currency',
+      );
+  }
   async function listProducts(
     tenantId = defaultTenantId,
     filters: ProductFilterQuery | ProductListFilters = {},
@@ -70,6 +80,7 @@ export function createProductService(
     idempotencyKey: string,
   ) {
     const productData = validateCreateProductPayload(body);
+    requireTenantCurrency(productData.price, tenantId);
     const requestHash = mutationRequestHash(productData);
     return transactions.run(async ({ idempotency, products }) => {
       const claim = await idempotency.claim({
@@ -91,6 +102,13 @@ export function createProductService(
         ...productData,
         tenantId,
         seller,
+      });
+      await products.appendPriceHistory({
+        tenantId,
+        productId: created._id,
+        actorId: seller,
+        price: productData.price,
+        changedAt: new Date(),
       });
       await idempotency.complete({
         tenantId,
@@ -140,9 +158,46 @@ export function createProductService(
     seller: string,
     tenantId = defaultTenantId,
   ) {
-    await ownedProduct(productId, seller, tenantId);
+    const id = validateProductId(productId);
     const update = validateUpdateProductPayload(body);
-    return repository.updateOwned(tenantId, productId, seller, update);
+    if (update.price) requireTenantCurrency(update.price, tenantId);
+    return transactions.run(async ({ products }) => {
+      const product = await products.findByIdForUpdate(tenantId, id);
+      if (!product)
+        throw new AppError(404, 'PRODUCT_NOT_FOUND', 'Product not found');
+      if (product.seller !== seller)
+        throw new AppError(
+          403,
+          'PRODUCT_FORBIDDEN',
+          'Not authorized to manage this product',
+        );
+
+      const priceChanged =
+        update.price !== undefined && !sameMoney(product.price, update.price);
+      const { price: requestedPrice, ...otherUpdates } = update;
+      const effectiveUpdate = priceChanged
+        ? { ...otherUpdates, price: requestedPrice }
+        : otherUpdates;
+      if (!Object.values(effectiveUpdate).some((value) => value !== undefined))
+        return product;
+
+      const updated = await products.updateOwned(
+        tenantId,
+        id,
+        seller,
+        effectiveUpdate,
+      );
+      if (priceChanged) {
+        await products.appendPriceHistory({
+          tenantId,
+          productId: id,
+          actorId: seller,
+          price: update.price!,
+          changedAt: new Date(),
+        });
+      }
+      return updated;
+    });
   }
 
   async function updateProductStatus(
@@ -164,6 +219,12 @@ export function createProductService(
         409,
         'PRODUCT_INVENTORY_REQUIRED',
         'Active products require inventory',
+      );
+    if (status === 'active' && !product.price)
+      throw new AppError(
+        409,
+        'PRODUCT_PRICE_REQUIRED',
+        'Active products require a price',
       );
     const allowed: Record<string, string[]> = {
       draft: ['active', 'archived'],

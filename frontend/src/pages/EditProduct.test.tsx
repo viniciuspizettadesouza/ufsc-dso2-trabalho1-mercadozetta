@@ -19,6 +19,7 @@ const product = {
   subcategory: '',
   image: 'coffee.jpg',
   inventory: 3,
+  price: { currency: 'USD', amountMinor: '1250' },
   status: 'active' as const,
 };
 
@@ -76,6 +77,7 @@ describe('EditProduct', () => {
         category: 'grocery',
         subcategory: 'beans',
         image: 'updated.jpg',
+        price: { currency: 'USD', amountMinor: '1250' },
       }),
     );
 
@@ -132,6 +134,7 @@ describe('EditProduct', () => {
               category: null,
               subcategory: null,
               inventory: undefined,
+              price: null,
               status: null,
             },
           } as never),
@@ -143,6 +146,7 @@ describe('EditProduct', () => {
     expect(screen.getByLabelText('Category')).toHaveValue('general');
     expect(screen.getByLabelText('Subcategory')).toHaveValue('');
     expect(screen.getByLabelText('Available units')).toHaveValue(0);
+    expect(screen.getByLabelText('Price (USD)')).toHaveValue(null);
     expect(screen.getByLabelText('Status')).toHaveValue('draft');
   });
 

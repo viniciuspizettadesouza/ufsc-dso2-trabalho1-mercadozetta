@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router';
 
 import { useBrand } from '@/brands/brandContext';
+import { formatMoney } from '@/money';
 import { appRoutes } from '@/routes';
 import { useAuth } from '@/auth/AuthContext';
 import PaginationControls from '@/components/PaginationControls';
@@ -275,7 +276,11 @@ function ProductCatalog({ sellerId }: { sellerId?: string }) {
                       {product.name}
                     </Link>
                     <p className="mt-1 text-lg font-bold text-accent">
-                      {brand.copy.catalog.priceUnavailableLabel}
+                      {formatMoney(
+                        product.price,
+                        brand.locale,
+                        brand.currency,
+                      ) ?? brand.copy.catalog.priceUnavailableLabel}
                     </p>
                   </div>
                   <p className="line-clamp-3 min-h-[72px] text-sm leading-6 text-muted">

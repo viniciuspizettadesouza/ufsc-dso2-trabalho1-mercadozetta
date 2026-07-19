@@ -8,11 +8,11 @@ MercadoZetta and CampusMarket, while tenant-owned records share PostgreSQL and a
 isolated by `tenantId`.
 
 The project demonstrates a marketplace's main consistency and authorization
-boundaries: catalog discovery, seller-owned listings, buyer state, checkout,
-inventory, order fulfillment, reviews, and notifications. It does not model
-payments, prices, shipping addresses, refunds, or production deployment. It
-should therefore be understood as a development and teaching system rather
-than a complete commerce platform.
+boundaries: catalog discovery, seller-owned listings, exact USD pricing, buyer
+state, authoritative checkout totals, inventory, order fulfillment, reviews,
+and notifications. It does not model payments, shipping addresses, refunds, or
+production deployment. It should therefore be understood as a development and
+teaching system rather than a complete commerce platform.
 
 Practical installation, environment variables, commands, smoke testing, and
 troubleshooting belong in the [README](../README.md). Implementation status,
@@ -35,7 +35,9 @@ priorities, and session handoff belong only in the
 
 - Maintain one persistent cart and a persistent watchlist within a tenant.
 - Add, remove, and change cart quantities subject to current inventory.
-- Convert the cart into an order through a PostgreSQL transaction.
+- View an exact current-price cart quote and convert the cart into an order
+  whose backend-calculated price snapshots, totals, and inventory effects share
+  one PostgreSQL transaction.
 - View owned orders and status history, and cancel orders in permitted states.
 - Create or update one review per purchased product; sellers cannot review
   their own products.
@@ -49,8 +51,9 @@ priorities, and session handoff belong only in the
   behavior.
 - View only the line items they sold, even when an order contains products from
   several sellers.
-- Search and filter those orders, monitor tenant-scoped quantity/order totals
-  and low-stock warnings, and review inventory-change history.
+- Search and filter those orders, monitor tenant-scoped quantity/order totals,
+  non-cancelled priced-order gross revenue, explicitly excluded legacy-order
+  counts, low-stock warnings, and inventory-change history.
 - Move orders through `placed → confirmed → shipped → delivered` one step at a
   time.
 - Receive notifications for new orders and reviews.
@@ -195,8 +198,9 @@ erDiagram
     USER ||--o{ NOTIFICATION : receives
 ```
 
-`TENANT` is conceptual: the two tenants are application configuration, not a
-database table. Every persistent marketplace record carries a tenant ID. All
+The two tenants are checked-in application configuration and rows in the small
+`tenants` database integrity table, which now anchors authoritative currency.
+Every persistent marketplace record carries a tenant ID. All
 database keys, public route parameters, JWT `sub`/`sid`, refresh-token session
 selectors, CSRF bindings, OpenAPI examples, and persisted references use
 canonical UUID strings. New records use `crypto.randomUUID()` and deterministic
@@ -205,15 +209,19 @@ demo records use fixed UUIDs.
 - A user is unique by tenant and email. Passwords are bcrypt hashes and
   `tokenVersion` supports all-token logout revocation.
 - A product belongs to one seller and records descriptive fields, inventory,
-  image URL, and a lifecycle status. The current system has no price field.
+  image URL, lifecycle status, and an exact minor-unit USD price. Null remains
+  readable only for legacy rows from the compatibility expansion.
 - A tenant/user has at most one cart. Cart lines reference products and store
   current quantities; they are not historical records.
 - Watchlist records uniquely connect one tenant, user, and product.
-- An order belongs to a buyer and stores its current status and actor/timestamp
-  history.
-- Order items connect an order, product, and seller and snapshot the product
-  name and quantity. This allows seller-scoped order views and preserves the
-  purchased name even if the product later changes.
+- An order belongs to a buyer and stores its current status, actor/timestamp
+  history, and either an explicit legacy-unpriced shape or immutable currency
+  and component totals.
+- Order items connect an order, product, and seller and snapshot product name,
+  quantity, and, for priced orders, exact unit price and line subtotal. This
+  allows seller-scoped order views and preserves checkout facts when the live
+  product later changes.
+- Product price history is tenant/currency/actor qualified and append-only.
 - A review is unique per tenant/product/author and can be updated through an
   upsert after purchase eligibility is established.
 - Notifications are user-owned messages with a read flag and no external
@@ -419,8 +427,12 @@ recovery automation.
   PostgreSQL. Offset pages can shift when concurrent writes change earlier rows.
 - Product creation, editing, archival/reactivation, current inventory adjustment,
   and seller-scoped inventory history are implemented.
-- Orders have no price, payment, address, shipment, return, refund, or dispute
-  models. Cancellation does not replenish stock.
+- Product APIs require and expose exact USD prices, and price changes append
+  immutable history. Checkout locks current prices, creates immutable priced
+  lines, and calculates subtotal, zero discount, zero shipping, and total on
+  the backend. Historical legacy orders remain visibly unpriced and excluded
+  from gross revenue. There are no payment, address, shipment, return, refund,
+  or dispute models. Cancellation does not replenish stock.
 - Checkout, product creation, and review upsert use scoped idempotency keys;
   target-state retries suppress duplicate lifecycle, inventory, and profile
   audit writes.

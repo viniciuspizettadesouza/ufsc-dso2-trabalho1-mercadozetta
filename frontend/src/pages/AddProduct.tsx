@@ -11,6 +11,7 @@ import { Select } from '@/components/Select';
 import { type ProductStatus, useCreateProduct } from '@/serverState/products';
 import { getApiErrorMessage } from '@/services/errors';
 import { createIdempotencyKey } from '@/services/idempotency';
+import { majorInputToMinor } from '@/money';
 
 const productStatusOptions: ProductStatus[] = [
   'draft',
@@ -31,6 +32,7 @@ export default function AddProduct() {
   const [category, setCategory] = useState('general');
   const [subcategory, setSubcategory] = useState('');
   const [inventory, setInventory] = useState('');
+  const [price, setPrice] = useState('');
   const [image, setImage] = useState('');
   const [status, setStatus] = useState<ProductStatus>('active');
   const [error, setError] = useState('');
@@ -46,12 +48,21 @@ export default function AddProduct() {
     try {
       setError('');
 
+      const amountMinor = majorInputToMinor(price);
+      if (amountMinor === null) {
+        setError(
+          `Enter a valid ${brand.currency} price with at most 2 decimals.`,
+        );
+        return;
+      }
+
       const product = {
         name,
         description,
         category,
         subcategory,
         inventory: Number(inventory),
+        price: { currency: brand.currency, amountMinor },
         image,
         status,
       };
@@ -144,6 +155,19 @@ export default function AddProduct() {
             placeholder="Quantity"
             value={inventory}
             onChange={(e) => setInventory(e.target.value)}
+          />
+          <label className="sr-only" htmlFor="product-price">
+            Price ({brand.currency})
+          </label>
+          <Input
+            id="product-price"
+            className="mt-5 h-12 px-5 text-base"
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder={`Price (${brand.currency})`}
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
           />
           <Input
             aria-label={brand.copy.forms.uploadImageLabel}

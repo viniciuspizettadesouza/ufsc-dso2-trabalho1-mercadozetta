@@ -14,11 +14,15 @@ import type { Database } from '@/database/postgres';
 import { auditEvents, orderItems, orders, products } from '@/database/schema';
 import { paginated, type Pagination } from '@/pagination';
 import type { SellerOperationsRepository } from '@/repositories/sellerOperationsRepository';
+import { moneyFromMinor } from '@/money';
+import { resolveTenant } from '@/tenants';
 
 export class PostgresSellerOperationsRepository implements SellerOperationsRepository {
   constructor(private readonly db: Database) {}
 
   async getSummary(tenantId: string, sellerId: string, threshold: number) {
+    const tenant = resolveTenant(tenantId);
+    if (!tenant) throw new Error('Seller operations tenant is missing');
     const productScope = and(
       eq(products.tenantId, tenantId),
       eq(products.sellerId, sellerId),
@@ -48,8 +52,18 @@ export class PostgresSellerOperationsRepository implements SellerOperationsRepos
         .select({
           orderCount: countDistinct(orderItems.orderId),
           orderedUnits: sum(orderItems.quantity),
+          pricedOrderCount: sql<number>`count(distinct ${orderItems.orderId}) filter (where ${orders.pricingState} = 'priced')`,
+          legacyUnpricedOrderCount: sql<number>`count(distinct ${orderItems.orderId}) filter (where ${orders.pricingState} = 'legacy_unpriced')`,
+          grossRevenueMinor: sql<string>`coalesce(sum(${orderItems.lineSubtotalMinor}) filter (where ${orders.pricingState} = 'priced' and ${orders.status} <> 'cancelled'), 0)::text`,
         })
         .from(orderItems)
+        .innerJoin(
+          orders,
+          and(
+            eq(orders.tenantId, orderItems.tenantId),
+            eq(orders.id, orderItems.orderId),
+          ),
+        )
         .where(
           and(
             eq(orderItems.tenantId, tenantId),
@@ -75,6 +89,12 @@ export class PostgresSellerOperationsRepository implements SellerOperationsRepos
       orderCount: Number(orderRows[0].orderCount),
       openOrderCount: Number(openOrderCount[0].total),
       orderedUnits: Number(orderRows[0].orderedUnits ?? 0),
+      pricedOrderCount: Number(orderRows[0].pricedOrderCount),
+      legacyUnpricedOrderCount: Number(orderRows[0].legacyUnpricedOrderCount),
+      grossRevenue: moneyFromMinor(
+        tenant.currencyCode,
+        BigInt(orderRows[0].grossRevenueMinor),
+      ),
     };
   }
 

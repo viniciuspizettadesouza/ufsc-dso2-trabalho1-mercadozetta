@@ -194,6 +194,7 @@ describe('OpenAPI contract', () => {
         '_id',
         'tenantId',
         'seller',
+        'price',
         'category',
         'subcategory',
         'createdAt',
@@ -281,6 +282,7 @@ describe('OpenAPI contract', () => {
     ).toEqual([
       'PRODUCT_STATUS_TRANSITION_INVALID',
       'PRODUCT_INVENTORY_REQUIRED',
+      'PRODUCT_PRICE_REQUIRED',
     ]);
   });
 
@@ -644,6 +646,11 @@ describe('OpenAPI contract', () => {
         'tenantId',
         'buyer',
         'status',
+        'pricingState',
+        'subtotal',
+        'discount',
+        'shipping',
+        'total',
         'statusHistory',
         'items',
         'createdAt',
@@ -658,6 +665,9 @@ describe('OpenAPI contract', () => {
         'seller',
         'productName',
         'quantity',
+        'pricingState',
+        'unitPrice',
+        'lineSubtotal',
       ]),
     );
     expect(schemas.OrderList.properties.items.items.$ref).toBe(
@@ -712,5 +722,22 @@ describe('OpenAPI contract', () => {
         'application/json'
       ].schema.properties.code.enum,
     ).toContain('ORDER_FORBIDDEN');
+    expect(
+      paths['/orders'].post.responses[409].content['application/json'].schema
+        .properties.code.enum,
+    ).toEqual(
+      expect.arrayContaining([
+        'INSUFFICIENT_INVENTORY',
+        'PRODUCT_PRICE_REQUIRED',
+        'ORDER_TOTAL_LIMIT_EXCEEDED',
+      ]),
+    );
+    expect(schemas.SellerOperations.properties.summary.required).toEqual(
+      expect.arrayContaining([
+        'pricedOrderCount',
+        'legacyUnpricedOrderCount',
+        'grossRevenue',
+      ]),
+    );
   });
 });

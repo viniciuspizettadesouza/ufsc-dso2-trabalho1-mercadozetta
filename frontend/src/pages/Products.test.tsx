@@ -26,6 +26,7 @@ const products = [
     image: 'coffee.jpg',
     category: 'drinks',
     inventory: 3,
+    price: { currency: 'USD', amountMinor: '1250' },
     status: 'active' as const,
     seller: 'seller-1',
   },
@@ -35,6 +36,7 @@ const products = [
     description: 'Green leaves',
     image: 'tea.jpg',
     inventory: 0,
+    price: null,
     status: 'paused' as const,
   },
 ];
@@ -76,6 +78,8 @@ describe('Products', () => {
     ).toBeInTheDocument();
     expect(await screen.findByText('Coffee')).toBeInTheDocument();
     expect(screen.getByText('Tea')).toBeInTheDocument();
+    expect(screen.getByText('$12.50')).toBeInTheDocument();
+    expect(screen.getByText('Preço sob consulta')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
     expect(screen.getByText('drinks')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'seller-1' })).toHaveAttribute(

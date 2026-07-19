@@ -19,6 +19,8 @@ import {
   useUpdateProductInventory,
   useUpdateProductStatus,
 } from '@/serverState/products';
+import { majorInputToMinor, moneyToMajorInput } from '@/money';
+import { useBrand } from '@/brands/brandContext';
 
 export default function EditProduct() {
   const { productId } = useParams();
@@ -67,6 +69,7 @@ function EditProductForm({
   productId: string;
   initialProduct: Product;
 }) {
+  const brand = useBrand();
   const [name, setName] = useState(initialProduct.name);
   const [description, setDescription] = useState(
     initialProduct.description || '',
@@ -81,6 +84,7 @@ function EditProductForm({
   const [inventory, setInventory] = useState(
     String(initialProduct.inventory ?? 0),
   );
+  const [price, setPrice] = useState(moneyToMajorInput(initialProduct.price));
   const [status, setStatus] = useState<ProductStatus>(
     initialProduct.status ?? 'draft',
   );
@@ -97,6 +101,7 @@ function EditProductForm({
     setSubcategory(value.subcategory || '');
     setImage(value.image);
     setInventory(String(value.inventory ?? 0));
+    setPrice(moneyToMajorInput(value.price));
     setStatus(value.status ?? 'draft');
   }
 
@@ -121,6 +126,14 @@ function EditProductForm({
         className="mt-6 grid gap-3"
         onSubmit={(event: FormEvent) => {
           event.preventDefault();
+          const amountMinor = majorInputToMinor(price);
+          if (amountMinor === null) {
+            setFeedback({
+              type: 'error',
+              message: `Enter a valid ${brand.currency} price with at most 2 decimals.`,
+            });
+            return;
+          }
           mutate('details', () =>
             updateDetails.mutateAsync({
               name,
@@ -128,6 +141,7 @@ function EditProductForm({
               category,
               subcategory,
               image,
+              price: { currency: brand.currency, amountMinor },
             }),
           );
         }}
@@ -166,6 +180,16 @@ function EditProductForm({
           <Input
             value={image}
             onChange={(event) => setImage(event.target.value)}
+          />
+        </label>
+        <label>
+          Price ({brand.currency}){' '}
+          <Input
+            type="number"
+            min="0"
+            step="0.01"
+            value={price}
+            onChange={(event) => setPrice(event.target.value)}
           />
         </label>
         <Button variant="primary" disabled={Boolean(pending)} type="submit">

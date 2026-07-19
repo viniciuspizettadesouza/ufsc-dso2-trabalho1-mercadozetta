@@ -116,8 +116,10 @@ current_fingerprint() {
       (select count(*) from sessions),
       (select count(*) from account_tokens),
       (select count(*) from audit_events),
+      (select count(*) from product_price_history),
       (select count(*) from users where deactivated_at is not null),
-      (select coalesce(sum(inventory), 0) from products));"
+      (select coalesce(sum(inventory), 0) from products),
+      (select coalesce(sum(unit_price_minor), 0) from products));"
 }
 
 migration_started_ms="$(date +%s%3N)"
@@ -134,7 +136,15 @@ docker exec -i "$container_name" pg_restore --list < "$pre_migration_backup" \
 run_migrations "$source_url" "$(pwd)/backend/drizzle"
 test "$(core_fingerprint "$source_database")" = "$pre_migration_fingerprint"
 test "$(source_psql --tuples-only --no-align --command \
-  "select count(*) from drizzle.__drizzle_migrations;")" = "7"
+  "select count(*) from drizzle.__drizzle_migrations;")" = "8"
+test "$(source_psql --tuples-only --no-align --command \
+  "select count(*) from products where unit_price_minor is null;")" = "1"
+test "$(source_psql --tuples-only --no-align --command \
+  "select count(*) from orders where pricing_state = 'legacy_unpriced'
+    and currency_code is null and subtotal_minor is null and total_minor is null;")" = "1"
+test "$(source_psql --tuples-only --no-align --command \
+  "select count(*) from order_items where pricing_state = 'legacy_unpriced'
+    and unit_price_minor is null and line_subtotal_minor is null;")" = "1"
 migration_duration_ms="$(( $(date +%s%3N) - migration_started_ms ))"
 
 source_psql < backend/test/fixtures/recovery-rehearsal-current.sql >/dev/null
@@ -176,7 +186,7 @@ backup_duration_ms="$(( $(date +%s%3N) - backup_started_ms ))"
   echo "postgres_image=$postgres_image"
   echo "backend_image=${BACKEND_IMAGE:-source-$(git rev-parse --short HEAD)}"
   echo "frontend_image=${FRONTEND_IMAGE:-source-$(git rev-parse --short HEAD)}"
-  echo "migration_count=7"
+  echo "migration_count=8"
   echo "sha256=$backup_checksum"
   echo "bytes=$backup_size"
 } > "$metadata_file"
@@ -195,18 +205,30 @@ restore_duration_ms="$(( $(date +%s%3N) - restore_started_ms ))"
 
 test "$(current_fingerprint "$restore_database")" = "$expected_fingerprint"
 test "$(restore_psql --tuples-only --no-align --command \
-  "select count(*) from drizzle.__drizzle_migrations;")" = "7"
+  "select count(*) from drizzle.__drizzle_migrations;")" = "8"
 test "$(restore_psql --tuples-only --no-align --command \
   "select count(*) from order_items oi join orders o
    on o.tenant_id = oi.tenant_id and o.id = oi.order_id
    join products p on p.tenant_id = oi.tenant_id and p.id = oi.product_id;")" = "1"
 test "$(restore_psql --tuples-only --no-align --command \
   "select count(*) from audit_events where event_type = 'user.deactivated';")" = "1"
+test "$(restore_psql --tuples-only --no-align --command \
+  "select count(*) from product_price_history
+   where unit_price_minor = 1250 and currency_code = 'USD';")" = "1"
 
 if restore_psql --command \
   "update audit_events set metadata = '{}' where id = 'b0000000-0000-4000-8000-000000000001';" \
   >/dev/null 2>&1; then
   echo 'restored audit immutability trigger did not reject update' >&2
+  exit 1
+fi
+
+if restore_psql --command \
+  "update product_price_history set unit_price_minor = 1
+   where tenant_id = 'mercadozetta'
+     and product_id = '20000000-0000-4000-8000-000000000001';" \
+  >/dev/null 2>&1; then
+  echo 'restored price-history immutability trigger did not reject update' >&2
   exit 1
 fi
 

@@ -8,20 +8,24 @@ import {
   gte,
   ilike,
   inArray,
+  isNotNull,
   or,
   sql,
   count,
+  max,
 } from 'drizzle-orm';
 import type { Database } from '@/database/postgres';
-import { products } from '@/database/schema';
+import { productPriceHistory, products } from '@/database/schema';
 import { mapProductRow } from '@/repositories/mappers';
 import { paginated } from '@/pagination';
 import type {
   CreateProductRecord,
+  AppendProductPriceHistory,
   ProductListQuery,
   ProductRepository,
   UpdateProductRecord,
 } from '@/repositories/productRepository';
+import { resolveTenant } from '@/tenants';
 
 type TransactionDatabase = Parameters<
   Parameters<Database['transaction']>[0]
@@ -102,6 +106,7 @@ export class PostgresProductRepository implements ProductRepository {
         category: product.category,
         subcategory: product.subcategory,
         inventory: product.inventory,
+        unitPriceMinor: BigInt(product.price.amountMinor),
         imageUrl: product.image,
         status: product.status,
         createdAt: now,
@@ -131,6 +136,9 @@ export class PostgresProductRepository implements ProductRepository {
       ...(update.inventory === undefined
         ? {}
         : { inventory: update.inventory }),
+      ...(update.price === undefined
+        ? {}
+        : { unitPriceMinor: BigInt(update.price.amountMinor) }),
       updatedAt: new Date(),
     };
     const [updated] = await this.db
@@ -156,6 +164,41 @@ export class PostgresProductRepository implements ProductRepository {
     return product ? mapProductRow(product) : null;
   }
 
+  async findByIdForUpdate(tenantId: string, productId: string) {
+    const [product] = await this.db
+      .select()
+      .from(products)
+      .where(and(eq(products.tenantId, tenantId), eq(products.id, productId)))
+      .limit(1)
+      .for('update');
+    return product ? mapProductRow(product) : null;
+  }
+
+  async appendPriceHistory(entry: AppendProductPriceHistory) {
+    const [{ latestSequence }] = await this.db
+      .select({ latestSequence: max(productPriceHistory.sequence) })
+      .from(productPriceHistory)
+      .where(
+        and(
+          eq(productPriceHistory.tenantId, entry.tenantId),
+          eq(productPriceHistory.productId, entry.productId),
+        ),
+      );
+    const tenant = resolveTenant(entry.tenantId);
+    if (!tenant || tenant.currencyCode !== entry.price.currency)
+      throw new Error('Product price currency does not match its tenant');
+    await this.db.insert(productPriceHistory).values({
+      tenantId: entry.tenantId,
+      productId: entry.productId,
+      sequence: (latestSequence ?? 0) + 1,
+      currencyCode: tenant.currencyCode,
+      currencyMinorUnit: tenant.currencyMinorUnit,
+      unitPriceMinor: BigInt(entry.price.amountMinor),
+      actorId: entry.actorId,
+      changedAt: entry.changedAt,
+    });
+  }
+
   async findActiveById(tenantId: string, productId: string) {
     const [product] = await this.db
       .select()
@@ -165,6 +208,7 @@ export class PostgresProductRepository implements ProductRepository {
           eq(products.tenantId, tenantId),
           eq(products.id, productId),
           eq(products.status, 'active'),
+          isNotNull(products.unitPriceMinor),
         ),
       )
       .limit(1);

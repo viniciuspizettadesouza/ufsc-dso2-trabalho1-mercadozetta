@@ -15,6 +15,7 @@ describe('product validator', () => {
         name: ' Bicycle ',
         description: 'Fast bike',
         inventory: 2,
+        price: { currency: 'USD', amountMinor: '2500' },
         image: 'bike.png',
       }),
     ).toEqual({
@@ -23,6 +24,7 @@ describe('product validator', () => {
       category: 'general',
       subcategory: '',
       inventory: 2,
+      price: { currency: 'USD', amountMinor: '2500' },
       image: 'bike.png',
       status: 'active',
     });

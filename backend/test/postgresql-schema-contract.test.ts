@@ -13,6 +13,7 @@ import {
   orderStatusHistory,
   products,
   pendingEmailChanges,
+  productPriceHistory,
   reviews,
   sessions,
   tenants,
@@ -49,6 +50,10 @@ const mutationIdempotencyMigration = readFileSync(
   resolve(process.cwd(), 'drizzle/0006_yielding_captain_america.sql'),
   'utf8',
 );
+const monetaryModelMigration = readFileSync(
+  resolve(process.cwd(), 'drizzle/0007_red_marvex.sql'),
+  'utf8',
+);
 
 describe('PostgreSQL schema contract', () => {
   const tables = [
@@ -62,6 +67,7 @@ describe('PostgreSQL schema contract', () => {
     watchlistEntries,
     orders,
     orderItems,
+    productPriceHistory,
     orderStatusHistory,
     reviews,
     notifications,
@@ -82,6 +88,7 @@ describe('PostgreSQL schema contract', () => {
       'watchlist_entries',
       'orders',
       'order_items',
+      'product_price_history',
       'order_status_history',
       'reviews',
       'notifications',
@@ -94,11 +101,12 @@ describe('PostgreSQL schema contract', () => {
     expect(accountSecurityMigration.match(/CREATE TABLE/g)).toHaveLength(1);
     expect(accountManagementMigration.match(/CREATE TABLE/g)).toHaveLength(1);
     expect(mutationIdempotencyMigration.match(/CREATE TABLE/g)).toHaveLength(1);
+    expect(monetaryModelMigration.match(/CREATE TABLE/g)).toHaveLength(1);
   });
 
   it('generates tenant-qualified integrity and inventory constraints', () => {
     const configs = tables.map(getTableConfig);
-    expect(configs.flatMap((config) => config.foreignKeys)).toHaveLength(31);
+    expect(configs.flatMap((config) => config.foreignKeys)).toHaveLength(35);
     expect(configs.flatMap((config) => config.checks).length).toBeGreaterThan(
       10,
     );
@@ -228,6 +236,60 @@ describe('PostgreSQL schema contract', () => {
       expect(mutationIdempotencyMigration).toContain(expectedSql);
     expect(mutationIdempotencyMigration).not.toMatch(
       /password|token|cookie|authorization|csrf/i,
+    );
+  });
+
+  it('expands exact tenant money without pricing legacy commerce', () => {
+    for (const expectedSql of [
+      'currency_code',
+      'currency_minor_unit',
+      'unit_price_minor',
+      'line_subtotal_minor',
+      'subtotal_minor',
+      'discount_minor',
+      'shipping_minor',
+      'total_minor',
+      "DEFAULT 'legacy_unpriced'",
+      'orders_pricing_state_check',
+      'orders_monetary_shape_check',
+      'orders_monetary_amounts_check',
+      'order_items_monetary_shape_check',
+      'products_unit_price_minor_check',
+      'tenants_currency_code_check',
+      'tenants_currency_minor_unit_check',
+      'product_price_history_pkey',
+      'product_price_history_tenant_product_fkey',
+      'product_price_history_tenant_actor_fkey',
+      'product_price_history_tenant_currency_fkey',
+      'product_price_history_reject_update',
+      'product_price_history_reject_delete',
+      'orders_reject_monetary_snapshot_update',
+      'order_items_reject_snapshot_update',
+      'order_items_reject_snapshot_delete',
+      '9000000000000000',
+    ])
+      expect(monetaryModelMigration).toContain(expectedSql);
+
+    expect(monetaryModelMigration).not.toMatch(
+      /UPDATE\s+"?(?:products|orders|order_items)"?\s+SET\s+"?(?:unit_price|subtotal|total)/i,
+    );
+    expect(monetaryModelMigration).not.toMatch(
+      /\b(?:real|double precision|money)\b/i,
+    );
+
+    expect(
+      monetaryModelMigration.indexOf('tenants_id_currency_key'),
+    ).toBeLessThan(
+      monetaryModelMigration.indexOf(
+        'product_price_history_tenant_currency_fkey',
+      ),
+    );
+    expect(
+      monetaryModelMigration.indexOf('orders_tenant_id_pricing_state_key'),
+    ).toBeLessThan(
+      monetaryModelMigration.indexOf(
+        'ADD CONSTRAINT "order_items_tenant_order_fkey"',
+      ),
     );
   });
 });

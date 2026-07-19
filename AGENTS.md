@@ -150,8 +150,9 @@ Keep focused tests associated with the source module they exercise.
 
 ## Improvement Plan and Session Handoff
 
-When work is guided by `PROJECT_IMPROVEMENT_PLAN.md`, treat its current-status
-and handoff section as the source of truth between Codex sessions.
+When work is guided by `PROJECT_IMPROVEMENT_PLAN.md`, treat its `Current
+Verified State`, `Next Action`, and `Remaining Roadmap` sections as the source
+of truth between Codex sessions.
 
 - At the beginning of a new session, read the plan before changing code and
   start from the priority explicitly identified as the next action.
@@ -162,9 +163,14 @@ and handoff section as the source of truth between Codex sessions.
 - Before ending a completed phase, update the plan with the verified state and
   one concrete starting point for the next session, including relevant files or
   commands when they help the next agent begin immediately.
-- Keep completed work summarized in the current-status/handoff section and in
-  the checklist under `Recommended Order`. Do not add a separate completed-phase
-  section that duplicates the same information.
+- Keep completed work summarized in `Current Verified State`. Move detailed
+  completed checklists and chronological evidence to
+  `docs/improvement-plan-history.md` so the active plan contains only the
+  remaining roadmap.
+- Treat the history document as an append-only archive. Do not read or modify
+  existing historical entries during normal implementation work; consult them
+  only when investigating an earlier decision, verifying prior evidence, or
+  archiving a newly completed phase.
 - Keep the handoff concise and based only on verified repository state. Do not
   record test counts, coverage values, commands, files, or architecture that
   were not confirmed in the current project.

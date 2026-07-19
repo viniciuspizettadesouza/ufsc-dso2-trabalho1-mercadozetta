@@ -4,6 +4,7 @@ import { orderStatuses } from '@/orderStatus';
 import { parseAppSchema, requestString } from '@/validators/parseSchema';
 import { paginationSchema } from '@/validators/paginationValidator';
 import { productResponseSchema } from '@/validators/productValidator';
+import { exactMoneySchema } from '@/validators/productValidator';
 import { paginatedResponseSchema } from '@/validators/responseSchemas';
 
 export const resourceIdSchema = z
@@ -161,6 +162,9 @@ export const orderItemResponseSchema = z
     seller: z.string().uuid().meta({ example: UUID_EXAMPLE }),
     productName: z.string(),
     quantity: z.int().min(1),
+    pricingState: z.enum(['legacy_unpriced', 'priced']),
+    unitPrice: exactMoneySchema.nullable(),
+    lineSubtotal: exactMoneySchema.nullable(),
   })
   .meta({ id: 'OrderItem' });
 
@@ -178,6 +182,11 @@ export const orderResponseSchema = z
     tenantId: z.string(),
     buyer: z.string().uuid().meta({ example: UUID_EXAMPLE }),
     status: orderStatusResponseSchema,
+    pricingState: z.enum(['legacy_unpriced', 'priced']),
+    subtotal: exactMoneySchema.nullable(),
+    discount: exactMoneySchema.nullable(),
+    shipping: exactMoneySchema.nullable(),
+    total: exactMoneySchema.nullable(),
     statusHistory: z.array(orderStatusHistoryResponseSchema),
     items: z.array(orderItemResponseSchema),
     createdAt: z.iso.datetime(),
@@ -207,7 +216,11 @@ export const orderErrorCodes = {
   authentication: ['AUTH_TOKEN_REQUIRED', 'INVALID_AUTH_TOKEN'],
   csrf: ['INVALID_ORIGIN', 'INVALID_CSRF_TOKEN'],
   ownership: ['INVALID_ORIGIN', 'INVALID_CSRF_TOKEN', 'ORDER_FORBIDDEN'],
-  inventoryConflict: ['INSUFFICIENT_INVENTORY'],
+  inventoryConflict: [
+    'INSUFFICIENT_INVENTORY',
+    'PRODUCT_PRICE_REQUIRED',
+    'ORDER_TOTAL_LIMIT_EXCEEDED',
+  ],
   notFound: ['ORDER_NOT_FOUND'],
   transitionConflict: ['ORDER_STATUS_TRANSITION_INVALID'],
 } as const;
@@ -225,6 +238,14 @@ export const orderInvalidRequestExamples = {
   inventory: {
     error: 'A cart item is unavailable',
     code: 'INSUFFICIENT_INVENTORY',
+  },
+  priceRequired: {
+    error: 'A cart item has no current price',
+    code: 'PRODUCT_PRICE_REQUIRED',
+  },
+  totalLimit: {
+    error: 'Order amount exceeds the supported limit',
+    code: 'ORDER_TOTAL_LIMIT_EXCEEDED',
   },
 } as const;
 export const notificationReadRequestSchema = z
@@ -311,6 +332,9 @@ export const sellerOperationsResponseSchema = z
       orderCount: z.int().min(0),
       openOrderCount: z.int().min(0),
       orderedUnits: z.int().min(0),
+      pricedOrderCount: z.int().min(0),
+      legacyUnpricedOrderCount: z.int().min(0),
+      grossRevenue: exactMoneySchema,
     }),
     lowStockProducts: z.array(
       z.object({

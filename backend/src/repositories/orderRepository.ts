@@ -1,12 +1,29 @@
 import type { OrderStatus } from '@/orderStatus';
 import type { Paginated } from '@/pagination';
 import type { OrderListData } from '@/validators/commerceValidator';
+import type { Money } from '@/money';
+
+export type OrderPricingState = 'legacy_unpriced' | 'priced';
+
+export type CreateOrderPricing = {
+  currency: string;
+  currencyMinorUnit: number;
+  subtotalMinor: bigint;
+  discountMinor: bigint;
+  shippingMinor: bigint;
+  totalMinor: bigint;
+};
 
 export type CheckoutOrder = {
   _id: string;
   tenantId: string;
   buyer: string;
   status: OrderStatus;
+  pricingState: OrderPricingState;
+  subtotal: Money | null;
+  discount: Money | null;
+  shipping: Money | null;
+  total: Money | null;
   statusHistory: Array<{
     status: OrderStatus;
     actor: string;
@@ -21,6 +38,7 @@ export interface OrderRepository {
     tenantId: string,
     buyerId: string,
     idempotencyKey: string,
+    pricing: CreateOrderPricing,
     now: Date,
   ): Promise<CheckoutOrder>;
   findByCheckoutIdempotencyKey(

@@ -1,6 +1,8 @@
 import { sql } from 'drizzle-orm';
 import {
+  bigint,
   boolean,
+  char,
   check,
   foreignKey,
   index,
@@ -17,6 +19,9 @@ import {
   varchar,
 } from 'drizzle-orm/pg-core';
 
+export const maximumMoneyMinor = 9_000_000_000_000_000n;
+const maximumMoneyMinorSql = sql.raw(maximumMoneyMinor.toString());
+
 const lifecycleTimestamps = () => ({
   createdAt: timestamp('created_at', { withTimezone: true })
     .defaultNow()
@@ -24,12 +29,32 @@ const lifecycleTimestamps = () => ({
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
 });
 
-export const tenants = pgTable('tenants', {
-  id: text().primaryKey(),
-  createdAt: timestamp('created_at', { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-});
+export const tenants = pgTable(
+  'tenants',
+  {
+    id: text().primaryKey(),
+    currencyCode: char('currency_code', { length: 3 }).default('USD').notNull(),
+    currencyMinorUnit: smallint('currency_minor_unit').default(2).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    unique('tenants_id_currency_key').on(
+      table.id,
+      table.currencyCode,
+      table.currencyMinorUnit,
+    ),
+    check(
+      'tenants_currency_code_check',
+      sql`${table.currencyCode} ~ '^[A-Z]{3}$'`,
+    ),
+    check(
+      'tenants_currency_minor_unit_check',
+      sql`${table.currencyMinorUnit} between 0 and 4`,
+    ),
+  ],
+);
 
 export const users = pgTable(
   'users',
@@ -198,6 +223,7 @@ export const products = pgTable(
     category: text().default('general').notNull(),
     subcategory: text().default('').notNull(),
     inventory: integer().notNull(),
+    unitPriceMinor: bigint('unit_price_minor', { mode: 'bigint' }),
     imageUrl: text('image_url').notNull(),
     status: text().default('active').notNull(),
     ...lifecycleTimestamps(),
@@ -212,6 +238,10 @@ export const products = pgTable(
       .onDelete('restrict')
       .onUpdate('restrict'),
     check('products_inventory_check', sql`${table.inventory} >= 0`),
+    check(
+      'products_unit_price_minor_check',
+      sql`${table.unitPriceMinor} is null or (${table.unitPriceMinor} >= 0 and ${table.unitPriceMinor} <= ${maximumMoneyMinorSql})`,
+    ),
     check(
       'products_status_check',
       sql`${table.status} in ('draft', 'active', 'paused', 'sold_out', 'archived')`,
@@ -364,11 +394,25 @@ export const orders = pgTable(
     checkoutIdempotencyKey: uuid('checkout_idempotency_key')
       .defaultRandom()
       .notNull(),
+    pricingState: varchar('pricing_state', { length: 24 })
+      .default('legacy_unpriced')
+      .notNull(),
+    currencyCode: char('currency_code', { length: 3 }),
+    currencyMinorUnit: smallint('currency_minor_unit'),
+    subtotalMinor: bigint('subtotal_minor', { mode: 'bigint' }),
+    discountMinor: bigint('discount_minor', { mode: 'bigint' }),
+    shippingMinor: bigint('shipping_minor', { mode: 'bigint' }),
+    totalMinor: bigint('total_minor', { mode: 'bigint' }),
     status: text().default('placed').notNull(),
     ...lifecycleTimestamps(),
   },
   (table) => [
     unique('orders_tenant_id_id_key').on(table.tenantId, table.id),
+    unique('orders_tenant_id_pricing_state_key').on(
+      table.tenantId,
+      table.id,
+      table.pricingState,
+    ),
     unique('orders_checkout_idempotency_key').on(
       table.tenantId,
       table.buyerId,
@@ -381,6 +425,48 @@ export const orders = pgTable(
     })
       .onDelete('restrict')
       .onUpdate('restrict'),
+    foreignKey({
+      name: 'orders_tenant_currency_fkey',
+      columns: [table.tenantId, table.currencyCode, table.currencyMinorUnit],
+      foreignColumns: [
+        tenants.id,
+        tenants.currencyCode,
+        tenants.currencyMinorUnit,
+      ],
+    })
+      .onDelete('restrict')
+      .onUpdate('restrict'),
+    check(
+      'orders_pricing_state_check',
+      sql`${table.pricingState} in ('legacy_unpriced', 'priced')`,
+    ),
+    check(
+      'orders_monetary_shape_check',
+      sql`(${table.pricingState} = 'legacy_unpriced'
+        and ${table.currencyCode} is null
+        and ${table.currencyMinorUnit} is null
+        and ${table.subtotalMinor} is null
+        and ${table.discountMinor} is null
+        and ${table.shippingMinor} is null
+        and ${table.totalMinor} is null)
+        or (${table.pricingState} = 'priced'
+          and ${table.currencyCode} is not null
+          and ${table.currencyMinorUnit} is not null
+          and ${table.subtotalMinor} is not null
+          and ${table.discountMinor} is not null
+          and ${table.shippingMinor} is not null
+          and ${table.totalMinor} is not null)`,
+    ),
+    check(
+      'orders_monetary_amounts_check',
+      sql`${table.pricingState} = 'legacy_unpriced' or (
+        ${table.subtotalMinor} between 0 and ${maximumMoneyMinorSql}
+        and ${table.discountMinor} between 0 and ${table.subtotalMinor}
+        and ${table.shippingMinor} between 0 and ${maximumMoneyMinorSql}
+        and ${table.totalMinor} between 0 and ${maximumMoneyMinorSql}
+        and ${table.totalMinor} = ${table.subtotalMinor} - ${table.discountMinor} + ${table.shippingMinor}
+      )`,
+    ),
     check(
       'orders_status_check',
       sql`${table.status} in ('placed', 'confirmed', 'shipped', 'delivered', 'cancelled')`,
@@ -404,6 +490,11 @@ export const orderItems = pgTable(
     sellerId: uuid('seller_id').notNull(),
     productName: text('product_name').notNull(),
     quantity: integer().notNull(),
+    pricingState: varchar('pricing_state', { length: 24 })
+      .default('legacy_unpriced')
+      .notNull(),
+    unitPriceMinor: bigint('unit_price_minor', { mode: 'bigint' }),
+    lineSubtotalMinor: bigint('line_subtotal_minor', { mode: 'bigint' }),
     ...lifecycleTimestamps(),
   },
   (table) => [
@@ -415,8 +506,8 @@ export const orderItems = pgTable(
     ),
     foreignKey({
       name: 'order_items_tenant_order_fkey',
-      columns: [table.tenantId, table.orderId],
-      foreignColumns: [orders.tenantId, orders.id],
+      columns: [table.tenantId, table.orderId, table.pricingState],
+      foreignColumns: [orders.tenantId, orders.id, orders.pricingState],
     })
       .onDelete('restrict')
       .onUpdate('restrict'),
@@ -435,6 +526,16 @@ export const orderItems = pgTable(
       .onDelete('restrict')
       .onUpdate('restrict'),
     check('order_items_quantity_check', sql`${table.quantity} > 0`),
+    check(
+      'order_items_monetary_shape_check',
+      sql`(${table.pricingState} = 'legacy_unpriced'
+        and ${table.unitPriceMinor} is null
+        and ${table.lineSubtotalMinor} is null)
+        or (${table.pricingState} = 'priced'
+          and ${table.unitPriceMinor} between 0 and ${maximumMoneyMinorSql}
+          and ${table.lineSubtotalMinor} between 0 and ${maximumMoneyMinorSql}
+          and ${table.lineSubtotalMinor} = ${table.unitPriceMinor} * ${table.quantity})`,
+    ),
     index('order_items_seller_idx').on(
       table.tenantId,
       table.sellerId,
@@ -442,6 +543,62 @@ export const orderItems = pgTable(
       table.id.desc(),
     ),
     index('order_items_order_idx').on(table.tenantId, table.orderId),
+  ],
+);
+
+export const productPriceHistory = pgTable(
+  'product_price_history',
+  {
+    tenantId: text('tenant_id').notNull(),
+    productId: uuid('product_id').notNull(),
+    sequence: integer().notNull(),
+    currencyCode: char('currency_code', { length: 3 }).notNull(),
+    currencyMinorUnit: smallint('currency_minor_unit').notNull(),
+    unitPriceMinor: bigint('unit_price_minor', { mode: 'bigint' }).notNull(),
+    actorId: uuid('actor_id').notNull(),
+    changedAt: timestamp('changed_at', { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    primaryKey({
+      name: 'product_price_history_pkey',
+      columns: [table.tenantId, table.productId, table.sequence],
+    }),
+    foreignKey({
+      name: 'product_price_history_tenant_product_fkey',
+      columns: [table.tenantId, table.productId],
+      foreignColumns: [products.tenantId, products.id],
+    })
+      .onDelete('restrict')
+      .onUpdate('restrict'),
+    foreignKey({
+      name: 'product_price_history_tenant_actor_fkey',
+      columns: [table.tenantId, table.actorId],
+      foreignColumns: [users.tenantId, users.id],
+    })
+      .onDelete('restrict')
+      .onUpdate('restrict'),
+    foreignKey({
+      name: 'product_price_history_tenant_currency_fkey',
+      columns: [table.tenantId, table.currencyCode, table.currencyMinorUnit],
+      foreignColumns: [
+        tenants.id,
+        tenants.currencyCode,
+        tenants.currencyMinorUnit,
+      ],
+    })
+      .onDelete('restrict')
+      .onUpdate('restrict'),
+    check('product_price_history_sequence_check', sql`${table.sequence} > 0`),
+    check(
+      'product_price_history_unit_price_minor_check',
+      sql`${table.unitPriceMinor} between 0 and ${maximumMoneyMinorSql}`,
+    ),
+    index('product_price_history_changed_idx').on(
+      table.tenantId,
+      table.productId,
+      table.changedAt.desc(),
+      table.sequence.desc(),
+    ),
   ],
 );
 

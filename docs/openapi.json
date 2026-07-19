@@ -4229,6 +4229,10 @@
                       "category": "electronics",
                       "subcategory": "keyboards",
                       "inventory": 5,
+                      "price": {
+                        "currency": "USD",
+                        "amountMinor": "12999"
+                      },
                       "image": "https://example.com/keyboard.jpg",
                       "status": "active",
                       "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
@@ -4481,6 +4485,10 @@
                       "category": "electronics",
                       "subcategory": "keyboards",
                       "inventory": 5,
+                      "price": {
+                        "currency": "USD",
+                        "amountMinor": "12999"
+                      },
                       "image": "https://example.com/keyboard.jpg",
                       "status": "active",
                       "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
@@ -4651,6 +4659,10 @@
                 "category": "electronics",
                 "subcategory": "keyboards",
                 "inventory": 5,
+                "price": {
+                  "currency": "USD",
+                  "amountMinor": "12999"
+                },
                 "image": "https://example.com/keyboard.jpg",
                 "status": "active"
               },
@@ -4673,6 +4685,10 @@
                   "category": "electronics",
                   "subcategory": "keyboards",
                   "inventory": 5,
+                  "price": {
+                    "currency": "USD",
+                    "amountMinor": "12999"
+                  },
                   "image": "https://example.com/keyboard.jpg",
                   "status": "active",
                   "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
@@ -4707,6 +4723,8 @@
                         "INVALID_PRODUCT_INVENTORY",
                         "INVALID_PRODUCT_STATUS",
                         "INVALID_PRODUCT_STATUS_INVENTORY",
+                        "INVALID_PRODUCT_PRICE",
+                        "INVALID_PRODUCT_CURRENCY",
                         "INVALID_PRODUCT_IMAGE_URL"
                       ]
                     },
@@ -4757,7 +4775,7 @@
                   "MISSING_PRODUCT_FIELDS": {
                     "summary": "MISSING_PRODUCT_FIELDS",
                     "value": {
-                      "error": "Name, quantity and image are required",
+                      "error": "Name, quantity, price and image are required",
                       "code": "MISSING_PRODUCT_FIELDS"
                     }
                   },
@@ -4780,6 +4798,20 @@
                     "value": {
                       "error": "Sold-out products must have zero inventory",
                       "code": "INVALID_PRODUCT_STATUS_INVENTORY"
+                    }
+                  },
+                  "INVALID_PRODUCT_PRICE": {
+                    "summary": "INVALID_PRODUCT_PRICE",
+                    "value": {
+                      "error": "Product price must use canonical bounded minor units",
+                      "code": "INVALID_PRODUCT_PRICE"
+                    }
+                  },
+                  "INVALID_PRODUCT_CURRENCY": {
+                    "summary": "INVALID_PRODUCT_CURRENCY",
+                    "value": {
+                      "error": "Product price currency must match the tenant currency",
+                      "code": "INVALID_PRODUCT_CURRENCY"
                     }
                   },
                   "INVALID_PRODUCT_IMAGE_URL": {
@@ -4959,6 +4991,10 @@
                   "category": "electronics",
                   "subcategory": "keyboards",
                   "inventory": 5,
+                  "price": {
+                    "currency": "USD",
+                    "amountMinor": "12999"
+                  },
                   "image": "https://example.com/keyboard.jpg",
                   "status": "active",
                   "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
@@ -5136,6 +5172,10 @@
                   "category": "electronics",
                   "subcategory": "keyboards",
                   "inventory": 5,
+                  "price": {
+                    "currency": "USD",
+                    "amountMinor": "12999"
+                  },
                   "image": "https://example.com/keyboard.jpg",
                   "status": "active",
                   "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
@@ -5166,7 +5206,9 @@
                         "INVALID_REQUEST",
                         "INVALID_PRODUCT_ID",
                         "MISSING_PRODUCT_UPDATE_FIELDS",
-                        "INVALID_PRODUCT_IMAGE_URL"
+                        "INVALID_PRODUCT_IMAGE_URL",
+                        "INVALID_PRODUCT_PRICE",
+                        "INVALID_PRODUCT_CURRENCY"
                       ]
                     },
                     "details": {}
@@ -5218,6 +5260,20 @@
                     "value": {
                       "error": "Product image must use an allowed HTTPS host or a relative path",
                       "code": "INVALID_PRODUCT_IMAGE_URL"
+                    }
+                  },
+                  "INVALID_PRODUCT_PRICE": {
+                    "summary": "INVALID_PRODUCT_PRICE",
+                    "value": {
+                      "error": "Product price must use canonical bounded minor units",
+                      "code": "INVALID_PRODUCT_PRICE"
+                    }
+                  },
+                  "INVALID_PRODUCT_CURRENCY": {
+                    "summary": "INVALID_PRODUCT_CURRENCY",
+                    "value": {
+                      "error": "Product price currency must match the tenant currency",
+                      "code": "INVALID_PRODUCT_CURRENCY"
                     }
                   }
                 }
@@ -5437,6 +5493,10 @@
                   "category": "electronics",
                   "subcategory": "keyboards",
                   "inventory": 5,
+                  "price": {
+                    "currency": "USD",
+                    "amountMinor": "12999"
+                  },
                   "image": "https://example.com/keyboard.jpg",
                   "status": "active",
                   "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
@@ -5727,6 +5787,10 @@
                   "category": "electronics",
                   "subcategory": "keyboards",
                   "inventory": 5,
+                  "price": {
+                    "currency": "USD",
+                    "amountMinor": "12999"
+                  },
                   "image": "https://example.com/keyboard.jpg",
                   "status": "active",
                   "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
@@ -5945,7 +6009,8 @@
                       "type": "string",
                       "enum": [
                         "PRODUCT_STATUS_TRANSITION_INVALID",
-                        "PRODUCT_INVENTORY_REQUIRED"
+                        "PRODUCT_INVENTORY_REQUIRED",
+                        "PRODUCT_PRICE_REQUIRED"
                       ]
                     },
                     "details": {}
@@ -5969,6 +6034,13 @@
                     "value": {
                       "error": "Active products require inventory",
                       "code": "PRODUCT_INVENTORY_REQUIRED"
+                    }
+                  },
+                  "PRODUCT_PRICE_REQUIRED": {
+                    "summary": "PRODUCT_PRICE_REQUIRED",
+                    "value": {
+                      "error": "Active products require a price",
+                      "code": "PRODUCT_PRICE_REQUIRED"
                     }
                   }
                 }
@@ -6174,6 +6246,10 @@
                         "category": "electronics",
                         "subcategory": "keyboards",
                         "inventory": 5,
+                        "price": {
+                          "currency": "USD",
+                          "amountMinor": "12999"
+                        },
                         "image": "https://example.com/keyboard.jpg",
                         "status": "active",
                         "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
@@ -6805,6 +6881,10 @@
                     "category": "electronics",
                     "subcategory": "keyboards",
                     "inventory": 5,
+                    "price": {
+                      "currency": "USD",
+                      "amountMinor": "12999"
+                    },
                     "image": "https://example.com/keyboard.jpg",
                     "status": "active",
                     "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
@@ -7435,6 +7515,23 @@
                   "tenantId": "mercadozetta",
                   "buyer": "507f1f77-bcf8-4ecd-8994-390110000001",
                   "status": "placed",
+                  "pricingState": "priced",
+                  "subtotal": {
+                    "currency": "USD",
+                    "amountMinor": "12999"
+                  },
+                  "discount": {
+                    "currency": "USD",
+                    "amountMinor": "0"
+                  },
+                  "shipping": {
+                    "currency": "USD",
+                    "amountMinor": "0"
+                  },
+                  "total": {
+                    "currency": "USD",
+                    "amountMinor": "12999"
+                  },
                   "statusHistory": [
                     {
                       "status": "placed",
@@ -7449,7 +7546,16 @@
                       "product": "507f191e-810c-4197-9de8-60ea00000001",
                       "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
                       "productName": "mechanical keyboard",
-                      "quantity": 1
+                      "quantity": 1,
+                      "pricingState": "priced",
+                      "unitPrice": {
+                        "currency": "USD",
+                        "amountMinor": "12999"
+                      },
+                      "lineSubtotal": {
+                        "currency": "USD",
+                        "amountMinor": "12999"
+                      }
                     }
                   ],
                   "createdAt": "2026-07-13T10:00:00.000Z",
@@ -7618,7 +7724,7 @@
             }
           },
           "409": {
-            "description": "A cart item is unavailable",
+            "description": "A cart item is unavailable or the order amount is invalid",
             "content": {
               "application/json": {
                 "schema": {
@@ -7630,7 +7736,9 @@
                     "code": {
                       "type": "string",
                       "enum": [
-                        "INSUFFICIENT_INVENTORY"
+                        "INSUFFICIENT_INVENTORY",
+                        "PRODUCT_PRICE_REQUIRED",
+                        "ORDER_TOTAL_LIMIT_EXCEEDED"
                       ]
                     },
                     "details": {}
@@ -7647,6 +7755,20 @@
                     "value": {
                       "error": "A cart item is unavailable",
                       "code": "INSUFFICIENT_INVENTORY"
+                    }
+                  },
+                  "PRODUCT_PRICE_REQUIRED": {
+                    "summary": "PRODUCT_PRICE_REQUIRED",
+                    "value": {
+                      "error": "A cart item has no current price",
+                      "code": "PRODUCT_PRICE_REQUIRED"
+                    }
+                  },
+                  "ORDER_TOTAL_LIMIT_EXCEEDED": {
+                    "summary": "ORDER_TOTAL_LIMIT_EXCEEDED",
+                    "value": {
+                      "error": "Order amount exceeds the supported limit",
+                      "code": "ORDER_TOTAL_LIMIT_EXCEEDED"
                     }
                   }
                 }
@@ -7722,7 +7844,13 @@
                     "inventoryUnits": 0,
                     "orderCount": 0,
                     "openOrderCount": 0,
-                    "orderedUnits": 0
+                    "orderedUnits": 0,
+                    "pricedOrderCount": 0,
+                    "legacyUnpricedOrderCount": 0,
+                    "grossRevenue": {
+                      "currency": "USD",
+                      "amountMinor": "0"
+                    }
                   },
                   "lowStockProducts": [],
                   "inventoryHistory": {
@@ -7908,6 +8036,23 @@
                   "tenantId": "mercadozetta",
                   "buyer": "507f1f77-bcf8-4ecd-8994-390110000001",
                   "status": "shipped",
+                  "pricingState": "priced",
+                  "subtotal": {
+                    "currency": "USD",
+                    "amountMinor": "12999"
+                  },
+                  "discount": {
+                    "currency": "USD",
+                    "amountMinor": "0"
+                  },
+                  "shipping": {
+                    "currency": "USD",
+                    "amountMinor": "0"
+                  },
+                  "total": {
+                    "currency": "USD",
+                    "amountMinor": "12999"
+                  },
                   "statusHistory": [
                     {
                       "status": "placed",
@@ -7927,7 +8072,16 @@
                       "product": "507f191e-810c-4197-9de8-60ea00000001",
                       "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
                       "productName": "mechanical keyboard",
-                      "quantity": 1
+                      "quantity": 1,
+                      "pricingState": "priced",
+                      "unitPrice": {
+                        "currency": "USD",
+                        "amountMinor": "12999"
+                      },
+                      "lineSubtotal": {
+                        "currency": "USD",
+                        "amountMinor": "12999"
+                      }
                     }
                   ],
                   "createdAt": "2026-07-13T10:00:00.000Z",
@@ -9429,11 +9583,30 @@
               "archived"
             ],
             "default": "active"
+          },
+          "price": {
+            "type": "object",
+            "required": [
+              "currency",
+              "amountMinor"
+            ],
+            "properties": {
+              "currency": {
+                "type": "string",
+                "pattern": "^[A-Z]{3}$"
+              },
+              "amountMinor": {
+                "type": "string",
+                "pattern": "^(0|[1-9][0-9]*)$",
+                "maxLength": 16
+              }
+            }
           }
         },
         "required": [
           "name",
-          "image"
+          "image",
+          "price"
         ],
         "anyOf": [
           {
@@ -9472,6 +9645,21 @@
           },
           "image": {
             "type": "string"
+          },
+          "price": {
+            "type": "object",
+            "properties": {
+              "currency": {
+                "type": "string"
+              },
+              "amountMinor": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "currency",
+              "amountMinor"
+            ]
           }
         }
       },
@@ -9847,6 +10035,30 @@
             "minimum": 0,
             "maximum": 9007199254740991
           },
+          "price": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "currency": {
+                    "type": "string",
+                    "pattern": "^[A-Z]{3}$"
+                  },
+                  "amountMinor": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "currency",
+                  "amountMinor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "image": {
             "type": "string"
           },
@@ -9888,6 +10100,7 @@
           "category",
           "subcategory",
           "inventory",
+          "price",
           "image",
           "status",
           "seller",
@@ -10058,6 +10271,105 @@
           "status": {
             "$ref": "#/components/schemas/OrderStatus"
           },
+          "pricingState": {
+            "type": "string",
+            "enum": [
+              "legacy_unpriced",
+              "priced"
+            ]
+          },
+          "subtotal": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "currency": {
+                    "type": "string"
+                  },
+                  "amountMinor": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "currency",
+                  "amountMinor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "discount": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "currency": {
+                    "type": "string"
+                  },
+                  "amountMinor": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "currency",
+                  "amountMinor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "shipping": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "currency": {
+                    "type": "string"
+                  },
+                  "amountMinor": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "currency",
+                  "amountMinor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "total": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "currency": {
+                    "type": "string"
+                  },
+                  "amountMinor": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "currency",
+                  "amountMinor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "statusHistory": {
             "type": "array",
             "items": {
@@ -10086,6 +10398,11 @@
           "tenantId",
           "buyer",
           "status",
+          "pricingState",
+          "subtotal",
+          "discount",
+          "shipping",
+          "total",
           "statusHistory",
           "items",
           "createdAt",
@@ -10149,6 +10466,59 @@
             "type": "integer",
             "minimum": 1,
             "maximum": 9007199254740991
+          },
+          "pricingState": {
+            "type": "string",
+            "enum": [
+              "legacy_unpriced",
+              "priced"
+            ]
+          },
+          "unitPrice": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "currency": {
+                    "type": "string"
+                  },
+                  "amountMinor": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "currency",
+                  "amountMinor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "lineSubtotal": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "currency": {
+                    "type": "string"
+                  },
+                  "amountMinor": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "currency",
+                  "amountMinor"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -10157,7 +10527,10 @@
           "product",
           "seller",
           "productName",
-          "quantity"
+          "quantity",
+          "pricingState",
+          "unitPrice",
+          "lineSubtotal"
         ],
         "additionalProperties": false
       },
@@ -10201,6 +10574,32 @@
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 9007199254740991
+              },
+              "pricedOrderCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "legacyUnpricedOrderCount": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "grossRevenue": {
+                "type": "object",
+                "properties": {
+                  "currency": {
+                    "type": "string"
+                  },
+                  "amountMinor": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "currency",
+                  "amountMinor"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [
@@ -10210,7 +10609,10 @@
               "inventoryUnits",
               "orderCount",
               "openOrderCount",
-              "orderedUnits"
+              "orderedUnits",
+              "pricedOrderCount",
+              "legacyUnpricedOrderCount",
+              "grossRevenue"
             ],
             "additionalProperties": false
           },

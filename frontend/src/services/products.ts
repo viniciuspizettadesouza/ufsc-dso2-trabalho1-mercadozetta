@@ -15,9 +15,12 @@ export type ProductListRequest = {
   limit: number | null;
   offset: number | null;
 };
+type ProductDetailsContract = components['schemas']['UpdateProductRequest'];
 export type ProductDetailsUpdate = Required<
-  components['schemas']['UpdateProductRequest']
->;
+  Omit<ProductDetailsContract, 'price'>
+> & {
+  price: NonNullable<ProductDetailsContract['price']>;
+};
 export type CreateProductInput = ProductDetailsUpdate & {
   inventory: number;
   status: ProductStatus;

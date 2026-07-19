@@ -48,6 +48,7 @@ async function fillProductForm() {
     'Fresh beans',
   );
   await userEvent.type(screen.getByLabelText('Quantity'), '3');
+  await userEvent.type(screen.getByLabelText('Price (USD)'), '12.50');
   await userEvent.type(screen.getByLabelText('Enviar imagem'), 'coffee.jpg');
 }
 
@@ -103,6 +104,7 @@ describe('AddProduct', () => {
           category: 'general',
           subcategory: '',
           inventory: 3,
+          price: { currency: 'USD', amountMinor: '1250' },
           image: 'coffee.jpg',
           status: 'active',
         },

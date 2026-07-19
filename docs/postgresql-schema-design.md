@@ -4,14 +4,14 @@
 
 This document turns the accepted direction in
 [ADR 0002](decisions/0002-postgresql-persistence.md) into a tooling-independent
-relational design for the behavior that MercadoZetta implements today. It is
-the contract that the Prisma, Drizzle, and SQL-client spike must represent; it
-does not select one of those tools or change the running MongoDB application.
+relational design for the behavior that MercadoZetta implements today. Drizzle
+implements this contract over PostgreSQL through reviewed versioned migrations.
 
-The design intentionally excludes prices, payments, addresses, refunds,
-shipping details, roles, and other fields that are not in the current product.
-The migration must preserve existing records and API behavior rather than use a
-database change to introduce unrelated product semantics.
+The design includes authoritative tenant currency, exact product prices,
+append-only price history, and immutable priced-order snapshots. It explicitly
+excludes payments, addresses, refunds, shipping details, roles, and other
+domains that are not in the current product. Monetary expansion preserved
+existing records as legacy unpriced data rather than fabricating prices.
 
 ## Conventions
 
@@ -22,7 +22,8 @@ database change to introduce unrelated product semantics.
   separately exposed ID.
 - Tenant IDs remain configured text slugs. A small `tenants` reference table
   contains the same accepted IDs as `backend/src/tenants.ts` so foreign keys can
-  enforce that every persisted tenant is known.
+  enforce that every persisted tenant is known and bind monetary snapshots to
+  its authoritative currency.
 - Every tenant-owned table has a non-null `tenant_id`. Every reference between
   tenant-owned tables includes the tenant in a composite foreign key.
 - Referenced tables expose `UNIQUE (tenant_id, id)` even though UUID `id` is the
@@ -51,15 +52,17 @@ an insert.
 
 ### `tenants`
 
-| Column       | Type          | Rules                                                             |
-| ------------ | ------------- | ----------------------------------------------------------------- |
-| `id`         | `text`        | Primary key; current rows are `mercadozetta` and `campus-market`. |
-| `created_at` | `timestamptz` | Non-null; defaults to the current time.                           |
+| Column                | Type          | Rules                                                             |
+| --------------------- | ------------- | ----------------------------------------------------------------- |
+| `id`                  | `text`        | Primary key; current rows are `mercadozetta` and `campus-market`. |
+| `currency_code`       | `char(3)`     | Non-null uppercase ISO 4217 code; both current tenants use `USD`. |
+| `currency_minor_unit` | `smallint`    | Non-null accepted exponent; both current tenants use `2`.         |
+| `created_at`          | `timestamptz` | Non-null; defaults to the current time.                           |
 
-Tenant branding remains application configuration. This table is only the
-persistence integrity anchor and is seeded transactionally by migrations. The
-application must reject a request tenant through the existing resolver before
-querying the database.
+Tenant branding remains application configuration. This table is the
+persistence integrity and authoritative-currency anchor and is seeded
+transactionally by migrations. The application must reject a request tenant
+through the existing resolver before querying the database.
 
 ### `users`
 
@@ -90,6 +93,7 @@ in the application so returned data stays compatible.
 | `category`                 | `text`        | Non-null, default `general`, stored lowercase.                                                          |
 | `subcategory`              | `text`        | Non-null, default empty string, stored lowercase.                                                       |
 | `inventory`                | `integer`     | Non-null; named check `inventory >= 0`.                                                                 |
+| `unit_price_minor`         | `bigint`      | Nullable during the monetary expand stage; when present, between `0` and `9000000000000000`.            |
 | `image_url`                | `text`        | Non-null. URL policy remains application validation.                                                    |
 | `status`                   | `text`        | Non-null, default `active`; allowed values are `draft`, `active`, `paused`, `sold_out`, and `archived`. |
 | `created_at`, `updated_at` | `timestamptz` | Non-null.                                                                                               |
@@ -132,40 +136,59 @@ remove is tenant/user/product scoped.
 
 ### `orders`
 
-| Column                     | Type          | Rules                                                                                                          |
-| -------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------- |
-| `id`                       | `uuid`        | Primary key.                                                                                                   |
-| `tenant_id`                | `text`        | Non-null.                                                                                                      |
-| `buyer_id`                 | `uuid`        | Non-null.                                                                                                      |
-| `status`                   | `text`        | Non-null, default `placed`; allowed values are `placed`, `confirmed`, `shipped`, `delivered`, and `cancelled`. |
-| `created_at`, `updated_at` | `timestamptz` | Non-null.                                                                                                      |
+| Column                                                              | Type                  | Rules                                                                                                          |
+| ------------------------------------------------------------------- | --------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `id`                                                                | `uuid`                | Primary key.                                                                                                   |
+| `tenant_id`                                                         | `text`                | Non-null.                                                                                                      |
+| `buyer_id`                                                          | `uuid`                | Non-null.                                                                                                      |
+| `pricing_state`                                                     | `varchar(24)`         | Non-null `legacy_unpriced` or `priced`; defaults legacy for old-writer compatibility.                          |
+| `currency_code`, `currency_minor_unit`                              | `char(3)`, `smallint` | Both null for legacy orders and tenant-qualified for priced orders.                                            |
+| `subtotal_minor`, `discount_minor`, `shipping_minor`, `total_minor` | `bigint`              | All null for legacy orders; bounded and algebraically constrained for priced orders.                           |
+| `status`                                                            | `text`                | Non-null, default `placed`; allowed values are `placed`, `confirmed`, `shipped`, `delivered`, and `cancelled`. |
+| `created_at`, `updated_at`                                          | `timestamptz`         | Non-null.                                                                                                      |
 
-Constraints are `UNIQUE (tenant_id, id)` and composite foreign key
-`(tenant_id, buyer_id) -> users(tenant_id, id)`. Orders are historical records
-and cannot be hard-deleted by the application role.
+Constraints bind buyer and priced currency to the same tenant and enforce the
+component equation from ADR 0006. A PostgreSQL trigger permits lifecycle/status
+updates but rejects changes to inserted monetary fields. Orders are historical
+records and cannot be hard-deleted by the application role.
+
+New checkout writes use the `priced` shape. The backend calculates each line
+subtotal and the order subtotal, stores explicit zero discount and shipping,
+and persists the resulting total with inventory and idempotency effects in one
+transaction. The `legacy_unpriced` default remains solely for compatibility
+with historical rows and earlier application releases.
 
 ### `order_items`
 
-| Column                                | Type          | Rules                                    |
-| ------------------------------------- | ------------- | ---------------------------------------- |
-| `id`                                  | `uuid`        | Primary key.                             |
-| `tenant_id`                           | `text`        | Non-null.                                |
-| `order_id`, `product_id`, `seller_id` | `uuid`        | Non-null.                                |
-| `product_name`                        | `text`        | Non-null immutable snapshot.             |
-| `quantity`                            | `integer`     | Non-null; named check `quantity > 0`.    |
-| `created_at`, `updated_at`            | `timestamptz` | Non-null; migrated values are preserved. |
+| Column                                | Type          | Rules                                                                    |
+| ------------------------------------- | ------------- | ------------------------------------------------------------------------ |
+| `id`                                  | `uuid`        | Primary key.                                                             |
+| `tenant_id`                           | `text`        | Non-null.                                                                |
+| `order_id`, `product_id`, `seller_id` | `uuid`        | Non-null.                                                                |
+| `product_name`                        | `text`        | Non-null immutable snapshot.                                             |
+| `quantity`                            | `integer`     | Non-null; named check `quantity > 0`.                                    |
+| `pricing_state`                       | `varchar(24)` | Non-null and equal to its parent order.                                  |
+| `unit_price_minor`                    | `bigint`      | Null for legacy lines; bounded for priced lines.                         |
+| `line_subtotal_minor`                 | `bigint`      | Null for legacy lines; exact unit price times quantity for priced lines. |
+| `created_at`, `updated_at`            | `timestamptz` | Non-null; migrated values are preserved.                                 |
 
 Constraints are `UNIQUE (tenant_id, id)`,
 `UNIQUE (tenant_id, order_id, product_id)`, and tenant-qualified foreign keys to
 the order, live product, and seller. All use restricted deletion. The unique
 order/product rule preserves the current one-cart-line-per-product behavior.
 
-`product_name`, `quantity`, and `seller_id` are checkout-time facts and never
-follow later product changes. The application database role receives
-`SELECT`/`INSERT`, but not `UPDATE`/`DELETE`, on this table. Migration ownership
-uses a separate role. If a future product adds price, currency, tax, or other
-checkout facts, they must be added as immutable snapshots rather than inferred
-from the live product.
+`product_name`, `quantity`, `seller_id`, unit price, and line subtotal are
+checkout-time facts and never follow later product changes. PostgreSQL triggers
+reject ordinary `UPDATE` and `DELETE` operations on this table.
+
+### `product_price_history`
+
+Each row contains tenant/product, a positive monotonic sequence, the tenant's
+currency code and minor-unit exponent, bounded `unit_price_minor`, seller actor,
+and `changed_at`. The primary key is `(tenant_id, product_id, sequence)` and
+tenant-qualified foreign keys bind the product, actor, and authoritative
+currency. PostgreSQL triggers reject updates and deletes so catalog edits append
+history rather than rewrite it.
 
 ### `order_status_history`
 

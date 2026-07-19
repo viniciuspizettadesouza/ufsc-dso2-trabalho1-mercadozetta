@@ -8,8 +8,14 @@ import type { CheckoutTransactionCoordinator } from '@/repositories/checkoutTran
 import type { AuditEventRepository } from '@/repositories/auditEventRepository';
 import type { CartRepository } from '@/repositories/cartRepository';
 import type { NotificationRepository } from '@/repositories/notificationRepository';
-import type { OrderItemRepository } from '@/repositories/orderItemRepository';
-import type { OrderRepository } from '@/repositories/orderRepository';
+import type {
+  CheckoutOrderItem,
+  OrderItemRepository,
+} from '@/repositories/orderItemRepository';
+import type {
+  CheckoutOrder,
+  OrderRepository,
+} from '@/repositories/orderRepository';
 import type { ProductRepository } from '@/repositories/productRepository';
 import type { ReviewRepository } from '@/repositories/reviewRepository';
 import type { WatchlistRepository } from '@/repositories/watchlistRepository';
@@ -93,14 +99,29 @@ async function listOrdersWithRepositories(
   const items = await orderItems.listByOrderIds(tenantId, orderIds);
   return {
     ...result,
-    items: result.items.map((order) => ({
-      ...order,
-      items: items.filter(
+    items: result.items.map((order) => {
+      const sellerOnly =
+        pagination.scope === 'seller' ||
+        (pagination.scope === 'all' && order.buyer !== userId);
+      const visibleItems = items.filter(
         (item) =>
-          item.order === order._id &&
-          (pagination.scope !== 'seller' || item.seller === userId),
-      ),
-    })),
+          item.order === order._id && (!sellerOnly || item.seller === userId),
+      );
+      return sellerOnly
+        ? sellerScopedOrder(order, visibleItems)
+        : { ...order, items: visibleItems };
+    }),
+  };
+}
+
+function sellerScopedOrder(order: CheckoutOrder, items: CheckoutOrderItem[]) {
+  return {
+    ...order,
+    subtotal: null,
+    discount: null,
+    shipping: null,
+    total: null,
+    items,
   };
 }
 
@@ -131,12 +152,12 @@ async function updateOrderStatusWithRepositories(
     );
   if (order.status === status) {
     const items = await orderItems.listByOrderIds(tenantId, [orderId]);
-    return {
-      ...order,
-      items: items.filter(
-        (item) => isBuyerCancellation || item.seller === userId,
-      ),
-    };
+    const visibleItems = items.filter(
+      (item) => isBuyerCancellation || item.seller === userId,
+    );
+    return isBuyerCancellation
+      ? { ...order, items: visibleItems }
+      : sellerScopedOrder(order, visibleItems);
   }
   const isValidSellerTransition =
     Boolean(sellerItem) && sellerOrderTransitions[order.status] === status;
@@ -174,12 +195,12 @@ async function updateOrderStatusWithRepositories(
     occurredAt: now,
   });
   const items = await orderItems.listByOrderIds(tenantId, [orderId]);
-  return {
-    ...updated,
-    items: items.filter(
-      (item) => isBuyerCancellation || item.seller === userId,
-    ),
-  };
+  const visibleItems = items.filter(
+    (item) => isBuyerCancellation || item.seller === userId,
+  );
+  return isBuyerCancellation
+    ? { ...updated, items: visibleItems }
+    : sellerScopedOrder(updated, visibleItems);
 }
 
 async function createReviewWithRepository(

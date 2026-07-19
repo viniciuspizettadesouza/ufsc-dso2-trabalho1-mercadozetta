@@ -30,6 +30,7 @@ const products: ProductRecord[] = [
     seller: sellerId,
     name: 'Keyboard',
     inventory: 5,
+    price: { currency: 'USD', amountMinor: '1000' },
     status: 'active',
   },
   {
@@ -38,6 +39,7 @@ const products: ProductRecord[] = [
     seller: sellerId,
     name: 'Mouse',
     inventory: 3,
+    price: { currency: 'USD', amountMinor: '2000' },
     status: 'active',
   },
 ];
@@ -46,6 +48,11 @@ const order = {
   tenantId,
   buyer: buyerId,
   status: 'placed' as const,
+  pricingState: 'priced' as const,
+  subtotal: { currency: 'USD', amountMinor: '4000' },
+  discount: { currency: 'USD', amountMinor: '0' },
+  shipping: { currency: 'USD', amountMinor: '0' },
+  total: { currency: 'USD', amountMinor: '4000' },
   statusHistory: [
     {
       status: 'placed' as const,
@@ -143,6 +150,14 @@ describe('checkoutService', () => {
       tenantId,
       buyerId,
       idempotencyKey,
+      {
+        currency: 'USD',
+        currencyMinorUnit: 2,
+        subtotalMinor: 4000n,
+        discountMinor: 0n,
+        shippingMinor: 0n,
+        totalMinor: 4000n,
+      },
       now,
     );
 
@@ -154,6 +169,9 @@ describe('checkoutService', () => {
         seller: sellerId,
         productName: products[0].name,
         quantity: 2,
+        pricingState: 'priced' as const,
+        unitPrice: { currency: 'USD', amountMinor: '1000' },
+        lineSubtotal: { currency: 'USD', amountMinor: '2000' },
       },
       {
         tenantId,
@@ -162,6 +180,9 @@ describe('checkoutService', () => {
         seller: sellerId,
         productName: products[1].name,
         quantity: 1,
+        pricingState: 'priced',
+        unitPrice: { currency: 'USD', amountMinor: '2000' },
+        lineSubtotal: { currency: 'USD', amountMinor: '2000' },
       },
     ];
     expect(test.orderItems.createMany).toHaveBeenCalledWith(expectedItems, now);
@@ -239,6 +260,9 @@ describe('checkoutService', () => {
         seller: sellerId,
         productName: products[0].name,
         quantity: 2,
+        pricingState: 'priced' as const,
+        unitPrice: { currency: 'USD', amountMinor: '1000' },
+        lineSubtotal: { currency: 'USD', amountMinor: '2000' },
       },
     ];
     const test = harness({ replayedOrder: order });
@@ -290,6 +314,41 @@ describe('checkoutService', () => {
     ).rejects.toMatchObject({
       statusCode: 409,
       code: 'INSUFFICIENT_INVENTORY',
+    });
+    expect(test.orders.createPlaced).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unpriced locked product before creating an order', async () => {
+    const test = harness({
+      cart: { ...cart, items: [cart.items[0]] },
+      products: [{ ...products[0], price: null }],
+    });
+
+    await expect(
+      test.createOrder(buyerId, tenantId, idempotencyKey),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'PRODUCT_PRICE_REQUIRED',
+    });
+    expect(test.orders.createPlaced).not.toHaveBeenCalled();
+  });
+
+  it('rejects a line amount above the supported exact-money bound', async () => {
+    const test = harness({
+      cart: { ...cart, items: [cart.items[0]] },
+      products: [
+        {
+          ...products[0],
+          price: { currency: 'USD', amountMinor: '9000000000000000' },
+        },
+      ],
+    });
+
+    await expect(
+      test.createOrder(buyerId, tenantId, idempotencyKey),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'ORDER_TOTAL_LIMIT_EXCEEDED',
     });
     expect(test.orders.createPlaced).not.toHaveBeenCalled();
   });

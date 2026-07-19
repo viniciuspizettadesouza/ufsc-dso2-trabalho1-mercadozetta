@@ -4,6 +4,8 @@ export type Tenant = {
   id: string;
   name: string;
   active: boolean;
+  currencyCode: string;
+  currencyMinorUnit: number;
 };
 
 export const tenants: Record<string, Tenant> = {
@@ -11,11 +13,15 @@ export const tenants: Record<string, Tenant> = {
     id: defaultTenantId,
     name: 'MercadoZetta',
     active: true,
+    currencyCode: 'USD',
+    currencyMinorUnit: 2,
   },
   'campus-market': {
     id: 'campus-market',
     name: 'CampusMarket',
     active: true,
+    currencyCode: 'USD',
+    currencyMinorUnit: 2,
   },
 };
 

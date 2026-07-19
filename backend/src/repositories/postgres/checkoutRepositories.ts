@@ -35,6 +35,7 @@ import type {
   OrderItemRepository,
 } from '@/repositories/orderItemRepository';
 import type { OrderRepository } from '@/repositories/orderRepository';
+import type { CreateOrderPricing } from '@/repositories/orderRepository';
 import { PostgresProductRepository } from '@/repositories/postgres/productRepository';
 import { PostgresAuditEventRepository } from '@/repositories/postgres/auditEventRepository';
 import { PostgresAccountTokenRepository } from '@/repositories/postgres/accountTokenRepository';
@@ -48,6 +49,7 @@ import { mapProductRow } from '@/repositories/mappers';
 import { paginated } from '@/pagination';
 import type { Pagination } from '@/pagination';
 import type { OrderListData } from '@/validators/commerceValidator';
+import { moneyFromMinor } from '@/money';
 
 type TransactionDatabase = Parameters<
   Parameters<Database['transaction']>[0]
@@ -219,6 +221,23 @@ export class PostgresOrderRepository implements OrderRepository {
       tenantId: order.tenantId,
       buyer: order.buyerId,
       status: order.status as OrderStatus,
+      pricingState: order.pricingState as 'legacy_unpriced' | 'priced',
+      subtotal:
+        order.currencyCode && order.subtotalMinor !== null
+          ? moneyFromMinor(order.currencyCode, order.subtotalMinor)
+          : null,
+      discount:
+        order.currencyCode && order.discountMinor !== null
+          ? moneyFromMinor(order.currencyCode, order.discountMinor)
+          : null,
+      shipping:
+        order.currencyCode && order.shippingMinor !== null
+          ? moneyFromMinor(order.currencyCode, order.shippingMinor)
+          : null,
+      total:
+        order.currencyCode && order.totalMinor !== null
+          ? moneyFromMinor(order.currencyCode, order.totalMinor)
+          : null,
       statusHistory: history
         .filter((entry) => entry.orderId === order.id)
         .map((entry) => ({
@@ -235,6 +254,7 @@ export class PostgresOrderRepository implements OrderRepository {
     tenantId: string,
     buyerId: string,
     idempotencyKey: string,
+    pricing: CreateOrderPricing,
     now: Date,
   ) {
     const id = randomUUID();
@@ -245,6 +265,13 @@ export class PostgresOrderRepository implements OrderRepository {
         tenantId,
         buyerId,
         checkoutIdempotencyKey: idempotencyKey,
+        pricingState: 'priced',
+        currencyCode: pricing.currency,
+        currencyMinorUnit: pricing.currencyMinorUnit,
+        subtotalMinor: pricing.subtotalMinor,
+        discountMinor: pricing.discountMinor,
+        shippingMinor: pricing.shippingMinor,
+        totalMinor: pricing.totalMinor,
         status: 'placed',
         createdAt: now,
         updatedAt: now,
@@ -263,6 +290,11 @@ export class PostgresOrderRepository implements OrderRepository {
       tenantId: order.tenantId,
       buyer: order.buyerId,
       status: order.status as OrderStatus,
+      pricingState: 'priced' as const,
+      subtotal: moneyFromMinor(pricing.currency, pricing.subtotalMinor),
+      discount: moneyFromMinor(pricing.currency, pricing.discountMinor),
+      shipping: moneyFromMinor(pricing.currency, pricing.shippingMinor),
+      total: moneyFromMinor(pricing.currency, pricing.totalMinor),
       statusHistory: [
         { status: 'placed' as const, actor: buyerId, changedAt: now },
       ],
@@ -424,6 +456,13 @@ export class PostgresOrderItemRepository implements OrderItemRepository {
         sellerId: item.seller,
         productName: item.productName,
         quantity: item.quantity,
+        pricingState: item.pricingState,
+        unitPriceMinor:
+          item.unitPrice === null ? null : BigInt(item.unitPrice.amountMinor),
+        lineSubtotalMinor:
+          item.lineSubtotal === null
+            ? null
+            : BigInt(item.lineSubtotal.amountMinor),
         createdAt: now,
         updatedAt: now,
       })),
@@ -434,21 +473,37 @@ export class PostgresOrderItemRepository implements OrderItemRepository {
   async listByOrderIds(tenantId: string, orderIds: string[]) {
     if (!orderIds.length) return [];
     const rows = await this.db
-      .select()
+      .select({ item: orderItems, currencyCode: orders.currencyCode })
       .from(orderItems)
+      .innerJoin(
+        orders,
+        and(
+          eq(orders.tenantId, orderItems.tenantId),
+          eq(orders.id, orderItems.orderId),
+        ),
+      )
       .where(
         and(
           eq(orderItems.tenantId, tenantId),
           inArray(orderItems.orderId, orderIds),
         ),
       );
-    return rows.map((item) => ({
+    return rows.map(({ item, currencyCode }) => ({
       tenantId: item.tenantId,
       order: item.orderId,
       product: item.productId,
       seller: item.sellerId,
       productName: item.productName,
       quantity: item.quantity,
+      pricingState: item.pricingState as 'legacy_unpriced' | 'priced',
+      unitPrice:
+        currencyCode && item.unitPriceMinor !== null
+          ? moneyFromMinor(currencyCode, item.unitPriceMinor)
+          : null,
+      lineSubtotal:
+        currencyCode && item.lineSubtotalMinor !== null
+          ? moneyFromMinor(currencyCode, item.lineSubtotalMinor)
+          : null,
     }));
   }
 

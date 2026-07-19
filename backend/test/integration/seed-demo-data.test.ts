@@ -8,9 +8,9 @@ import {
   cartItems,
   carts,
   notifications,
-  orderItems,
   orders,
   orderStatusHistory,
+  productPriceHistory,
   products,
   reviews,
   sessions,
@@ -33,7 +33,7 @@ async function clearPostgres() {
   await db.delete(watchlistEntries);
   await db.delete(sessions);
   await db.delete(orderStatusHistory);
-  await db.delete(orderItems);
+  await pool.query('truncate table product_price_history, order_items');
   await db.delete(orders);
   await db.delete(cartItems);
   await db.delete(carts);
@@ -81,10 +81,13 @@ describe('demo data seeding', () => {
     await seedDemoData({ db });
     await seedDemoData({ db });
 
-    const [storedUsers, storedProducts] = await Promise.all([
-      db.select().from(users),
-      db.select().from(products),
-    ]);
+    const [storedUsers, storedProducts, storedPriceHistory] = await Promise.all(
+      [
+        db.select().from(users),
+        db.select().from(products),
+        db.select().from(productPriceHistory),
+      ],
+    );
     expect(storedUsers).toHaveLength(5);
     expect(storedProducts).toHaveLength(5);
     expect(
@@ -102,6 +105,36 @@ describe('demo data seeding', () => {
     expect(
       storedProducts.find(({ id }) => id === unrelatedProductId),
     ).toMatchObject({ inventory: 9, sellerId: unrelatedUserId });
+    expect(
+      storedProducts
+        .filter(({ id }) => id.startsWith('67000000'))
+        .map(({ id, unitPriceMinor }) => ({ id, unitPriceMinor }))
+        .sort((left, right) => left.id.localeCompare(right.id)),
+    ).toEqual([
+      {
+        id: '67000000-0000-4000-8000-000000000001',
+        unitPriceMinor: 89900n,
+      },
+      {
+        id: '67000000-0000-4000-8000-000000000002',
+        unitPriceMinor: 24900n,
+      },
+      {
+        id: '67000000-0000-4000-8000-000000000003',
+        unitPriceMinor: 1999n,
+      },
+      {
+        id: '67000000-0000-4000-8000-000000000004',
+        unitPriceMinor: 5900n,
+      },
+    ]);
+    expect(storedPriceHistory).toHaveLength(4);
+    expect(
+      storedPriceHistory.every(
+        ({ currencyCode, currencyMinorUnit, sequence }) =>
+          currencyCode === 'USD' && currencyMinorUnit === 2 && sequence === 1,
+      ),
+    ).toBe(true);
 
     const [seededSeller] = await db
       .select()

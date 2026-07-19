@@ -12,6 +12,8 @@ import {
 } from '@/validators/productValidator';
 
 describe('productValidator', () => {
+  const price = { currency: 'USD', amountMinor: '1299' };
+
   it('normalizes product creation payloads and supports the quant alias', () => {
     expect(
       validateCreateProductPayload({
@@ -20,6 +22,7 @@ describe('productValidator', () => {
         category: ' Peripherals ',
         subcategory: ' Keyboards ',
         quant: '3',
+        price,
         image: ' https://example.com/keyboard.png ',
       }),
     ).toEqual({
@@ -28,6 +31,7 @@ describe('productValidator', () => {
       category: 'peripherals',
       subcategory: 'keyboards',
       inventory: 3,
+      price,
       image: 'https://example.com/keyboard.png',
       status: 'active',
     });
@@ -36,6 +40,7 @@ describe('productValidator', () => {
       validateCreateProductPayload({
         name: 'Draft product',
         inventory: 0,
+        price,
         image: 'draft.png',
         status: '',
       }).status,
@@ -45,6 +50,7 @@ describe('productValidator', () => {
       validateCreateProductPayload({
         name: 'Inventory wins',
         inventory: 2,
+        price,
         quant: 9,
         image: 'inventory.png',
         status: null,
@@ -80,6 +86,7 @@ describe('productValidator', () => {
       validateCreateProductPayload({
         name: 'Keyboard',
         inventory: '1.5',
+        price,
         image: 'keyboard.png',
       }),
     ).toThrow(expect.objectContaining({ code: 'INVALID_PRODUCT_INVENTORY' }));
@@ -88,6 +95,7 @@ describe('productValidator', () => {
       validateCreateProductPayload({
         name: 'Keyboard',
         inventory: 1,
+        price,
         image: 'keyboard.png',
         status: 'deleted',
       }),
@@ -96,6 +104,7 @@ describe('productValidator', () => {
       validateCreateProductPayload({
         name: 'Keyboard',
         inventory: 1,
+        price,
         image: 'keyboard.png',
         status: 'sold_out',
       }),
@@ -107,6 +116,7 @@ describe('productValidator', () => {
       validateCreateProductPayload({
         name: 'Keyboard',
         inventory: 1,
+        price,
         image: 'javascript:alert(1)',
       }),
     ).toThrow(expect.objectContaining({ code: 'INVALID_PRODUCT_IMAGE_URL' }));
@@ -114,6 +124,7 @@ describe('productValidator', () => {
       validateCreateProductPayload({
         name: 'Keyboard',
         inventory: 1,
+        price,
         image: 'https://untrusted.example/keyboard.png',
       }),
     ).toThrow(expect.objectContaining({ code: 'INVALID_PRODUCT_IMAGE_URL' }));
@@ -132,6 +143,28 @@ describe('productValidator', () => {
     expect(() => validateUpdateProductPayload({ inventory: 2 })).toThrow(
       expect.objectContaining({ code: 'MISSING_PRODUCT_UPDATE_FIELDS' }),
     );
+  });
+
+  it('accepts exact price boundaries and rejects non-canonical amounts', () => {
+    expect(
+      validateUpdateProductPayload({
+        price: { currency: 'USD', amountMinor: '0' },
+      }),
+    ).toEqual({ price: { currency: 'USD', amountMinor: '0' } });
+    expect(
+      validateUpdateProductPayload({
+        price: { currency: 'USD', amountMinor: '9000000000000000' },
+      }),
+    ).toEqual({
+      price: { currency: 'USD', amountMinor: '9000000000000000' },
+    });
+
+    for (const amountMinor of ['01', '-1', '1.00', '9e2', '9000000000000001'])
+      expect(() =>
+        validateUpdateProductPayload({
+          price: { currency: 'USD', amountMinor },
+        }),
+      ).toThrow(expect.objectContaining({ code: 'INVALID_PRODUCT_PRICE' }));
   });
 
   it('normalizes and validates product filters', () => {
@@ -217,6 +250,7 @@ describe('productValidator', () => {
       category: 'electronics',
       subcategory: 'keyboards',
       inventory: 2,
+      price,
       image: 'keyboard.png',
       status: 'active',
       createdAt: '2026-01-15T12:00:00.000Z',

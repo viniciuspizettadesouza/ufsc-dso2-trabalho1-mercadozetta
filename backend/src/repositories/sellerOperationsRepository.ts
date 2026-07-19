@@ -1,4 +1,5 @@
 import type { Paginated, Pagination } from '@/pagination';
+import type { Money } from '@/money';
 
 export type InventoryHistoryEntry = {
   _id: string;
@@ -27,6 +28,9 @@ export type SellerOperationsSummary = {
   orderCount: number;
   openOrderCount: number;
   orderedUnits: number;
+  pricedOrderCount: number;
+  legacyUnpricedOrderCount: number;
+  grossRevenue: Money;
 };
 
 export interface SellerOperationsRepository {

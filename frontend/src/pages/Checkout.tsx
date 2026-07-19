@@ -16,9 +16,12 @@ import { type OrderListRequest } from '@/serverState/queryKeys';
 import { useCreateOrder, useOrderList } from '@/serverState/orders';
 import { useDetailedCart } from '@/serverState/cart';
 import { createIdempotencyKey } from '@/services/idempotency';
+import { useBrand } from '@/brands/brandContext';
+import { formatMoney, multiplyMoney, sumMoney } from '@/money';
 
 export default function Checkout() {
   const { user } = useAuth();
+  const brand = useBrand();
   const userId = user?._id ?? 'anonymous';
   const [pendingItem, setPendingItem] = useState('');
   const [feedback, setFeedback] = useState<MutationFeedback>(null);
@@ -107,11 +110,20 @@ export default function Checkout() {
     }
   }
 
-  const hasUnavailableItems = items.some(
-    (item) =>
-      item.product.status !== 'active' ||
-      (item.product.inventory ?? 0) < item.quantity,
+  const quotedLines = items.map((item) =>
+    multiplyMoney(item.product.price, item.quantity, brand.currency),
   );
+  const quotedTotal = sumMoney(quotedLines, brand.currency);
+  const hasUnavailableItems =
+    items.some(
+      (item, index) =>
+        item.product.status !== 'active' ||
+        (item.product.inventory ?? 0) < item.quantity ||
+        !item.product.price ||
+        item.product.price.currency !== brand.currency ||
+        !quotedLines[index],
+    ) ||
+    (items.length > 0 && !quotedTotal);
   return (
     <div>
       <Header />
@@ -127,7 +139,7 @@ export default function Checkout() {
             <p role="status">Loading cart and order history...</p>
           ) : !loadError && items.length ? (
             <ul>
-              {items.map((item) => (
+              {items.map((item, index) => (
                 <li key={item.product._id}>
                   <span>{item.product.name} ×</span>{' '}
                   <label>
@@ -155,6 +167,20 @@ export default function Checkout() {
                       ))}
                     </Select>
                   </label>{' '}
+                  <span>
+                    {formatMoney(
+                      item.product.price,
+                      brand.locale,
+                      brand.currency,
+                    ) ?? brand.copy.catalog.priceUnavailableLabel}
+                    {' each; '}
+                    {formatMoney(
+                      quotedLines[index],
+                      brand.locale,
+                      brand.currency,
+                    ) ?? brand.copy.catalog.priceUnavailableLabel}
+                    {' quoted subtotal'}
+                  </span>{' '}
                   <Button
                     type="button"
                     disabled={Boolean(pendingItem)}
@@ -165,7 +191,8 @@ export default function Checkout() {
                       : `Remove ${item.product.name}`}
                   </Button>
                   {(item.product.status !== 'active' ||
-                    (item.product.inventory ?? 0) < item.quantity) && (
+                    (item.product.inventory ?? 0) < item.quantity ||
+                    !quotedLines[index]) && (
                     <span className="font-bold text-red-700"> Unavailable</span>
                   )}
                 </li>
@@ -173,6 +200,14 @@ export default function Checkout() {
             </ul>
           ) : (
             <p>Cart is empty.</p>
+          )}
+          {items.length > 0 && quotedTotal && (
+            <p>
+              Current cart quote:{' '}
+              <strong>
+                {formatMoney(quotedTotal, brand.locale, brand.currency)}
+              </strong>
+            </p>
           )}
           {hasUnavailableItems && (
             <p role="alert">
@@ -202,8 +237,19 @@ export default function Checkout() {
               <li key={order._id}>
                 <strong>{order._id}</strong> ({order.status}) -{' '}
                 {order.items
-                  .map((item) => `${item.productName} × ${item.quantity}`)
+                  .map((item) => {
+                    const subtotal = formatMoney(
+                      item.lineSubtotal,
+                      brand.locale,
+                      brand.currency,
+                    );
+                    return `${item.productName} × ${item.quantity}${subtotal ? ` — ${subtotal}` : ''}`;
+                  })
                   .join(', ')}
+                {' — '}
+                {order.pricingState === 'priced'
+                  ? `Total: ${formatMoney(order.total, brand.locale, brand.currency) ?? brand.copy.catalog.priceUnavailableLabel}`
+                  : 'Legacy order — price unavailable'}
                 <OrderStatusHistory
                   orderId={order._id}
                   entries={order.statusHistory}

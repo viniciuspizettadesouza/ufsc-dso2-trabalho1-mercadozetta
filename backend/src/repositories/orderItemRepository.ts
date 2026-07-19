@@ -1,3 +1,6 @@
+import type { Money } from '@/money';
+import type { OrderPricingState } from '@/repositories/orderRepository';
+
 export type CheckoutOrderItem = {
   tenantId: string;
   order: string;
@@ -5,6 +8,9 @@ export type CheckoutOrderItem = {
   seller: string;
   productName: string;
   quantity: number;
+  pricingState: OrderPricingState;
+  unitPrice: Money | null;
+  lineSubtotal: Money | null;
 };
 
 export interface OrderItemRepository {

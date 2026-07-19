@@ -2,6 +2,7 @@ import { productStatuses, type ProductStatus } from '@/productStatus';
 import { DEFAULT_PAGE_LIMIT, MAX_PAGE_LIMIT } from '@/pagination';
 import { isUuid, UUID_EXAMPLE } from '@/ids';
 import type { RequestFieldValue } from '@/types/request';
+import { isCanonicalMoneyMinor, maximumMoneyMinorString } from '@/money';
 import { sellerProfileResponseSchema } from '@/validators/userValidator';
 import { z } from 'zod';
 import {
@@ -20,6 +21,7 @@ export type CreateProductRequestBody = {
   quant?: RequestFieldValue;
   image?: RequestFieldValue;
   status?: RequestFieldValue;
+  price?: unknown;
 };
 
 export type UpdateProductRequestBody = Partial<CreateProductRequestBody>;
@@ -50,6 +52,12 @@ export const productResponseSchema = z
     category: z.string(),
     subcategory: z.string(),
     inventory: z.int().min(0),
+    price: z
+      .object({
+        currency: z.string().regex(/^[A-Z]{3}$/),
+        amountMinor: z.string().refine(isCanonicalMoneyMinor),
+      })
+      .nullable(),
     image: z.string(),
     status: z.enum(productStatuses),
     seller: resourceIdResponseSchema,
@@ -88,6 +96,8 @@ export const productErrorCodes = {
     'INVALID_PRODUCT_INVENTORY',
     'INVALID_PRODUCT_STATUS',
     'INVALID_PRODUCT_STATUS_INVENTORY',
+    'INVALID_PRODUCT_PRICE',
+    'INVALID_PRODUCT_CURRENCY',
     'INVALID_PRODUCT_IMAGE_URL',
   ],
   idempotencyConflict: ['IDEMPOTENCY_KEY_REUSED'],
@@ -98,6 +108,8 @@ export const productErrorCodes = {
     'INVALID_PRODUCT_ID',
     'MISSING_PRODUCT_UPDATE_FIELDS',
     'INVALID_PRODUCT_IMAGE_URL',
+    'INVALID_PRODUCT_PRICE',
+    'INVALID_PRODUCT_CURRENCY',
   ],
   inventory: [
     'TENANT_HEADER_REQUIRED',
@@ -118,6 +130,7 @@ export const productErrorCodes = {
   lifecycleConflict: [
     'PRODUCT_STATUS_TRANSITION_INVALID',
     'PRODUCT_INVENTORY_REQUIRED',
+    'PRODUCT_PRICE_REQUIRED',
   ],
 } as const;
 
@@ -182,6 +195,17 @@ const imageUrlSchema = z
     params: { appCode: 'INVALID_PRODUCT_IMAGE_URL', statusCode: 400 },
   });
 
+export const exactMoneySchema = z.object({
+  currency: z.string().refine((value) => /^[A-Z]{3}$/.test(value), {
+    message: 'Price currency must be a three-letter uppercase code',
+    params: { appCode: 'INVALID_PRODUCT_CURRENCY', statusCode: 400 },
+  }),
+  amountMinor: z.string().refine(isCanonicalMoneyMinor, {
+    message: `Price must be canonical minor units between 0 and ${maximumMoneyMinorString}`,
+    params: { appCode: 'INVALID_PRODUCT_PRICE', statusCode: 400 },
+  }),
+});
+
 export const createProductSchema = z
   .object({
     name: z.unknown().optional(),
@@ -192,6 +216,7 @@ export const createProductSchema = z
     quant: z.unknown().optional(),
     image: z.unknown().optional(),
     status: z.unknown().optional(),
+    price: exactMoneySchema.optional(),
   })
   .transform((body) => {
     const rawInventory = firstDefined(body.inventory, body.quant);
@@ -206,13 +231,17 @@ export const createProductSchema = z
         body.status === undefined || body.status === null || body.status === ''
           ? 'active'
           : requestString(body.status).trim(),
+      price: body.price,
       hasInventory: hasRequestValue(rawInventory),
     };
   })
   .refine(
-    (product) => Boolean(product.name && product.hasInventory && product.image),
+    (product) =>
+      Boolean(
+        product.name && product.hasInventory && product.image && product.price,
+      ),
     {
-      message: 'Name, quantity and image are required',
+      message: 'Name, quantity, price and image are required',
       params: { appCode: 'MISSING_PRODUCT_FIELDS', statusCode: 400 },
     },
   )
@@ -243,6 +272,7 @@ export const createProductSchema = z
   })
   .transform(({ hasInventory, ...product }) => ({
     ...product,
+    price: product.price!,
     status: (product.status === 'active' && product.inventory === 0
       ? 'sold_out'
       : product.status) as ProductStatus,
@@ -252,7 +282,7 @@ export const createProductSchema = z
     description: 'Details required to create a product listing.',
     override: {
       type: 'object',
-      required: ['name', 'image'],
+      required: ['name', 'image', 'price'],
       anyOf: [{ required: ['inventory'] }, { required: ['quant'] }],
       properties: {
         name: { type: 'string' },
@@ -267,6 +297,18 @@ export const createProductSchema = z
         },
         image: { type: 'string' },
         status: { type: 'string', enum: productStatuses, default: 'active' },
+        price: {
+          type: 'object',
+          required: ['currency', 'amountMinor'],
+          properties: {
+            currency: { type: 'string', pattern: '^[A-Z]{3}$' },
+            amountMinor: {
+              type: 'string',
+              pattern: '^(0|[1-9][0-9]*)$',
+              maxLength: maximumMoneyMinorString.length,
+            },
+          },
+        },
       },
     },
   });
@@ -289,6 +331,7 @@ export const updateProductSchema = z
       .transform((value) => value.toLowerCase())
       .optional(),
     image: imageUrlSchema.optional(),
+    price: exactMoneySchema.optional(),
   })
   .refine((value) => Object.keys(value).length > 0, {
     message: 'At least one editable product field is required',

@@ -1,8 +1,9 @@
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
+import { and, eq, max } from 'drizzle-orm';
 import type { Database } from '@/database/postgres';
 import { closePostgres, initializePostgres } from '@/database/postgres';
-import { products, users } from '@/database/schema';
+import { productPriceHistory, products, users } from '@/database/schema';
 import { getPostgresRuntimeConfig } from '@/config/runtime';
 import { tenants } from '@/tenants';
 import type { ProductStatus } from '@/productStatus';
@@ -29,6 +30,7 @@ type SeedProduct = {
   inventory: number;
   image: string;
   status: ProductStatus;
+  priceMinor: string;
 };
 
 const seedUsers: SeedUser[] = [
@@ -80,6 +82,7 @@ const seedProducts: SeedProduct[] = [
     image:
       'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?auto=format&fit=crop&w=900&q=80',
     status: 'active',
+    priceMinor: '89900',
   },
   {
     id: '67000000-0000-4000-8000-000000000002',
@@ -94,6 +97,7 @@ const seedProducts: SeedProduct[] = [
     image:
       'https://images.unsplash.com/photo-1501045661006-fcebe0257c3f?auto=format&fit=crop&w=900&q=80',
     status: 'active',
+    priceMinor: '24900',
   },
   {
     id: '67000000-0000-4000-8000-000000000003',
@@ -108,6 +112,7 @@ const seedProducts: SeedProduct[] = [
     image:
       'https://images.unsplash.com/photo-1611175694989-4870fafa4494?auto=format&fit=crop&w=900&q=80',
     status: 'active',
+    priceMinor: '1999',
   },
   {
     id: '67000000-0000-4000-8000-000000000004',
@@ -122,6 +127,7 @@ const seedProducts: SeedProduct[] = [
     image:
       'https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=900&q=80',
     status: 'active',
+    priceMinor: '5900',
   },
 ];
 
@@ -175,6 +181,14 @@ async function seedPostgresData(db: Database) {
           `Missing seeded seller for ${seed.tenantId}:${seed.sellerEmail}`,
         );
 
+      const [existingProduct] = await transaction
+        .select({ unitPriceMinor: products.unitPriceMinor })
+        .from(products)
+        .where(
+          and(eq(products.tenantId, seed.tenantId), eq(products.id, seed.id)),
+        )
+        .limit(1);
+      const unitPriceMinor = BigInt(seed.priceMinor);
       await transaction
         .insert(products)
         .values({
@@ -186,6 +200,7 @@ async function seedPostgresData(db: Database) {
           category: seed.category.toLowerCase(),
           subcategory: seed.subcategory.toLowerCase(),
           inventory: seed.inventory,
+          unitPriceMinor,
           imageUrl: seed.image,
           status: seed.status,
           createdAt: now,
@@ -201,11 +216,35 @@ async function seedPostgresData(db: Database) {
             category: seed.category.toLowerCase(),
             subcategory: seed.subcategory.toLowerCase(),
             inventory: seed.inventory,
+            unitPriceMinor,
             imageUrl: seed.image,
             status: seed.status,
             updatedAt: now,
           },
         });
+
+      if (existingProduct?.unitPriceMinor !== unitPriceMinor) {
+        const [{ latestSequence }] = await transaction
+          .select({ latestSequence: max(productPriceHistory.sequence) })
+          .from(productPriceHistory)
+          .where(
+            and(
+              eq(productPriceHistory.tenantId, seed.tenantId),
+              eq(productPriceHistory.productId, seed.id),
+            ),
+          );
+        const tenant = tenants[seed.tenantId];
+        await transaction.insert(productPriceHistory).values({
+          tenantId: seed.tenantId,
+          productId: seed.id,
+          sequence: (latestSequence ?? 0) + 1,
+          currencyCode: tenant.currencyCode,
+          currencyMinorUnit: tenant.currencyMinorUnit,
+          unitPriceMinor,
+          actorId: sellerId,
+          changedAt: now,
+        });
+      }
     }
   });
 }

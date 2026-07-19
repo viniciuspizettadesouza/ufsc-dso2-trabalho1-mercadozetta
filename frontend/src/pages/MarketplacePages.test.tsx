@@ -30,6 +30,7 @@ const product = {
   category: 'drinks',
   subcategory: 'beans',
   inventory: 3,
+  price: { currency: 'USD', amountMinor: '1250' },
   status: 'active' as const,
   seller: 'seller-1',
   sellerProfile: {
@@ -342,7 +343,20 @@ describe('marketplace pages', () => {
       data: {
         _id: 'order-1',
         status: 'placed',
-        items: [{ productName: 'Coffee', quantity: 1 }],
+        pricingState: 'priced',
+        subtotal: { currency: 'USD', amountMinor: '1250' },
+        discount: { currency: 'USD', amountMinor: '0' },
+        shipping: { currency: 'USD', amountMinor: '0' },
+        total: { currency: 'USD', amountMinor: '1250' },
+        items: [
+          {
+            productName: 'Coffee',
+            quantity: 1,
+            pricingState: 'priced',
+            unitPrice: { currency: 'USD', amountMinor: '1250' },
+            lineSubtotal: { currency: 'USD', amountMinor: '1250' },
+          },
+        ],
         statusHistory: [
           {
             status: 'placed',
@@ -358,6 +372,8 @@ describe('marketplace pages', () => {
     expect(await screen.findByLabelText('Quantity for Coffee')).toHaveValue(
       '1',
     );
+    expect(screen.getByText(/\$12\.50 each/)).toBeInTheDocument();
+    expect(screen.getByText(/Current cart quote:/)).toHaveTextContent('$12.50');
     await userEvent.click(screen.getByRole('button', { name: 'Place order' }));
 
     await waitFor(() =>
@@ -373,10 +389,30 @@ describe('marketplace pages', () => {
       }),
     );
     expect(screen.getByText(/placed by buyer-1 at/)).toBeInTheDocument();
+    expect(screen.getByText(/Total: \$12\.50/)).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(
       'Order placed successfully.',
     );
     expect(screen.getByRole('button', { name: 'Place order' })).toBeDisabled();
+  });
+
+  it('labels historical legacy orders as unpriced', async () => {
+    mockCheckout({ items: [] }, [
+      {
+        _id: 'legacy-order',
+        status: 'delivered',
+        pricingState: 'legacy_unpriced',
+        total: null,
+        items: [{ productName: 'Old coffee', quantity: 1 }],
+        statusHistory: [],
+      },
+    ]);
+
+    renderAt('/checkout', '/checkout', <Checkout />);
+
+    expect(
+      await screen.findByText(/Legacy order — price unavailable/),
+    ).toBeInTheDocument();
   });
 
   it('shows checkout loading and order API errors', async () => {

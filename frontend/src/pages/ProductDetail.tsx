@@ -2,6 +2,7 @@ import { FormEvent, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import Header from '@/pages/header';
 import { useBrand } from '@/brands/brandContext';
+import { formatMoney } from '@/money';
 import { appRoutes } from '@/routes';
 import { useAuth } from '@/auth/AuthContext';
 import PaginationControls from '@/components/PaginationControls';
@@ -172,6 +173,10 @@ function ProductDetailPage({ productId }: { productId?: string }) {
             />
             <section>
               <h1 className="text-3xl font-bold">{product.name}</h1>
+              <p className="mt-2 text-2xl font-bold text-accent">
+                {formatMoney(product.price, brand.locale, brand.currency) ??
+                  brand.copy.catalog.priceUnavailableLabel}
+              </p>
               <p className="mt-4 text-muted">{product.description}</p>
               <dl className="mt-5 grid gap-2 text-sm">
                 <div>

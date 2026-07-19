@@ -85,6 +85,7 @@ test('registers a tenant buyer and completes checkout and fulfillment', async ({
   await expectPageToBeAccessible(page);
   await page.getByLabel(`Quantity for ${product.name}`).selectOption('2');
   await expect(page.getByRole('status')).toHaveText('Cart quantity updated.');
+  await expect(page.getByText('Current cart quote: $1,798.00')).toBeVisible();
 
   const orderResponsePromise = page.waitForResponse(
     (response) =>
@@ -118,7 +119,9 @@ test('registers a tenant buyer and completes checkout and fulfillment', async ({
       sellerPage.getByRole('heading', { name: `Order ${order._id}` }),
     ).toBeVisible();
     await expectPageToBeAccessible(sellerPage);
-    await expect(sellerPage.getByText(`${product.name} × 2`)).toBeVisible();
+    await expect(
+      sellerPage.getByText(`${product.name} × 2 — $1,798.00`),
+    ).toBeVisible();
 
     for (const status of ['confirmed', 'shipped', 'delivered']) {
       const statusResponsePromise = sellerPage.waitForResponse(

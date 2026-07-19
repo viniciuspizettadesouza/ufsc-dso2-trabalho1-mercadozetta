@@ -2064,6 +2064,10 @@ export interface paths {
                          *           "category": "electronics",
                          *           "subcategory": "keyboards",
                          *           "inventory": 5,
+                         *           "price": {
+                         *             "currency": "USD",
+                         *             "amountMinor": "12999"
+                         *           },
                          *           "image": "https://example.com/keyboard.jpg",
                          *           "status": "active",
                          *           "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
@@ -2158,6 +2162,10 @@ export interface paths {
                          *           "category": "electronics",
                          *           "subcategory": "keyboards",
                          *           "inventory": 5,
+                         *           "price": {
+                         *             "currency": "USD",
+                         *             "amountMinor": "12999"
+                         *           },
                          *           "image": "https://example.com/keyboard.jpg",
                          *           "status": "active",
                          *           "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
@@ -2220,6 +2228,10 @@ export interface paths {
                      *       "category": "electronics",
                      *       "subcategory": "keyboards",
                      *       "inventory": 5,
+                     *       "price": {
+                     *         "currency": "USD",
+                     *         "amountMinor": "12999"
+                     *       },
                      *       "image": "https://example.com/keyboard.jpg",
                      *       "status": "active"
                      *     }
@@ -2243,6 +2255,10 @@ export interface paths {
                          *       "category": "electronics",
                          *       "subcategory": "keyboards",
                          *       "inventory": 5,
+                         *       "price": {
+                         *         "currency": "USD",
+                         *         "amountMinor": "12999"
+                         *       },
                          *       "image": "https://example.com/keyboard.jpg",
                          *       "status": "active",
                          *       "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
@@ -2262,7 +2278,7 @@ export interface paths {
                         "application/json": {
                             error: string;
                             /** @enum {string} */
-                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "IDEMPOTENCY_KEY_REQUIRED" | "INVALID_IDEMPOTENCY_KEY" | "INVALID_REQUEST" | "MISSING_PRODUCT_FIELDS" | "INVALID_PRODUCT_INVENTORY" | "INVALID_PRODUCT_STATUS" | "INVALID_PRODUCT_STATUS_INVENTORY" | "INVALID_PRODUCT_IMAGE_URL";
+                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "IDEMPOTENCY_KEY_REQUIRED" | "INVALID_IDEMPOTENCY_KEY" | "INVALID_REQUEST" | "MISSING_PRODUCT_FIELDS" | "INVALID_PRODUCT_INVENTORY" | "INVALID_PRODUCT_STATUS" | "INVALID_PRODUCT_STATUS_INVENTORY" | "INVALID_PRODUCT_PRICE" | "INVALID_PRODUCT_CURRENCY" | "INVALID_PRODUCT_IMAGE_URL";
                             details?: unknown;
                         };
                     };
@@ -2354,6 +2370,10 @@ export interface paths {
                          *       "category": "electronics",
                          *       "subcategory": "keyboards",
                          *       "inventory": 5,
+                         *       "price": {
+                         *         "currency": "USD",
+                         *         "amountMinor": "12999"
+                         *       },
                          *       "image": "https://example.com/keyboard.jpg",
                          *       "status": "active",
                          *       "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
@@ -2448,6 +2468,10 @@ export interface paths {
                          *       "category": "electronics",
                          *       "subcategory": "keyboards",
                          *       "inventory": 5,
+                         *       "price": {
+                         *         "currency": "USD",
+                         *         "amountMinor": "12999"
+                         *       },
                          *       "image": "https://example.com/keyboard.jpg",
                          *       "status": "active",
                          *       "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
@@ -2467,7 +2491,7 @@ export interface paths {
                         "application/json": {
                             error: string;
                             /** @enum {string} */
-                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "INVALID_REQUEST" | "INVALID_PRODUCT_ID" | "MISSING_PRODUCT_UPDATE_FIELDS" | "INVALID_PRODUCT_IMAGE_URL";
+                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "INVALID_REQUEST" | "INVALID_PRODUCT_ID" | "MISSING_PRODUCT_UPDATE_FIELDS" | "INVALID_PRODUCT_IMAGE_URL" | "INVALID_PRODUCT_PRICE" | "INVALID_PRODUCT_CURRENCY";
                             details?: unknown;
                         };
                     };
@@ -2574,6 +2598,10 @@ export interface paths {
                          *       "category": "electronics",
                          *       "subcategory": "keyboards",
                          *       "inventory": 5,
+                         *       "price": {
+                         *         "currency": "USD",
+                         *         "amountMinor": "12999"
+                         *       },
                          *       "image": "https://example.com/keyboard.jpg",
                          *       "status": "active",
                          *       "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
@@ -2701,6 +2729,10 @@ export interface paths {
                          *       "category": "electronics",
                          *       "subcategory": "keyboards",
                          *       "inventory": 5,
+                         *       "price": {
+                         *         "currency": "USD",
+                         *         "amountMinor": "12999"
+                         *       },
                          *       "image": "https://example.com/keyboard.jpg",
                          *       "status": "active",
                          *       "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
@@ -2776,7 +2808,7 @@ export interface paths {
                         "application/json": {
                             error: string;
                             /** @enum {string} */
-                            code: "PRODUCT_STATUS_TRANSITION_INVALID" | "PRODUCT_INVENTORY_REQUIRED";
+                            code: "PRODUCT_STATUS_TRANSITION_INVALID" | "PRODUCT_INVENTORY_REQUIRED" | "PRODUCT_PRICE_REQUIRED";
                             details?: unknown;
                         };
                     };
@@ -2912,6 +2944,10 @@ export interface paths {
                          *             "category": "electronics",
                          *             "subcategory": "keyboards",
                          *             "inventory": 5,
+                         *             "price": {
+                         *               "currency": "USD",
+                         *               "amountMinor": "12999"
+                         *             },
                          *             "image": "https://example.com/keyboard.jpg",
                          *             "status": "active",
                          *             "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
@@ -3209,6 +3245,10 @@ export interface paths {
                          *         "category": "electronics",
                          *         "subcategory": "keyboards",
                          *         "inventory": 5,
+                         *         "price": {
+                         *           "currency": "USD",
+                         *           "amountMinor": "12999"
+                         *         },
                          *         "image": "https://example.com/keyboard.jpg",
                          *         "status": "active",
                          *         "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
@@ -3460,6 +3500,23 @@ export interface paths {
                          *       "tenantId": "mercadozetta",
                          *       "buyer": "507f1f77-bcf8-4ecd-8994-390110000001",
                          *       "status": "placed",
+                         *       "pricingState": "priced",
+                         *       "subtotal": {
+                         *         "currency": "USD",
+                         *         "amountMinor": "12999"
+                         *       },
+                         *       "discount": {
+                         *         "currency": "USD",
+                         *         "amountMinor": "0"
+                         *       },
+                         *       "shipping": {
+                         *         "currency": "USD",
+                         *         "amountMinor": "0"
+                         *       },
+                         *       "total": {
+                         *         "currency": "USD",
+                         *         "amountMinor": "12999"
+                         *       },
                          *       "statusHistory": [
                          *         {
                          *           "status": "placed",
@@ -3474,7 +3531,16 @@ export interface paths {
                          *           "product": "507f191e-810c-4197-9de8-60ea00000001",
                          *           "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
                          *           "productName": "mechanical keyboard",
-                         *           "quantity": 1
+                         *           "quantity": 1,
+                         *           "pricingState": "priced",
+                         *           "unitPrice": {
+                         *             "currency": "USD",
+                         *             "amountMinor": "12999"
+                         *           },
+                         *           "lineSubtotal": {
+                         *             "currency": "USD",
+                         *             "amountMinor": "12999"
+                         *           }
                          *         }
                          *       ],
                          *       "createdAt": "2026-07-13T10:00:00.000Z",
@@ -3526,7 +3592,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description A cart item is unavailable */
+                /** @description A cart item is unavailable or the order amount is invalid */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -3535,7 +3601,7 @@ export interface paths {
                         "application/json": {
                             error: string;
                             /** @enum {string} */
-                            code: "INSUFFICIENT_INVENTORY";
+                            code: "INSUFFICIENT_INVENTORY" | "PRODUCT_PRICE_REQUIRED" | "ORDER_TOTAL_LIMIT_EXCEEDED";
                             details?: unknown;
                         };
                     };
@@ -3587,7 +3653,13 @@ export interface paths {
                          *         "inventoryUnits": 0,
                          *         "orderCount": 0,
                          *         "openOrderCount": 0,
-                         *         "orderedUnits": 0
+                         *         "orderedUnits": 0,
+                         *         "pricedOrderCount": 0,
+                         *         "legacyUnpricedOrderCount": 0,
+                         *         "grossRevenue": {
+                         *           "currency": "USD",
+                         *           "amountMinor": "0"
+                         *         }
                          *       },
                          *       "lowStockProducts": [],
                          *       "inventoryHistory": {
@@ -3693,6 +3765,23 @@ export interface paths {
                          *       "tenantId": "mercadozetta",
                          *       "buyer": "507f1f77-bcf8-4ecd-8994-390110000001",
                          *       "status": "shipped",
+                         *       "pricingState": "priced",
+                         *       "subtotal": {
+                         *         "currency": "USD",
+                         *         "amountMinor": "12999"
+                         *       },
+                         *       "discount": {
+                         *         "currency": "USD",
+                         *         "amountMinor": "0"
+                         *       },
+                         *       "shipping": {
+                         *         "currency": "USD",
+                         *         "amountMinor": "0"
+                         *       },
+                         *       "total": {
+                         *         "currency": "USD",
+                         *         "amountMinor": "12999"
+                         *       },
                          *       "statusHistory": [
                          *         {
                          *           "status": "placed",
@@ -3712,7 +3801,16 @@ export interface paths {
                          *           "product": "507f191e-810c-4197-9de8-60ea00000001",
                          *           "seller": "507f1f77-bcf8-4ecd-8994-390110000001",
                          *           "productName": "mechanical keyboard",
-                         *           "quantity": 1
+                         *           "quantity": 1,
+                         *           "pricingState": "priced",
+                         *           "unitPrice": {
+                         *             "currency": "USD",
+                         *             "amountMinor": "12999"
+                         *           },
+                         *           "lineSubtotal": {
+                         *             "currency": "USD",
+                         *             "amountMinor": "12999"
+                         *           }
                          *         }
                          *       ],
                          *       "createdAt": "2026-07-13T10:00:00.000Z",
@@ -4337,6 +4435,10 @@ export interface components {
              * @enum {string}
              */
             status: "draft" | "active" | "paused" | "sold_out" | "archived";
+            price: {
+                currency: string;
+                amountMinor: string;
+            };
         } | unknown | unknown;
         /**
          * Format: uuid
@@ -4349,6 +4451,10 @@ export interface components {
             category?: string;
             subcategory?: string;
             image?: string;
+            price?: {
+                currency: string;
+                amountMinor: string;
+            };
         };
         CartItemRequest: {
             productId: components["schemas"]["ResourceId"];
@@ -4458,6 +4564,10 @@ export interface components {
             category: string;
             subcategory: string;
             inventory: number;
+            price: {
+                currency: string;
+                amountMinor: string;
+            } | null;
             image: string;
             /** @enum {string} */
             status: "draft" | "active" | "paused" | "sold_out" | "archived";
@@ -4527,6 +4637,24 @@ export interface components {
              */
             buyer: string;
             status: components["schemas"]["OrderStatus"];
+            /** @enum {string} */
+            pricingState: "legacy_unpriced" | "priced";
+            subtotal: {
+                currency: string;
+                amountMinor: string;
+            } | null;
+            discount: {
+                currency: string;
+                amountMinor: string;
+            } | null;
+            shipping: {
+                currency: string;
+                amountMinor: string;
+            } | null;
+            total: {
+                currency: string;
+                amountMinor: string;
+            } | null;
             statusHistory: components["schemas"]["OrderStatusHistoryEntry"][];
             items: components["schemas"]["OrderItem"][];
             /** Format: date-time */
@@ -4563,6 +4691,16 @@ export interface components {
             seller: string;
             productName: string;
             quantity: number;
+            /** @enum {string} */
+            pricingState: "legacy_unpriced" | "priced";
+            unitPrice: {
+                currency: string;
+                amountMinor: string;
+            } | null;
+            lineSubtotal: {
+                currency: string;
+                amountMinor: string;
+            } | null;
         };
         SellerOperations: {
             summary: {
@@ -4573,6 +4711,12 @@ export interface components {
                 orderCount: number;
                 openOrderCount: number;
                 orderedUnits: number;
+                pricedOrderCount: number;
+                legacyUnpricedOrderCount: number;
+                grossRevenue: {
+                    currency: string;
+                    amountMinor: string;
+                };
             };
             lowStockProducts: {
                 /**

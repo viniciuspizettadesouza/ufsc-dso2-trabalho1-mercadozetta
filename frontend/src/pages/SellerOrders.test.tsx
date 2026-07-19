@@ -54,6 +54,9 @@ describe('SellerOrders', () => {
               orderCount: 3,
               openOrderCount: 1,
               orderedUnits: 4,
+              pricedOrderCount: 2,
+              legacyUnpricedOrderCount: 1,
+              grossRevenue: { currency: 'USD', amountMinor: '3750' },
             },
             lowStockProducts: [
               {
@@ -93,13 +96,25 @@ describe('SellerOrders', () => {
             changedAt: '2026-07-13T10:00:00.000Z',
           },
         ],
-        items: [{ productName: 'Coffee', quantity: 2, seller: 'seller-1' }],
+        items: [
+          {
+            productName: 'Coffee',
+            quantity: 2,
+            seller: 'seller-1',
+            lineSubtotal: { currency: 'USD', amountMinor: '2500' },
+          },
+        ],
       },
     ]);
 
     renderSellerOrders();
 
-    expect(await screen.findByText('Coffee × 2')).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        (_content, node) =>
+          node?.tagName === 'LI' && node.textContent === 'Coffee × 2 — $25.00',
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByText('Tea × 1')).not.toBeInTheDocument();
     expect(screen.getByText(/placed by buyer-1 at/)).toBeInTheDocument();
     expect(
@@ -107,6 +122,16 @@ describe('SellerOrders', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Coffee: 2 remaining')).toBeInTheDocument();
     expect(screen.getByText('Coffee: 3 → 2')).toBeInTheDocument();
+    expect(screen.getByText('$37.50')).toBeInTheDocument();
+    expect(
+      screen.getByText('Gross revenue (non-cancelled priced orders)'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Priced orders').parentElement).toHaveTextContent(
+      '2',
+    );
+    expect(
+      screen.getByText('Legacy unpriced orders').parentElement,
+    ).toHaveTextContent('1');
 
     await userEvent.type(screen.getByLabelText('Search orders'), 'Coffee');
     await userEvent.selectOptions(screen.getByLabelText('Status'), 'placed');

@@ -16,6 +16,8 @@ describe('tenantMiddleware', () => {
       expect.objectContaining({
         id: 'mercadozetta',
         name: 'MercadoZetta',
+        currencyCode: 'USD',
+        currencyMinorUnit: 2,
       }),
     );
     expect(next).toHaveBeenCalledWith();
@@ -31,6 +33,8 @@ describe('tenantMiddleware', () => {
       expect.objectContaining({
         id: 'campus-market',
         name: 'CampusMarket',
+        currencyCode: 'USD',
+        currencyMinorUnit: 2,
       }),
     );
     expect(next).toHaveBeenCalledWith();

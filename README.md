@@ -213,8 +213,11 @@ For a basic smoke test:
 3. Add an in-stock product to the watchlist and cart.
 4. Open `/checkout`, change a quantity, and place an order.
 5. Open `/seller/orders` as a seller and verify only that seller's line items
-   are shown with the permitted next fulfillment action.
-6. Return as the buyer to inspect order history and notifications.
+   and immutable line subtotals are shown with the permitted next fulfillment
+   action. The operations summary reports non-cancelled priced-order gross
+   revenue and counts legacy unpriced orders separately.
+6. Return as the buyer to inspect the immutable order total, history, and
+   notifications.
 
 The frontend also exposes `/products/new` for authenticated product creation
 and `/products/:productId/edit` for owner-only detail, inventory, and lifecycle

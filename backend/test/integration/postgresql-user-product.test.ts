@@ -26,6 +26,7 @@ import {
   orders,
   orderStatusHistory,
   products,
+  productPriceHistory,
   pendingEmailChanges,
   reviews,
   mutationIdempotency,
@@ -236,7 +237,7 @@ describe('PostgreSQL user and product repositories', () => {
     await db.delete(pendingEmailChanges);
     await db.delete(accountTokens);
     await db.delete(orderStatusHistory);
-    await db.delete(orderItems);
+    await pool.query('truncate table product_price_history, order_items');
     await db.delete(orders);
     await db.delete(cartItems);
     await db.delete(carts);
@@ -1205,6 +1206,7 @@ describe('PostgreSQL user and product repositories', () => {
       inventory: 2,
       image: 'active-obligation.png',
       status: 'active',
+      price: { currency: 'USD', amountMinor: '1000' },
     });
     const orderId = randomUUID();
     const orderedAt = new Date('2026-07-19T15:00:00.000Z');
@@ -1282,6 +1284,7 @@ describe('PostgreSQL user and product repositories', () => {
       inventory: 7,
       image: 'retained-target.png',
       status: 'active',
+      price: { currency: 'USD', amountMinor: '1000' },
     });
     const alreadyArchived = await productRepository.create({
       tenantId: 'mercadozetta',
@@ -1293,6 +1296,7 @@ describe('PostgreSQL user and product repositories', () => {
       inventory: 4,
       image: 'already-archived.png',
       status: 'archived',
+      price: { currency: 'USD', amountMinor: '1000' },
     });
     const campusProduct = await productRepository.create({
       tenantId: 'campus-market',
@@ -1304,6 +1308,7 @@ describe('PostgreSQL user and product repositories', () => {
       inventory: 5,
       image: 'campus-retained.png',
       status: 'active',
+      price: { currency: 'USD', amountMinor: '1000' },
     });
     const historyAt = new Date('2026-07-19T15:10:00.000Z');
     const orderId = randomUUID();
@@ -1580,6 +1585,7 @@ describe('PostgreSQL user and product repositories', () => {
       inventory: 3,
       image: 'rollback-listing.png',
       status: 'active',
+      price: { currency: 'USD', amountMinor: '1000' },
     });
     await cartService.setCartItem(target._id, 'mercadozetta', product._id, 1);
     await watchlistService.addWatchlist(
@@ -2180,6 +2186,7 @@ describe('PostgreSQL user and product repositories', () => {
       name: ' Keyboard ',
       description: 'Mechanical keyboard',
       inventory: 2,
+      price: { currency: 'USD', amountMinor: '7500' },
       image: 'keyboard.png',
     };
     const product = await productService.createProduct(
@@ -2218,8 +2225,33 @@ describe('PostgreSQL user and product repositories', () => {
       name: 'keyboard',
       image: 'keyboard.png',
       inventory: 2,
+      price: { currency: 'USD', amountMinor: '7500' },
       status: 'active',
     });
+    expect(
+      await db
+        .select()
+        .from(productPriceHistory)
+        .where(eq(productPriceHistory.productId, product._id)),
+    ).toHaveLength(1);
+    await productService.updateProduct(
+      product._id,
+      { price: { currency: 'USD', amountMinor: '8000' } },
+      seller._id,
+      'mercadozetta',
+    );
+    await productService.updateProduct(
+      product._id,
+      { price: { currency: 'USD', amountMinor: '8000' } },
+      seller._id,
+      'mercadozetta',
+    );
+    expect(
+      await db
+        .select()
+        .from(productPriceHistory)
+        .where(eq(productPriceHistory.productId, product._id)),
+    ).toHaveLength(2);
     await expect(
       productService.getProductById(product._id, 'campus-market'),
     ).resolves.toBeNull();
@@ -2231,7 +2263,12 @@ describe('PostgreSQL user and product repositories', () => {
 
     try {
       await productService.createProduct(
-        { name: 'Desk', inventory: 1, image: 'desk.png' },
+        {
+          name: 'Desk',
+          inventory: 1,
+          price: { currency: 'USD', amountMinor: '10000' },
+          image: 'desk.png',
+        },
         otherTenantSeller._id,
         'mercadozetta',
         randomUUID(),
@@ -2260,6 +2297,7 @@ describe('PostgreSQL user and product repositories', () => {
         category: 'Peripherals',
         subcategory: 'Keyboards',
         inventory: 3,
+        price: { currency: 'USD', amountMinor: '7500' },
         image: 'keyboard.png',
       },
       seller._id,
@@ -2273,6 +2311,7 @@ describe('PostgreSQL user and product repositories', () => {
         category: 'Peripherals',
         subcategory: 'Cables',
         inventory: 0,
+        price: { currency: 'USD', amountMinor: '1500' },
         image: 'cable.png',
         status: 'sold_out',
       },
@@ -2287,6 +2326,7 @@ describe('PostgreSQL user and product repositories', () => {
         category: 'Furniture',
         subcategory: 'Desks',
         inventory: 5,
+        price: { currency: 'USD', amountMinor: '25000' },
         image: 'desk.png',
         status: 'paused',
       },
@@ -2299,6 +2339,7 @@ describe('PostgreSQL user and product repositories', () => {
         name: 'Mouse',
         category: 'Peripherals',
         inventory: 9,
+        price: { currency: 'USD', amountMinor: '2500' },
         image: 'mouse.png',
       },
       otherSeller._id,
@@ -2310,6 +2351,7 @@ describe('PostgreSQL user and product repositories', () => {
         name: 'Campus keyboard',
         category: 'Peripherals',
         inventory: 99,
+        price: { currency: 'USD', amountMinor: '6000' },
         image: 'campus-keyboard.png',
       },
       campusSeller._id,
@@ -2449,7 +2491,12 @@ describe('PostgreSQL user and product repositories', () => {
       .set('Origin', 'http://localhost:5173')
       .set('X-CSRF-Token', sellerAuth.csrf!)
       .set('Idempotency-Key', randomUUID())
-      .send({ name: 'Managed', inventory: 2, image: 'managed.png' })
+      .send({
+        name: 'Managed',
+        inventory: 2,
+        price: { currency: 'USD', amountMinor: '4500' },
+        image: 'managed.png',
+      })
       .expect(201);
     const productId = created.body._id;
 
@@ -2606,6 +2653,7 @@ describe('PostgreSQL user and product repositories', () => {
         name: 'HTTP PostgreSQL product',
         description: 'Created through composed routes',
         inventory: 2,
+        price: { currency: 'USD', amountMinor: '4500' },
         image: 'postgres-http.png',
       })
       .expect(201);
@@ -2885,6 +2933,7 @@ describe('PostgreSQL user and product repositories', () => {
       inventory: 1,
       image: 'final-unit.png',
       status: 'active',
+      price: { currency: 'USD', amountMinor: '1000' },
     });
 
     await expect(
@@ -2941,6 +2990,7 @@ describe('PostgreSQL user and product repositories', () => {
       {
         name: 'Operations keyboard',
         inventory: 4,
+        price: { currency: 'USD', amountMinor: '8500' },
         image: 'operations-keyboard.png',
       },
       seller._id,
@@ -2991,6 +3041,9 @@ describe('PostgreSQL user and product repositories', () => {
         orderCount: 1,
         openOrderCount: 1,
         orderedUnits: 3,
+        pricedOrderCount: 0,
+        legacyUnpricedOrderCount: 1,
+        grossRevenue: { currency: 'USD', amountMinor: '0' },
       },
       lowStockProducts: [{ _id: product._id, inventory: 2 }],
       inventoryHistory: {
@@ -3011,7 +3064,15 @@ describe('PostgreSQL user and product repositories', () => {
         limit: 20,
         offset: 0,
       }),
-    ).resolves.toMatchObject({ summary: { productCount: 0, orderCount: 0 } });
+    ).resolves.toMatchObject({
+      summary: {
+        productCount: 0,
+        orderCount: 0,
+        pricedOrderCount: 0,
+        legacyUnpricedOrderCount: 0,
+        grossRevenue: { currency: 'USD', amountMinor: '0' },
+      },
+    });
     await expect(
       orderService.listOrders(seller._id, 'mercadozetta', {
         limit: 20,
@@ -3052,6 +3113,7 @@ describe('PostgreSQL user and product repositories', () => {
       inventory: 1,
       image: 'final-unit.png',
       status: 'active',
+      price: { currency: 'USD', amountMinor: '1000' },
     });
     const buyerCarts = await Promise.all(
       [firstBuyer, secondBuyer].map(async (buyer) => {
@@ -3101,6 +3163,11 @@ describe('PostgreSQL user and product repositories', () => {
     expect(placedOrder.value).toMatchObject({
       tenantId: 'mercadozetta',
       status: 'placed',
+      pricingState: 'priced',
+      subtotal: { currency: 'USD', amountMinor: '1000' },
+      discount: { currency: 'USD', amountMinor: '0' },
+      shipping: { currency: 'USD', amountMinor: '0' },
+      total: { currency: 'USD', amountMinor: '1000' },
       items: [
         {
           tenantId: 'mercadozetta',
@@ -3109,6 +3176,9 @@ describe('PostgreSQL user and product repositories', () => {
           seller: seller._id,
           productName: 'concurrent final unit',
           quantity: 1,
+          pricingState: 'priced',
+          unitPrice: { currency: 'USD', amountMinor: '1000' },
+          lineSubtotal: { currency: 'USD', amountMinor: '1000' },
         },
       ],
       createdAt: expect.any(Date),
@@ -3132,6 +3202,15 @@ describe('PostgreSQL user and product repositories', () => {
     ]);
     expect(storedProduct?.inventory).toBe(0);
     expect(storedOrders).toHaveLength(1);
+    expect(storedOrders[0]).toMatchObject({
+      pricingState: 'priced',
+      currencyCode: 'USD',
+      currencyMinorUnit: 2,
+      subtotalMinor: 1000n,
+      discountMinor: 0n,
+      shippingMinor: 0n,
+      totalMinor: 1000n,
+    });
     expect(storedItems).toMatchObject([
       {
         orderId: storedOrders[0].id,
@@ -3139,6 +3218,9 @@ describe('PostgreSQL user and product repositories', () => {
         sellerId: seller._id,
         productName: 'concurrent final unit',
         quantity: 1,
+        pricingState: 'priced',
+        unitPriceMinor: 1000n,
+        lineSubtotalMinor: 1000n,
       },
     ]);
     expect(storedHistory).toMatchObject([
@@ -3174,6 +3256,12 @@ describe('PostgreSQL user and product repositories', () => {
     const winningAttempt = buyerCarts.find(
       ({ buyerId }) => buyerId === storedOrders[0].buyerId,
     )!;
+    await productService.updateProduct(
+      product._id,
+      { price: { currency: 'USD', amountMinor: '2500' } },
+      seller._id,
+      'mercadozetta',
+    );
     await expect(
       checkoutService.createOrder(
         winningAttempt.buyerId,
@@ -3181,6 +3269,19 @@ describe('PostgreSQL user and product repositories', () => {
         winningAttempt.idempotencyKey,
       ),
     ).resolves.toEqual(placedOrder.value);
+    await expect(
+      sellerOperationsService.getSellerOperations(seller._id, 'mercadozetta', {
+        lowStockThreshold: 2,
+        limit: 20,
+        offset: 0,
+      }),
+    ).resolves.toMatchObject({
+      summary: {
+        pricedOrderCount: 1,
+        legacyUnpricedOrderCount: 0,
+        grossRevenue: { currency: 'USD', amountMinor: '1000' },
+      },
+    });
     await expect(
       Promise.all([
         db.select().from(orders),
@@ -3295,6 +3396,25 @@ describe('PostgreSQL user and product repositories', () => {
       ),
     ).rejects.toMatchObject({ code: 'NOTIFICATION_NOT_FOUND' });
 
+    await orderService.updateOrderStatus(
+      storedOrders[0].buyerId,
+      'mercadozetta',
+      storedOrders[0].id,
+      'cancelled',
+    );
+    await expect(
+      sellerOperationsService.getSellerOperations(seller._id, 'mercadozetta', {
+        lowStockThreshold: 2,
+        limit: 20,
+        offset: 0,
+      }),
+    ).resolves.toMatchObject({
+      summary: {
+        pricedOrderCount: 1,
+        grossRevenue: { currency: 'USD', amountMinor: '0' },
+      },
+    });
+
     await expect(
       cartService.getCart(losingCart!.buyerId, 'mercadozetta'),
     ).resolves.toMatchObject({ items: [{ quantity: 1 }] });
@@ -3328,6 +3448,7 @@ describe('PostgreSQL user and product repositories', () => {
       inventory: 3,
       image: 'reviewable.png',
       status: 'active',
+      price: { currency: 'USD', amountMinor: '1000' },
     });
 
     const firstWatch = await watchlistService.addWatchlist(

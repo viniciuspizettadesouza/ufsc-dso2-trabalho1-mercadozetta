@@ -30,8 +30,16 @@ export const appErrorExamples = {
     code: 'INVALID_SELLER_ID',
   },
   MISSING_PRODUCT_FIELDS: {
-    error: 'Name, quantity and image are required',
+    error: 'Name, quantity, price and image are required',
     code: 'MISSING_PRODUCT_FIELDS',
+  },
+  INVALID_PRODUCT_PRICE: {
+    error: 'Product price must use canonical bounded minor units',
+    code: 'INVALID_PRODUCT_PRICE',
+  },
+  INVALID_PRODUCT_CURRENCY: {
+    error: 'Product price currency must match the tenant currency',
+    code: 'INVALID_PRODUCT_CURRENCY',
   },
   INVALID_PRODUCT_INVENTORY: {
     error: 'Quantity must be a non-negative integer',
@@ -228,6 +236,10 @@ export const appErrorExamples = {
     error: 'Insufficient product inventory',
     code: 'INSUFFICIENT_INVENTORY',
   },
+  ORDER_TOTAL_LIMIT_EXCEEDED: {
+    error: 'Order amount exceeds the supported limit',
+    code: 'ORDER_TOTAL_LIMIT_EXCEEDED',
+  },
   REVIEW_FORBIDDEN: {
     error: 'Sellers cannot review their own products',
     code: 'REVIEW_FORBIDDEN',
@@ -269,6 +281,10 @@ export const appErrorExamples = {
   PRODUCT_INVENTORY_REQUIRED: {
     error: 'Active products require inventory',
     code: 'PRODUCT_INVENTORY_REQUIRED',
+  },
+  PRODUCT_PRICE_REQUIRED: {
+    error: 'Active products require a price',
+    code: 'PRODUCT_PRICE_REQUIRED',
   },
   INVALID_RESOURCE_ID: {
     error: 'Invalid resource id',

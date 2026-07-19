@@ -14,6 +14,8 @@ function repository(
     create: vi.fn(),
     updateOwned: vi.fn().mockResolvedValue(null),
     findById: vi.fn().mockResolvedValue(null),
+    findByIdForUpdate: vi.fn().mockResolvedValue(null),
+    appendPriceHistory: vi.fn().mockResolvedValue(undefined),
     findActiveById: vi.fn().mockResolvedValue(null),
     findByIds: vi.fn().mockResolvedValue([]),
     findByIdsForUpdate: vi.fn().mockResolvedValue([]),
@@ -38,6 +40,7 @@ const products = [
     image: 'mouse.png',
     status: 'active' as const,
     inventory: 5,
+    price: { currency: 'USD', amountMinor: '2500' },
     createdAt: new Date('2024-01-02T00:00:00.000Z'),
   },
   {
@@ -51,6 +54,7 @@ const products = [
     image: 'keyboard.png',
     status: 'sold_out' as const,
     inventory: 0,
+    price: { currency: 'USD', amountMinor: '5000' },
     createdAt: new Date('2024-01-03T00:00:00.000Z'),
   },
   {
@@ -64,6 +68,7 @@ const products = [
     image: 'desk.png',
     status: 'paused' as const,
     inventory: 2,
+    price: { currency: 'USD', amountMinor: '10000' },
     createdAt: new Date('2024-01-01T00:00:00.000Z'),
   },
 ];
@@ -91,6 +96,7 @@ function service(productRepository: ProductRepository, profile = vi.fn()) {
       transactions,
     ),
     auditRepository: audits,
+    idempotencyRepository: idempotency,
   };
 }
 
@@ -176,11 +182,19 @@ describe('productService', () => {
 
   it('creates products with validated payload, seller, and tenant', async () => {
     const create = vi.fn().mockResolvedValue({ _id: 'product-1' });
-    const { createProduct } = service(repository({ create }));
+    const appendPriceHistory = vi.fn().mockResolvedValue(undefined);
+    const { createProduct } = service(
+      repository({ create, appendPriceHistory }),
+    );
 
     await expect(
       createProduct(
-        { name: ' Keyboard ', inventory: '2', image: 'keyboard.png' },
+        {
+          name: ' Keyboard ',
+          inventory: '2',
+          price: { currency: 'USD', amountMinor: '2500' },
+          image: 'keyboard.png',
+        },
         sellerId,
         'campus-market',
         idempotencyKey,
@@ -192,11 +206,69 @@ describe('productService', () => {
       category: 'general',
       subcategory: '',
       inventory: 2,
+      price: { currency: 'USD', amountMinor: '2500' },
       image: 'keyboard.png',
       status: 'active',
       seller: sellerId,
       tenantId: 'campus-market',
     });
+    expect(appendPriceHistory).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: 'campus-market',
+        productId: 'product-1',
+        actorId: sellerId,
+        price: { currency: 'USD', amountMinor: '2500' },
+      }),
+    );
+  });
+
+  it('appends only changed tenant-currency prices inside the product transaction', async () => {
+    const updateOwned = vi
+      .fn()
+      .mockImplementation(async (_tenant, _product, _seller, update) => ({
+        ...products[0],
+        ...update,
+      }));
+    const appendPriceHistory = vi.fn().mockResolvedValue(undefined);
+    const productRepository = repository({
+      findByIdForUpdate: vi.fn().mockResolvedValue(products[0]),
+      updateOwned,
+      appendPriceHistory,
+    });
+    const { updateProduct } = service(productRepository);
+
+    await updateProduct(
+      productId,
+      { price: { currency: 'USD', amountMinor: '3000' } },
+      sellerId,
+      'mercadozetta',
+    );
+    expect(appendPriceHistory).toHaveBeenCalledTimes(1);
+    expect(appendPriceHistory).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: 'mercadozetta',
+        productId,
+        actorId: sellerId,
+        price: { currency: 'USD', amountMinor: '3000' },
+      }),
+    );
+
+    await updateProduct(
+      productId,
+      { price: products[0].price },
+      sellerId,
+      'mercadozetta',
+    );
+    expect(appendPriceHistory).toHaveBeenCalledTimes(1);
+
+    await expect(
+      updateProduct(
+        productId,
+        { price: { currency: 'EUR', amountMinor: '3000' } },
+        sellerId,
+        'mercadozetta',
+      ),
+    ).rejects.toMatchObject({ code: 'INVALID_PRODUCT_CURRENCY' });
   });
 
   it('returns product detail with seller profile when available', async () => {
@@ -271,7 +343,7 @@ describe('productService', () => {
     });
     const { updateProduct } = service(
       repository({
-        findById: vi.fn().mockResolvedValue({
+        findByIdForUpdate: vi.fn().mockResolvedValue({
           ...products[0],
           _id: productId,
         }),
@@ -303,7 +375,7 @@ describe('productService', () => {
   it('denies product management to other sellers and tenants', async () => {
     const { updateProduct } = service(
       repository({
-        findById: vi.fn().mockResolvedValue({
+        findByIdForUpdate: vi.fn().mockResolvedValue({
           ...products[0],
           _id: productId,
         }),

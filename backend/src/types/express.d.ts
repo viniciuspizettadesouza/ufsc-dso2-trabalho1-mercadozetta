@@ -10,7 +10,13 @@ declare global {
         params?: ValidatedValue;
         query?: ValidatedValue;
       };
-      tenant?: { id: string; name: string; active: boolean };
+      tenant?: {
+        id: string;
+        name: string;
+        active: boolean;
+        currencyCode: string;
+        currencyMinorUnit: number;
+      };
       userId?: string;
       sessionId?: string;
     }
