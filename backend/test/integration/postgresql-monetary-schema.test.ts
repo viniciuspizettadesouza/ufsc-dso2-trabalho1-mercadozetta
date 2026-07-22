@@ -39,6 +39,7 @@ async function clearPostgres() {
     orders,
     cart_items,
     carts,
+    delivery_addresses,
     products,
     users`);
 }
