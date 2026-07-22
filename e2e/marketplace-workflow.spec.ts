@@ -150,11 +150,14 @@ test('registers a tenant buyer and completes checkout and fulfillment', async ({
   await expect(
     page.getByRole('heading', { name: 'Order history' }),
   ).toBeVisible();
-  await expect(
-    page.getByText(new RegExp(`${order._id} \\(placed\\)`)),
-  ).toBeVisible();
-  await expect(page.getByText(/Delivery snapshot:/)).toHaveText(
-    /E2E Buyer, 10 Market Street, Lisbon, 1000-001, PT.*3–5 business days/,
+  const placedOrder = page.getByRole('listitem').filter({ hasText: order._id });
+  await expect(placedOrder).toContainText(`${order._id} (placed)`);
+  await expect(placedOrder).toContainText('Delivery snapshot:');
+  await expect(placedOrder).toContainText(
+    'E2E Buyer, 10 Market Street, Lisbon, 1000-001, PT.',
+  );
+  await expect(placedOrder).toContainText(
+    'Standard demo delivery — 3–5 business days (demo estimate)',
   );
 
   await page.goto(`/products/${product.id}`);
