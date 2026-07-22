@@ -2,6 +2,7 @@ import type { components } from '@/contracts/api';
 import { withPage } from '@/pagination';
 import { apiRoutes } from '@/routes';
 import api from '@/services/api';
+import type { CheckoutOrderInput } from '@/services/delivery';
 
 export type Order = components['schemas']['Order'];
 export type OrderStatus = components['schemas']['OrderStatus'];
@@ -24,8 +25,11 @@ export async function listOrders(
   return response.data;
 }
 
-export async function createOrder(idempotencyKey: string): Promise<Order> {
-  const response = await api.post<Order>(apiRoutes.orders, undefined, {
+export async function createOrder(
+  idempotencyKey: string,
+  input: CheckoutOrderInput,
+): Promise<Order> {
+  const response = await api.post<Order>(apiRoutes.orders, input, {
     headers: { 'Idempotency-Key': idempotencyKey },
   });
   return response.data;

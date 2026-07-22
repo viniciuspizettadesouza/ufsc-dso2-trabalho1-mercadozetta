@@ -10,7 +10,16 @@ describe('routes', () => {
     expect(appRoutes.newProduct).toBe('/products/new');
     expect(appRoutes.editProduct('product-1')).toBe('/products/product-1/edit');
     expect(appRoutes.productDetail('product-1')).toBe('/products/product-1');
+    expect(appRoutes.cart).toBe('/cart');
     expect(appRoutes.checkout).toBe('/checkout');
+    expect(appRoutes.buyerOrders).toBe('/orders');
+    expect(appRoutes.addresses).toBe('/account/addresses');
+    expect(appRoutes.passwordReset).toBe('/password-reset');
+    expect(appRoutes.passwordResetConfirmation).toBe('/password-reset/confirm');
+    expect(appRoutes.emailVerification).toBe('/email-verification');
+    expect(appRoutes.emailVerificationConfirmation).toBe(
+      '/email-verification/confirm',
+    );
     expect(appRoutes.notifications).toBe('/notifications');
     expect(appRoutes.sellerOrders).toBe('/seller/orders');
     expect(appRoutes.account).toBe('/account');
@@ -30,7 +39,18 @@ describe('routes', () => {
     expect(routePatterns.newProduct).toBe('/products/new');
     expect(routePatterns.editProduct).toBe('/products/:productId/edit');
     expect(routePatterns.productDetail).toBe('/products/:productId');
+    expect(routePatterns.cart).toBe('/cart');
     expect(routePatterns.checkout).toBe('/checkout');
+    expect(routePatterns.buyerOrders).toBe('/orders');
+    expect(routePatterns.addresses).toBe('/account/addresses');
+    expect(routePatterns.passwordReset).toBe('/password-reset');
+    expect(routePatterns.passwordResetConfirmation).toBe(
+      '/password-reset/confirm',
+    );
+    expect(routePatterns.emailVerification).toBe('/email-verification');
+    expect(routePatterns.emailVerificationConfirmation).toBe(
+      '/email-verification/confirm',
+    );
     expect(routePatterns.notifications).toBe('/notifications');
     expect(routePatterns.sellerOrders).toBe('/seller/orders');
     expect(routePatterns.account).toBe('/account');
@@ -71,5 +91,10 @@ describe('routes', () => {
       '/auth/email-change/confirmations',
     );
     expect(apiRoutes.accountDeactivation).toBe('/account/deactivation');
+    expect(apiRoutes.checkoutQuote).toBe('/checkout/quote');
+    expect(apiRoutes.deliveryAddresses).toBe('/account/addresses');
+    expect(apiRoutes.deliveryAddress('address-1')).toBe(
+      '/account/addresses/address-1',
+    );
   });
 });

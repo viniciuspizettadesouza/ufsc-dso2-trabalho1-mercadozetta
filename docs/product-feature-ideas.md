@@ -16,8 +16,8 @@ selected for the active implementation roadmap.
   rejected or deferred ideas so later agents can understand that they were
   considered.
 
-Snapshot date: 2026-07-19. Statuses are based on the repository after completed
-Steps 1–15 and must be reverified when revisited.
+Snapshot date: 2026-07-22. Statuses are based on the repository after completed
+Step 17 and must be reverified when revisited.
 
 ## Product direction
 
@@ -191,8 +191,8 @@ are already valuable parts of MercadoZetta.
 | Product ratings and comments  | ✅     | Basic review list and submission                              |
 | Questions and answers         | ○      | Later; moderation and seller notifications required           |
 | Return-policy summary         | ○      | V1 before live payments                                       |
-| Delivery estimate             | ○      | V1 with shipping quote                                        |
-| Shipping quote by postal code | ○      | V1; Portuguese postal-address support                         |
+| Delivery estimate             | ◐      | Deterministic demo estimate; no live carrier                  |
+| Shipping quote by postal code | ◐      | Deterministic PT/US syntax-based demo quote                   |
 | Security/trust seals          | —      | Avoid unverifiable decorative seals; explain real protections |
 | Warranty highlight            | ○      | Conditional on a real seller/product warranty                 |
 | Related products              | ○      | Next; begin with explainable category signals                 |
@@ -203,26 +203,26 @@ are already valuable parts of MercadoZetta.
 
 ## 7. Cart user experience
 
-| Idea                                | Status | Horizon and notes                                         |
-| ----------------------------------- | ------ | --------------------------------------------------------- |
-| Persistent cart                     | ✅     | Authenticated PostgreSQL cart                             |
-| Dedicated cart page                 | ○      | V1; currently mixed with checkout/history                 |
-| Header cart count/link              | ◐      | Collection state exists; complete navigation needs review |
-| Update quantity                     | ✅     | Existing                                                  |
-| Remove item                         | ✅     | Existing                                                  |
-| Item image and product link in cart | ○      | V1 UI improvement                                         |
-| Per-line price/subtotal             | ✅     | Existing text presentation                                |
-| Order estimate/summary              | ✅     | Current exact quote                                       |
-| Unavailable-item recovery           | ◐      | Blocking warning exists; stronger recovery UI is needed   |
-| Save for later                      | ◐      | Wishlist exists but no transfer action                    |
-| Move between cart and favorites     | ○      | Next                                                      |
-| Apply coupon                        | ○      | Later after promotion domain                              |
-| Shipping estimate in cart           | ○      | V1 after address/postal code and shipping adapter         |
-| Estimated delivery                  | ○      | V1                                                        |
-| Recommended products in cart        | ○      | Later                                                     |
-| Free-shipping progress bar          | ○      | Later after promotion/shipping threshold exists           |
-| Express/quick checkout              | ○      | Later; preserve review and payment safety                 |
-| Guest cart persistence              | ○      | Conditional; privacy and merge-on-login rules required    |
+| Idea                                | Status | Horizon and notes                                       |
+| ----------------------------------- | ------ | ------------------------------------------------------- |
+| Persistent cart                     | ✅     | Authenticated PostgreSQL cart                           |
+| Dedicated cart page                 | ✅     | Persistent quantity editing and removal                 |
+| Header cart count/link              | ✅     | Derived from the user-scoped detailed-cart cache        |
+| Update quantity                     | ✅     | Existing                                                |
+| Remove item                         | ✅     | Existing                                                |
+| Item image and product link in cart | ○      | V1 UI improvement                                       |
+| Per-line price/subtotal             | ✅     | Existing text presentation                              |
+| Order estimate/summary              | ✅     | Current exact quote                                     |
+| Unavailable-item recovery           | ◐      | Blocking warning exists; stronger recovery UI is needed |
+| Save for later                      | ◐      | Wishlist exists but no transfer action                  |
+| Move between cart and favorites     | ○      | Next                                                    |
+| Apply coupon                        | ○      | Later after promotion domain                            |
+| Shipping estimate in cart           | ◐      | Available at final checkout, not cart                   |
+| Estimated delivery                  | ◐      | Deterministic demo estimate, not a carrier promise      |
+| Recommended products in cart        | ○      | Later                                                   |
+| Free-shipping progress bar          | ○      | Later after promotion/shipping threshold exists         |
+| Express/quick checkout              | ○      | Later; preserve review and payment safety               |
+| Guest cart persistence              | ○      | Conditional; privacy and merge-on-login rules required  |
 
 ## 8. Checkout identity, address, delivery, and confirmation
 
@@ -231,16 +231,16 @@ are already valuable parts of MercadoZetta.
 | Authenticated checkout            | ✅     | Existing and protected                                           |
 | Guest checkout                    | ○      | Conditional; assess conversion versus marketplace identity needs |
 | Fast registration during checkout | ○      | Next; keep requested destination and cart                        |
-| Address form                      | ○      | V1                                                               |
-| Portuguese postal-code validation | ○      | V1 without claiming address certainty                            |
+| Address form                      | ✅     | Protected saved-address management                               |
+| Portuguese postal-code validation | ✅     | Syntax validation without claiming address certainty             |
 | Address autocomplete              | ○      | Later; external provider/privacy review required                 |
-| Multiple saved addresses          | ○      | V1                                                               |
-| Default address                   | ○      | V1                                                               |
-| Immutable order-time address      | ○      | V1 backend requirement                                           |
+| Multiple saved addresses          | ✅     | Tenant/user-scoped address book                                  |
+| Default address                   | ✅     | Atomic single default with promotion on deletion                 |
+| Immutable order-time address      | ✅     | Address and delivery option copied into order                    |
 | Multiple carriers/services        | ○      | Next after deterministic first adapter                           |
 | Store/pickup-point collection     | ○      | Conditional; operational location data required                  |
 | Scheduled delivery                | ○      | Conditional; carrier/operations support required                 |
-| Final item and amount review      | ◐      | Amount/order review exists; address/delivery do not              |
+| Final item and amount review      | ✅     | Lines, address, delivery, and authoritative components           |
 | Clear submit-payment action       | ○      | V1 with Stripe Checkout handoff                                  |
 | Visual confirmation page          | ◐      | Success message/history exists; dedicated page does not          |
 | Human-friendly order number       | ◐      | UUID is shown; display-friendly reference is absent              |
@@ -276,36 +276,36 @@ are already valuable parts of MercadoZetta.
 
 ## 10. User account and identity
 
-| Idea                          | Status | Horizon and notes                                           |
-| ----------------------------- | ------ | ----------------------------------------------------------- |
-| Account registration          | ✅     | Existing                                                    |
-| Login                         | ✅     | Existing                                                    |
-| Logout/all-session revocation | ✅     | Existing                                                    |
-| Active-session management     | ✅     | Existing                                                    |
-| Profile editing               | ✅     | Name and telephone                                          |
-| Password change               | ✅     | Existing reauthentication flow                              |
-| Email change                  | ◐      | UI/API exist; real delivery is unavailable                  |
-| Email verification            | ⚙      | Secure backend tokens exist; complete UI/delivery absent    |
-| Password recovery             | ⚙      | Secure backend tokens exist; complete UI/delivery absent    |
-| Account deactivation          | ✅     | Existing with active-order guard                            |
-| Data export/access request    | ○      | Next for privacy operations                                 |
-| Address book                  | ○      | V1                                                          |
-| Saved payment methods         | ○      | Later                                                       |
-| Dedicated buyer order history | ◐      | History exists inside checkout                              |
-| Buy again                     | ○      | Next after dedicated order detail                           |
-| Dedicated favorites page      | ○      | V1                                                          |
-| Downloads/digital products    | ○      | Conditional; not current physical-marketplace scope         |
-| Notification center           | ✅     | Existing internal notifications                             |
-| Notification preferences      | ○      | Next with asynchronous delivery                             |
-| Social login                  | ○      | Later; concrete provider and account-linking rules required |
-| Two-factor authentication     | ○      | Next for sellers/admins; risk-based buyer rollout           |
-| Login history/security alerts | ◐      | Sessions exist; durable login/security history UI does not  |
+| Idea                          | Status | Horizon and notes                                              |
+| ----------------------------- | ------ | -------------------------------------------------------------- |
+| Account registration          | ✅     | Existing                                                       |
+| Login                         | ✅     | Existing                                                       |
+| Logout/all-session revocation | ✅     | Existing                                                       |
+| Active-session management     | ✅     | Existing                                                       |
+| Profile editing               | ✅     | Name and telephone                                             |
+| Password change               | ✅     | Existing reauthentication flow                                 |
+| Email change                  | ◐      | UI/API exist; real delivery is unavailable                     |
+| Email verification            | ◐      | Complete UI and development sink; production delivery deferred |
+| Password recovery             | ◐      | Complete UI and development sink; production delivery deferred |
+| Account deactivation          | ✅     | Existing with active-order guard                               |
+| Data export/access request    | ○      | Next for privacy operations                                    |
+| Address book                  | ✅     | Multiple saved addresses and one default                       |
+| Saved payment methods         | ○      | Later                                                          |
+| Dedicated buyer order history | ✅     | Paginated authenticated `/orders` page                         |
+| Buy again                     | ○      | Next after dedicated order detail                              |
+| Dedicated favorites page      | ○      | V1                                                             |
+| Downloads/digital products    | ○      | Conditional; not current physical-marketplace scope            |
+| Notification center           | ✅     | Existing internal notifications                                |
+| Notification preferences      | ○      | Next with asynchronous delivery                                |
+| Social login                  | ○      | Later; concrete provider and account-linking rules required    |
+| Two-factor authentication     | ○      | Next for sellers/admins; risk-based buyer rollout              |
+| Login history/security alerts | ◐      | Sessions exist; durable login/security history UI does not     |
 
 ## 11. Buyer orders, fulfillment, and post-sale
 
 | Idea                                   | Status | Horizon and notes                                      |
 | -------------------------------------- | ------ | ------------------------------------------------------ |
-| Buyer order history                    | ✅     | Existing, though placed in checkout page               |
+| Buyer order history                    | ✅     | Dedicated paginated authenticated page                 |
 | Dedicated order-detail page            | ○      | V1                                                     |
 | Order status history                   | ✅     | Existing                                               |
 | Seller fulfillment advancement         | ✅     | Confirm, ship, and deliver lifecycle                   |

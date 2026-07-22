@@ -135,6 +135,15 @@ The tenant header selects a known tenant but is not trusted as authorization.
 Backend services scope protected records and ownership checks to the resolved
 tenant.
 
+In development, password-reset, email-verification, and email-change requests
+write a structured `development_account_message` entry to the backend log. Open
+its `deliveryUrl` in the configured `CORS_ORIGIN` frontend. The URL contains a
+sensitive single-use token: keep it in local logs only. Production deliberately
+has no delivery adapter and rejects these requests until Step 20 supplies a
+reviewed provider. The explicit local-only exception and its handling rules are
+recorded in
+[ADR 0008](docs/decisions/0008-development-account-message-sink.md).
+
 See [Tenant Theming](docs/tenant-theming.md) for the typed theme contract,
 Tailwind aliases, adding or modifying a checked-in brand, and required contrast
 and accessibility verification.
@@ -211,12 +220,16 @@ For a basic smoke test:
 1. Open the Vite URL and confirm that seeded products appear.
 2. Log in with the account for the configured `VITE_TENANT_ID`.
 3. Add an in-stock product to the watchlist and cart.
-4. Open `/checkout`, change a quantity, and place an order.
-5. Open `/seller/orders` as a seller and verify only that seller's line items
+4. Open `/cart`, change a quantity, then create a default address at
+   `/account/addresses` and continue to `/checkout`.
+5. Review the lines, selected address, explicitly demo-only delivery estimate,
+   subtotal, zero discount, shipping, and authoritative total. Place the order
+   and verify the immutable delivery snapshot in `/orders`.
+6. Open `/seller/orders` as a seller and verify only that seller's line items
    and immutable line subtotals are shown with the permitted next fulfillment
    action. The operations summary reports non-cancelled priced-order gross
    revenue and counts legacy unpriced orders separately.
-6. Return as the buyer to inspect the immutable order total, history, and
+7. Return as the buyer to inspect the immutable order total, history, and
    notifications.
 
 The frontend also exposes `/products/new` for authenticated product creation

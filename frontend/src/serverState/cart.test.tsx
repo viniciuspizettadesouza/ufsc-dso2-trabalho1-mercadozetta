@@ -71,7 +71,7 @@ describe('useDetailedCart', () => {
     queryClient.setQueryData(queryKeys.cart.productIds('user-1'), [
       'product-1',
     ]);
-    let mutation!: Promise<void>;
+    let mutation!: Promise<unknown>;
     act(() => {
       mutation = result.current.removeItem('product-1');
     });

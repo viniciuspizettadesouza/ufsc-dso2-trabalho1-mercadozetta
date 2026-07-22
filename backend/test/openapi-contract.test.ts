@@ -26,6 +26,7 @@ const routes = createRoutes({
   userController: controller,
   productController: controller,
   commerceController: controller,
+  deliveryAddressController: controller,
   authMiddleware,
   readiness: async () => ({
     ready: false,

@@ -1,14 +1,21 @@
 # MVP deployment platform evaluation
 
-- Status: Planning baseline; provider selection pending staging spikes
+- Status: Archived planning reference; external deployment deferred
 - Date: 2026-07-19
+- Decision update: 2026-07-22
 - Scope: Bounded Portugal-first CampusMarket pilot
 
 This document records the launch constraints that precede provider selection
 and compares three deployment approaches. It is not a deployment ADR and does
-not authorize live traffic, Stripe integration, or a provider commitment. The
-two highest-scoring candidates must pass the staging spike below before an ADR
-can select either one.
+not authorize live traffic, Stripe integration, a provider commitment, or cloud
+resource creation.
+
+On 2026-07-22, the project owner decided to continue improving MercadoZetta
+locally without considering external deployment for the current phase. No
+candidate is active, no staging spike is pending, and no provider account or
+spend is required. The comparison remains as historical planning input only;
+prices, product capabilities, residency terms, and free-tier rules must be
+researched again if deployment is later reopened.
 
 ## Launch constraint record
 
@@ -242,9 +249,10 @@ ordering, not provider acceptance.
 | Scaling path and portfolio evidence                       |       5 |      3 |            5 |      5 |
 | **Total**                                                 | **100** | **80** |       **77** | **74** |
 
-Render and DigitalOcean are the two staging-spike candidates. AWS is not
-rejected as an architecture; it loses this pilot round because its cash and
-operational burden are disproportionate to unmeasured traffic.
+Render and DigitalOcean were the two desktop-evaluation leaders before external
+deployment was deferred. They are not active staging-spike candidates. AWS is
+not rejected as an architecture; the recorded comparison found its cash and
+operational burden disproportionate to unmeasured traffic.
 
 The provider-neutral local preparation and candidate configuration templates
 are recorded in the
@@ -309,12 +317,15 @@ Reject a candidate during the spike if any of these conditions remains true:
    data deletion, capture invoices and deletion evidence, then destroy only
    after the retention and rollback window closes.
 
-## Time-boxed staging spike
+## Deferred time-boxed staging spike
 
-Run Render first, then DigitalOcean. Cap each candidate at 12 operator hours and
-EUR 50 cash, and delete temporary resources after capturing evidence. Use
-separate staging secrets, synthetic `.invalid` identities, test inventory, and
-no live Stripe credentials or personal data.
+Do not run this procedure while external deployment remains deferred. If the
+owner explicitly reopens Step 16, revalidate the candidates and all prices
+before deciding whether to run Render first and DigitalOcean second. The prior
+guardrail capped each candidate at 12 operator hours and EUR 50 cash and
+required deletion after evidence capture. Use separate staging secrets,
+synthetic `.invalid` identities, test inventory, and no live Stripe credentials
+or personal data.
 
 For each candidate:
 

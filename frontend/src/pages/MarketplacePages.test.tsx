@@ -4,6 +4,8 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import Checkout from '@/pages/Checkout';
+import Cart from '@/pages/Cart';
+import BuyerOrders from '@/pages/BuyerOrders';
 import ProductDetail from '@/pages/ProductDetail';
 import SellerProfile from '@/pages/SellerProfile';
 import api from '@/services/api';
@@ -41,6 +43,37 @@ const product = {
     storeName: 'Seller store',
   },
 };
+const address = {
+  _id: '44444444-4444-4444-8444-444444444444',
+  tenantId: 'mercadozetta',
+  userId: 'buyer-1',
+  label: 'Home',
+  recipientName: 'Buyer',
+  line1: '1 Market Street',
+  line2: null,
+  city: 'Lisbon',
+  region: 'Lisbon',
+  postalCode: '1000-001',
+  countryCode: 'PT',
+  telephone: '+351210000000',
+  isDefault: true,
+  createdAt: '2026-07-20T10:00:00.000Z',
+  updatedAt: '2026-07-20T10:00:00.000Z',
+};
+const checkoutQuote = {
+  quoteId: 'a'.repeat(64),
+  address,
+  deliveryOption: {
+    id: 'standard',
+    label: 'Standard demo delivery',
+    estimate: '3–5 business days (demo estimate)',
+    shipping: { currency: 'USD', amountMinor: '499' },
+  },
+  subtotal: { currency: 'USD', amountMinor: '1250' },
+  discount: { currency: 'USD', amountMinor: '0' },
+  shipping: { currency: 'USD', amountMinor: '499' },
+  total: { currency: 'USD', amountMinor: '1749' },
+};
 
 function renderAt(
   route: string,
@@ -77,11 +110,16 @@ describe('marketplace pages', () => {
   function mockCheckout(cart: unknown, orders: object[] = []) {
     vi.mocked(api.get).mockImplementation(async (url) => {
       if (url === '/cart') return { data: cart };
+      if (url === '/account/addresses') return { data: [address] };
       if (url === '/orders?scope=buyer') {
         return { data: paginatedResponse(orders) };
       }
       if (url === '/notifications/unread-count') return { data: { count: 0 } };
       return { data: paginatedResponse([]) };
+    });
+    vi.mocked(api.post).mockImplementation(async (url) => {
+      if (url === '/checkout/quote') return { data: checkoutQuote };
+      throw new Error('network error');
     });
   }
 
@@ -337,63 +375,71 @@ describe('marketplace pages', () => {
     );
   });
 
-  it('checks out persisted cart items and refreshes order history', async () => {
+  it('places an order from the final checkout review', async () => {
     mockCheckout({ items: [{ product, quantity: 1 }] });
-    vi.mocked(api.post).mockResolvedValueOnce({
-      data: {
-        _id: 'order-1',
-        status: 'placed',
-        pricingState: 'priced',
-        subtotal: { currency: 'USD', amountMinor: '1250' },
-        discount: { currency: 'USD', amountMinor: '0' },
-        shipping: { currency: 'USD', amountMinor: '0' },
-        total: { currency: 'USD', amountMinor: '1250' },
-        items: [
-          {
-            productName: 'Coffee',
-            quantity: 1,
-            pricingState: 'priced',
-            unitPrice: { currency: 'USD', amountMinor: '1250' },
-            lineSubtotal: { currency: 'USD', amountMinor: '1250' },
-          },
-        ],
-        statusHistory: [
-          {
+    vi.mocked(api.post).mockImplementation(async (url) => {
+      if (url === '/checkout/quote') return { data: checkoutQuote };
+      if (url === '/orders')
+        return {
+          data: {
+            _id: 'order-1',
             status: 'placed',
-            actor: 'buyer-1',
-            changedAt: '2026-07-13T10:00:00.000Z',
+            pricingState: 'priced',
+            subtotal: { currency: 'USD', amountMinor: '1250' },
+            discount: { currency: 'USD', amountMinor: '0' },
+            shipping: { currency: 'USD', amountMinor: '0' },
+            total: { currency: 'USD', amountMinor: '1250' },
+            items: [
+              {
+                productName: 'Coffee',
+                quantity: 1,
+                pricingState: 'priced',
+                unitPrice: { currency: 'USD', amountMinor: '1250' },
+                lineSubtotal: { currency: 'USD', amountMinor: '1250' },
+              },
+            ],
+            statusHistory: [
+              {
+                status: 'placed',
+                actor: 'buyer-1',
+                changedAt: '2026-07-13T10:00:00.000Z',
+              },
+            ],
           },
-        ],
-      },
+        };
+      throw new Error('unexpected request');
     });
 
     renderAt('/checkout', '/checkout', <Checkout />);
 
-    expect(await screen.findByLabelText('Quantity for Coffee')).toHaveValue(
-      '1',
+    expect(await screen.findByRole('link', { name: 'Coffee' })).toHaveAttribute(
+      'href',
+      '/products/product-1',
     );
     expect(screen.getByText(/\$12\.50 each/)).toBeInTheDocument();
     expect(screen.getByText(/Current cart quote:/)).toHaveTextContent('$12.50');
-    await userEvent.click(screen.getByRole('button', { name: 'Place order' }));
+    const placeOrder = screen.getByRole('button', { name: 'Place order' });
+    await waitFor(() => expect(placeOrder).toBeEnabled());
+    await userEvent.click(placeOrder);
 
-    await waitFor(() =>
-      expect(screen.getByText(/order-1/)).toBeInTheDocument(),
-    );
     expect(api.post).toHaveBeenCalledWith(
       '/orders',
-      undefined,
+      {
+        addressId: address._id,
+        deliveryOptionId: 'standard',
+        quoteId: checkoutQuote.quoteId,
+      },
       expect.objectContaining({
         headers: {
           'Idempotency-Key': expect.stringMatching(/^[0-9a-f-]{36}$/),
         },
       }),
     );
-    expect(screen.getByText(/placed by buyer-1 at/)).toBeInTheDocument();
-    expect(screen.getByText(/Total: \$12\.50/)).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(
       'Order placed successfully.',
     );
     expect(screen.getByRole('button', { name: 'Place order' })).toBeDisabled();
+    expect(screen.getByText('Cart is empty.')).toBeInTheDocument();
   });
 
   it('labels historical legacy orders as unpriced', async () => {
@@ -408,7 +454,7 @@ describe('marketplace pages', () => {
       },
     ]);
 
-    renderAt('/checkout', '/checkout', <Checkout />);
+    renderAt('/orders', '/orders', <BuyerOrders />);
 
     expect(
       await screen.findByText(/Legacy order — price unavailable/),
@@ -433,7 +479,7 @@ describe('marketplace pages', () => {
       },
     ]);
 
-    renderAt('/checkout', '/checkout', <Checkout />);
+    renderAt('/orders', '/orders', <BuyerOrders />);
 
     const historicalOrder = await screen.findByText(
       (_content, node) =>
@@ -443,28 +489,69 @@ describe('marketplace pages', () => {
     expect(historicalOrder).toHaveTextContent('Historical coffee × 1 — €12.50');
   });
 
-  it('shows checkout loading and order API errors', async () => {
-    mockCheckout({ items: [{ product, quantity: 1 }] });
-    vi.mocked(api.post).mockRejectedValue(new Error('network error'));
+  it('shows empty, failed, and delivery-snapshot order history states', async () => {
+    mockCheckout({ items: [] });
+    renderAt('/orders', '/orders', <BuyerOrders />);
+    expect(
+      await screen.findByText('You have not placed any orders yet.'),
+    ).toBeInTheDocument();
 
+    cleanup();
+    vi.mocked(api.get).mockRejectedValue(new Error('network error'));
+    renderAt('/orders', '/orders', <BuyerOrders />);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable to load order history.',
+    );
+
+    cleanup();
+    mockCheckout({ items: [] }, [
+      {
+        _id: 'snapshot-order',
+        status: 'placed',
+        pricingState: 'priced',
+        total: null,
+        deliveryAddress: address,
+        deliveryOption: checkoutQuote.deliveryOption,
+        items: [
+          { productName: 'Snapshot coffee', quantity: 1, lineSubtotal: null },
+        ],
+        statusHistory: [],
+      },
+    ]);
+    renderAt('/orders', '/orders', <BuyerOrders />);
+    expect(
+      (await screen.findByText(/Delivery snapshot:/)).closest('div'),
+    ).toHaveTextContent('Buyer, 1 Market Street, Lisbon, 1000-001, PT');
+    expect(screen.getByText('snapshot-order').closest('li')).toHaveTextContent(
+      'Snapshot coffee × 1 — Total: Preço sob consulta',
+    );
+  });
+
+  it('shows checkout loading and order submission errors', async () => {
+    mockCheckout({ items: [{ product, quantity: 1 }] });
     renderAt('/checkout', '/checkout', <Checkout />);
 
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Loading cart and order history...',
-    );
-    await screen.findByLabelText('Quantity for Coffee');
-    await userEvent.click(screen.getByRole('button', { name: 'Place order' }));
+    expect(screen.getByText('Loading checkout review...')).toBeInTheDocument();
+    await screen.findByRole('link', { name: 'Coffee' });
+    const placeOrder = screen.getByRole('button', { name: 'Place order' });
+    await waitFor(() => expect(placeOrder).toBeEnabled());
+    await userEvent.click(placeOrder);
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Unable to place order.',
     );
-    expect(screen.getByLabelText('Quantity for Coffee')).toHaveValue('1');
+    expect(screen.getByRole('link', { name: 'Coffee' })).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Place order' }));
-    await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
-    expect(vi.mocked(api.post).mock.calls[1][2]).toEqual(
-      vi.mocked(api.post).mock.calls[0][2],
+    await userEvent.click(placeOrder);
+    await waitFor(() =>
+      expect(
+        vi.mocked(api.post).mock.calls.filter(([url]) => url === '/orders'),
+      ).toHaveLength(2),
     );
+    const orderCalls = vi
+      .mocked(api.post)
+      .mock.calls.filter(([url]) => url === '/orders');
+    expect(orderCalls[1][2]).toEqual(orderCalls[0][2]);
   });
 
   it('shows checkout load errors', async () => {
@@ -477,16 +564,125 @@ describe('marketplace pages', () => {
     renderAt('/checkout', '/checkout', <Checkout />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Unable to load cart and order history.',
+      'Unable to load checkout review.',
+    );
+  });
+
+  it('requires a saved delivery address before calculating the total', async () => {
+    vi.mocked(api.get).mockImplementation(async (url) => {
+      if (url === '/cart')
+        return { data: { items: [{ product, quantity: 1 }] } };
+      if (url === '/account/addresses') return { data: [] };
+      if (url === '/notifications/unread-count') return { data: { count: 0 } };
+      return { data: paginatedResponse([]) };
+    });
+
+    renderAt('/checkout', '/checkout', <Checkout />);
+
+    expect(
+      (await screen.findByRole('link', { name: 'Add a delivery address' }))
+        .parentElement,
+    ).toHaveTextContent('No delivery address is saved.');
+    expect(
+      screen.getByText(
+        'Select or add a delivery address to calculate the final total.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Place order' })).toBeDisabled();
+    expect(api.post).not.toHaveBeenCalledWith(
+      '/checkout/quote',
+      expect.anything(),
+    );
+  });
+
+  it('changes the selected address and delivery quote', async () => {
+    const office = {
+      ...address,
+      _id: '55555555-5555-4555-8555-555555555555',
+      label: 'Office',
+      isDefault: false,
+    };
+    vi.mocked(api.get).mockImplementation(async (url) => {
+      if (url === '/cart')
+        return { data: { items: [{ product, quantity: 1 }] } };
+      if (url === '/account/addresses') {
+        return { data: [{ ...address, isDefault: false }, office] };
+      }
+      if (url === '/notifications/unread-count') return { data: { count: 0 } };
+      return { data: paginatedResponse([]) };
+    });
+    vi.mocked(api.post).mockImplementation(async (url, input) => {
+      if (url !== '/checkout/quote') throw new Error('unexpected request');
+      const selection = input as {
+        addressId: string;
+        deliveryOptionId: 'standard' | 'express';
+      };
+      return {
+        data: {
+          ...checkoutQuote,
+          address: selection.addressId === office._id ? office : address,
+          deliveryOption: {
+            ...checkoutQuote.deliveryOption,
+            id: selection.deliveryOptionId,
+          },
+        },
+      };
+    });
+
+    renderAt('/checkout', '/checkout', <Checkout />);
+
+    expect(await screen.findByLabelText(/^Home:/)).toBeChecked();
+    await userEvent.click(screen.getByLabelText(/^Office:/));
+    await userEvent.click(screen.getByLabelText(/Express demo delivery/));
+    await waitFor(() =>
+      expect(api.post).toHaveBeenCalledWith('/checkout/quote', {
+        addressId: office._id,
+        deliveryOptionId: 'express',
+      }),
+    );
+    expect(
+      screen.getByRole('link', { name: 'Manage delivery addresses' }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows address and quote recovery states', async () => {
+    vi.mocked(api.get).mockImplementation(async (url) => {
+      if (url === '/cart')
+        return { data: { items: [{ product, quantity: 1 }] } };
+      if (url === '/account/addresses') throw new Error('address error');
+      if (url === '/notifications/unread-count') return { data: { count: 0 } };
+      return { data: paginatedResponse([]) };
+    });
+    renderAt('/checkout', '/checkout', <Checkout />);
+    expect(
+      await screen.findByText('Unable to load delivery addresses.'),
+    ).toHaveAttribute('role', 'alert');
+
+    cleanup();
+    mockCheckout({ items: [{ product, quantity: 1 }] });
+    vi.mocked(api.post).mockRejectedValue(new Error('quote error'));
+    renderAt('/checkout', '/checkout', <Checkout />);
+    expect(
+      await screen.findByText('Unable to calculate the checkout total.'),
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Retry total' }));
+    await waitFor(() =>
+      expect(
+        vi
+          .mocked(api.post)
+          .mock.calls.filter(([url]) => url === '/checkout/quote').length,
+      ).toBeGreaterThan(1),
     );
   });
 
   it('updates quantities and removes checkout items', async () => {
     mockCheckout({ items: [{ product, quantity: 1 }] });
-    vi.mocked(api.put).mockResolvedValueOnce({ data: {} });
-    vi.mocked(api.delete).mockResolvedValueOnce({ data: {} });
+    vi.mocked(api.put).mockResolvedValueOnce({
+      data: { items: [{ product, quantity: 2 }] },
+    });
+    vi.mocked(api.delete).mockResolvedValueOnce({ data: { items: [] } });
 
-    renderAt('/checkout', '/checkout', <Checkout />);
+    renderAt('/cart', '/cart', <Cart />);
 
     const quantity = await screen.findByLabelText('Quantity for Coffee');
     await userEvent.selectOptions(quantity, '2');
@@ -508,12 +704,12 @@ describe('marketplace pages', () => {
     );
   });
 
-  it('rolls checkout cart mutations back and preserves error copy', async () => {
+  it('rolls cart mutations back and preserves error copy', async () => {
     mockCheckout({ items: [{ product, quantity: 1 }] });
     vi.mocked(api.put).mockRejectedValue(new Error('network error'));
     vi.mocked(api.delete).mockRejectedValue(new Error('network error'));
 
-    renderAt('/checkout', '/checkout', <Checkout />);
+    renderAt('/cart', '/cart', <Cart />);
 
     const quantity = await screen.findByLabelText('Quantity for Coffee');
     await userEvent.selectOptions(quantity, '2');

@@ -15,6 +15,7 @@ const authState = {
     _id: '11111111-1111-4111-8111-111111111111',
     tenantId: 'mercadozetta',
     email: 'seller@example.com',
+    emailVerifiedAt: null,
     username: 'Seller',
     telephone: '+5548999999999',
     createdAt: '2026-07-18T10:00:00.000Z',

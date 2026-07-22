@@ -2,13 +2,14 @@
 
 ## Goal
 
-Deploy MercadoZetta as a reliable regional, multi-tenant and multi-seller
-ecommerce MVP whose CampusMarket tenant can accept EUR payments safely for a
-bounded Portuguese pilot while MercadoZetta remains a distinct USD tenant.
-Preserve the white-label demo value while prioritizing only the buyer,
-seller, payment, fulfillment, support, legal, and operational capabilities
-required for the first real transaction. Defer conversion, personalization,
-promotion, and advanced-platform work until pilot evidence justifies it.
+Develop MercadoZetta as a reliable, portfolio-grade, multi-tenant and
+multi-seller ecommerce platform whose architecture and product workflows can
+support a future regional pilot. Keep the application locally runnable and
+verifiable while improving buyer, seller, checkout, fulfillment, support,
+security, and operational capabilities. External deployment, cloud-provider
+selection, infrastructure spending, and live transactions are explicitly out
+of the current scope and may resume only when the project owner reprioritizes
+them.
 
 ## Current Verified State
 
@@ -98,7 +99,7 @@ promotion, and advanced-platform work until pilot evidence justifies it.
   formatting, both coverage gates, frontend and production builds, all 31
   PostgreSQL scenarios, Chromium workflows for both tenants, the
   production-image smoke, and the nine-migration recovery rehearsal.
-- Step 16 now has a recorded provisional launch-constraint baseline for a
+- Step 16 recorded a provisional launch-constraint baseline for a
   single-developer portfolio-to-pilot path: EUR 75/month soft and EUR 120/month
   hard cash limits, a ten-seller/100-order monthly planning cohort, EEA-hosted
   customer content, a 99.5% internal availability target, the existing
@@ -108,8 +109,7 @@ promotion, and advanced-platform work until pilot evidence justifies it.
   Frankfurt Droplets plus Managed PostgreSQL, and AWS ECS Fargate plus RDS in
   Frankfurt using current official capability and price material, a twelve-month
   cash and operator-time model, security/portability/exit gates, and weighted
-  scoring. Render and DigitalOcean advance to staging spikes; no deployment
-  provider has been selected.
+  scoring. No deployment provider was selected.
 - The zero-cost portion of Step 16 now has a repeatable local staging-readiness
   command. It builds the production images, applies one-shot migrations, checks
   non-root execution, runs both Chromium workflows through the production proxy
@@ -123,39 +123,64 @@ promotion, and advanced-platform work until pilot evidence justifies it.
   migrations and restored invariants. These measurements are local evidence
   only and do not replace provider TLS, webhook, backup, alert, rollback,
   Portugal-latency, cost, residency, or exit evidence.
+- On 2026-07-22, the project owner deferred external deployment indefinitely to
+  focus on improving the platform without cloud accounts, hosting costs, or
+  provider work. Step 16's research, templates, and local rehearsal remain
+  reusable reference material; its provider spikes and ADR are inactive.
+- Step 17 is complete. The buyer flow separates persistent `/cart`, final
+  `/checkout`, and paginated `/orders`, with a cache-derived header count and
+  tenant/user-scoped `/account/addresses`. Checkout validates the owned address,
+  deterministic demo delivery option, current price and stock, then returns an
+  authoritative fingerprinted subtotal/zero-discount/shipping/total quote. The
+  order command re-prices under locks, preserves the cart on stale/error paths,
+  and stores immutable address and delivery snapshots. The ownership and
+  contract audit is recorded in
+  [Cart, Checkout, and Buyer Orders UI State Audit](docs/checkout-ui-state-audit.md).
+- User-visible password reset and email verification now include request,
+  confirmation, pending, success, error, and recovery states. Development logs
+  provide a local confirmation-URL sink; production delivery remains disabled
+  until Step 20. Its narrow credential-bearing local exception is recorded in
+  [ADR 0008](docs/decisions/0008-development-account-message-sink.md). The
+  saved-address and retained order-snapshot privacy boundary is recorded in
+  [Persistent data lifecycle](docs/data-lifecycle.md).
+- Current verification passes generated API-type parity, backend typecheck, 278
+  backend tests across 56 files, 221 frontend tests across 46 files, lint,
+  formatting, both coverage gates, Drizzle migration-history validation, and the
+  frontend production build. The browser workflow now covers address creation,
+  quote review, and delivery-snapshot history; its live Docker lane remains to
+  be rerun in an environment with Docker.
 
 ## Next Action
 
-The project owner has explicitly deferred all paid infrastructure. Keep Step
-16's Render and DigitalOcean spikes, provider ADR, and provider selection open
-without creating accounts or resources; the completed
-[zero-cost staging baseline](docs/staging-spike-readiness.md) is the handoff when
-spend is later authorized.
+External deployment is outside the active roadmap. Do not compare providers,
+create cloud accounts or resources, run external staging spikes, select a
+provider, or optimize the product around a free tier unless the project owner
+explicitly reopens Step 16. The completed
+[local production-like rehearsal](docs/staging-spike-readiness.md) remains a
+regression and portability baseline, not a pending deployment task.
 
-While that external gate is deferred, start Step 17 with its first no-cost
-slice: consult [Product Feature Ideas](docs/product-feature-ideas.md), audit the
-current cart/checkout server-state ownership and documented contracts, then
-separate the persistent cart, final checkout review, and buyer order history
-without duplicating server state. Do not begin payment implementation or treat
-the local staging rehearsal as provider acceptance.
-
-Do not install a Stripe SDK, add payment tables, enable payment surfaces, or
-choose a deployment provider before that constraint record and staging spike
-are complete.
+Step 17 needs no further implementation. Do not begin provider-dependent
+deployment or live-payment work without an explicit request. If Step 18 is
+reprioritized, start locally from its payment-attempt schema and migration,
+binding an immutable checkout selection and authoritative amount to one
+tenant/buyer attempt before adding the Stripe test-mode adapter.
 
 ## Completed Roadmap History
 
-The detailed chronological handoff and completed Steps 1–15 are archived in
+The detailed chronological handoff, completed Steps 1–15, and later completed
+slices are archived in
 [docs/improvement-plan-history.md](docs/improvement-plan-history.md).
 `PROJECT_IMPROVEMENT_PLAN.md` remains the source of truth for the current state,
 next action, and active roadmap.
 
 ## Remaining Roadmap
 
-Steps 16 through 21 are the launch-critical path for the first sellable MVP.
-Steps 22 onward are post-MVP work and must not delay the bounded pilot unless
-verification exposes a launch risk. The complete inventory of implemented,
-partial, missing, deferred, and exploratory user-facing ideas is maintained in
+Step 16's external work is paused. Step 17 is complete. Steps 18 through 21
+preserve a possible future payment and launch path but are
+not current deployment commitments. Steps 22 onward remain later product work
+unless an explicit reprioritization promotes a bounded slice. The complete
+inventory of implemented, partial, missing, deferred, and exploratory
+user-facing ideas is maintained in
 [Product Feature Ideas](docs/product-feature-ideas.md). Agents must consult that
 catalog when starting a product feature phase, but an entry there does not
 authorize implementation or override the `Next Action` above.
@@ -199,11 +224,13 @@ authorize implementation or override the `Next Action` above.
   conversion, fulfilled orders, cancellations/refunds, unreconciled money
   movements, support incidents, and time to resolve operational exceptions.
   Do not add growth features before these signals are observable.
-- The deployment provider is intentionally undecided. Select it through Step 16
-  using verified Portugal/EEA availability, total monthly cost, operational
-  burden, managed PostgreSQL and recovery, container and scheduled-job support,
-  secure configuration, observability, rollback, scaling, and exit costs. Do
-  not choose a platform from popularity or introductory pricing alone.
+- The deployment provider is intentionally undecided and provider selection is
+  suspended. If the owner later reopens Step 16, use verified Portugal/EEA
+  availability, total monthly cost, operational burden, managed PostgreSQL and
+  recovery, container and scheduled-job support, secure configuration,
+  observability, rollback, scaling, and exit costs. Do not choose a platform
+  from popularity, portfolio branding, promotional credits, or free tiers
+  alone.
 - AI search, image search, AI chat, PWA, voice search, 360-degree media,
   loyalty, subscriptions, social proof counters, and gift lists stay outside
   the first sellable version until measured demand justifies them. Scarcity and
@@ -220,7 +247,12 @@ Research basis: [Stripe Checkout](https://docs.stripe.com/payments/checkout),
 Accepted contract:
 [ADR 0007](docs/decisions/0007-portugal-payments-and-marketplace-funds.md).
 
-### 16. Select and validate the MVP deployment platform
+### 16. Deferred: select and validate the MVP deployment platform
+
+External provider work is paused by owner decision as of 2026-07-22. The
+checked items below preserve completed research and local preparation. Leave
+the remaining items open but inactive until the owner explicitly restores
+deployment to the roadmap; they do not block local work beginning at Step 17.
 
 - [x] Record the launch constraints before comparing providers: acceptable
       monthly and one-time budget, expected pilot traffic and seller count,
@@ -259,25 +291,25 @@ Accepted contract:
 
 ### 17. Complete the buyer checkout foundation
 
-- [ ] Separate the current combined checkout screen into a persistent cart,
+- [x] Separate the current combined checkout screen into a persistent cart,
       final checkout review, and buyer order history. Add a visible cart count
       without duplicating server state. Keep the dedicated favorites page and
       favorites count outside the launch-critical path.
-- [ ] Add tenant/user-scoped delivery addresses, a default address, validation,
+- [x] Add tenant/user-scoped delivery addresses, a default address, validation,
       explicit deletion behavior, and an immutable order-time address snapshot.
       Record the personal-data purpose, retention, export, redaction, and account
       deactivation rules.
-- [ ] Add delivery options and authoritative shipping quotes with delivery
+- [x] Add delivery options and authoritative shipping quotes with delivery
       estimates. Start with a deterministic adapter suitable for the demo; keep
       carrier-specific APIs behind a contract and do not claim live estimates
       until an actual carrier supplies them.
-- [ ] Extend the authoritative total with selected shipping and only validated
+- [x] Extend the authoritative total with selected shipping and only validated
       discounts. Re-price on the backend immediately before payment and surface
       stock or price changes without discarding the buyer's cart.
-- [ ] Provide a final review of lines, quantities, address, delivery estimate,
+- [x] Provide a final review of lines, quantities, address, delivery estimate,
       subtotal, discount, shipping, and total. Make every pending, recovery,
       validation, and API-error state keyboard and screen-reader usable.
-- [ ] Finish the user-visible password-reset and email-verification flows with a
+- [x] Finish the user-visible password-reset and email-verification flows with a
       development delivery sink. Step 20 must activate reliable production
       delivery before live payment makes account recovery operationally
       required.

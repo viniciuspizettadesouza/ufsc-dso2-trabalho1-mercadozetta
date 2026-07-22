@@ -60,6 +60,7 @@ describe('authValidator', () => {
           _id: '507f1f77-bcf8-4ecd-8994-390110000001',
           tenantId: 'mercadozetta',
           email: 'seller@example.com',
+          emailVerifiedAt: null,
           username: null,
           telephone: null,
           createdAt: timestamp,

@@ -8,10 +8,11 @@ relational design for the behavior that MercadoZetta implements today. Drizzle
 implements this contract over PostgreSQL through reviewed versioned migrations.
 
 The design includes authoritative tenant currency, exact product prices,
-append-only price history, and immutable priced-order snapshots. It explicitly
-excludes payments, addresses, refunds, shipping details, roles, and other
-domains that are not in the current product. Monetary expansion preserved
-existing records as legacy unpriced data rather than fabricating prices.
+append-only price history, tenant/user-scoped delivery addresses, and immutable
+priced-order delivery snapshots. It explicitly excludes payments, live carrier
+integrations, refunds, roles, and other domains that are not in the current
+product. Monetary expansion preserved existing records as legacy unpriced data
+rather than fabricating prices.
 
 ## Conventions
 
@@ -143,6 +144,17 @@ Constraints are `UNIQUE (tenant_id, id)`,
 `users` and `products`. Add remains an idempotent insert-on-conflict lookup;
 remove is tenant/user/product scoped.
 
+### `delivery_addresses`
+
+Each row stores a UUID, tenant/user owner, label, recipient, address lines,
+city, optional region, postal code, two-letter country code, telephone, default
+flag, and timestamps. Tenant-qualified foreign keys bind the owner. A partial
+unique index on `(tenant_id, user_id) WHERE is_default` permits at most one
+default, while a tenant/user/updated-time index supports deterministic listing
+and promotion after deletion. The application validates the bounded address
+shape and supported PT/US postal syntax; this is syntactic validation, not a
+claim that a postal authority confirmed the address.
+
 ### `orders`
 
 | Column                                                              | Type                  | Rules                                                                                                          |
@@ -153,6 +165,8 @@ remove is tenant/user/product scoped.
 | `pricing_state`                                                     | `varchar(24)`         | Non-null `legacy_unpriced` or `priced`; defaults legacy for old-writer compatibility.                          |
 | `currency_code`, `currency_minor_unit`                              | `char(3)`, `smallint` | Both null for legacy orders and tenant-qualified for priced orders.                                            |
 | `subtotal_minor`, `discount_minor`, `shipping_minor`, `total_minor` | `bigint`              | All null for legacy orders; bounded and algebraically constrained for priced orders.                           |
+| `delivery_address`                                                  | `jsonb`               | Nullable immutable checkout-time delivery-address snapshot.                                                    |
+| `delivery_option`                                                   | `jsonb`               | Nullable immutable delivery service and estimate snapshot.                                                     |
 | `status`                                                            | `text`                | Non-null, default `placed`; allowed values are `placed`, `confirmed`, `shipped`, `delivered`, and `cancelled`. |
 | `created_at`, `updated_at`                                          | `timestamptz`         | Non-null.                                                                                                      |
 
@@ -162,10 +176,12 @@ updates but rejects changes to inserted monetary fields. Orders are historical
 records and cannot be hard-deleted by the application role.
 
 New checkout writes use the `priced` shape. The backend calculates each line
-subtotal and the order subtotal, stores explicit zero discount and shipping,
-and persists the resulting total with inventory and idempotency effects in one
-transaction. The `legacy_unpriced` default remains solely for compatibility
-with historical rows and earlier application releases.
+subtotal and the order subtotal, accepts only a known deterministic delivery
+option, stores an explicit zero discount plus its shipping charge, and persists
+the resulting total and address/delivery snapshots with inventory and
+idempotency effects in one transaction. Existing orders may have null delivery
+snapshots. The `legacy_unpriced` default remains solely for compatibility with
+historical rows and earlier application releases.
 
 ### `order_items`
 

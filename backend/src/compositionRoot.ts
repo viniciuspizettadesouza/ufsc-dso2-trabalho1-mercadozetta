@@ -50,6 +50,10 @@ import { createProductService } from '@/services/productService';
 import { createSessionService } from '@/services/sessionService';
 import { createUserService } from '@/services/userService';
 import { createSellerOperationsService } from '@/services/sellerOperationsService';
+import type { DeliveryAddressRepository } from '@/repositories/deliveryAddressRepository';
+import { PostgresDeliveryAddressRepository } from '@/repositories/postgres/deliveryAddressRepository';
+import { createDeliveryAddressController } from '@/controller/deliveryAddressController';
+import { createDeliveryAddressService } from '@/services/deliveryAddressService';
 
 type PersistenceRepositories = {
   users: UserRepository;
@@ -63,6 +67,7 @@ type PersistenceRepositories = {
   reviews: ReviewRepository;
   checkout: CheckoutTransactionCoordinator;
   sellerOperations: SellerOperationsRepository;
+  addresses: DeliveryAddressRepository;
 };
 
 function createComposition(
@@ -82,7 +87,11 @@ function createComposition(
   const auth = createAuthService(repositories.users, sessions);
   const commerce = {
     ...createCartCommerceService(repositories.carts, repositories.products),
-    ...createCheckoutService(repositories.checkout),
+    ...createCheckoutService(
+      repositories.checkout,
+      repositories.carts,
+      repositories.addresses,
+    ),
     ...createOrderCommerceService(
       repositories.orders,
       repositories.orderItems,
@@ -99,6 +108,12 @@ function createComposition(
   };
 
   return {
+    deliveryAddressController: createDeliveryAddressController(
+      createDeliveryAddressService(
+        repositories.addresses,
+        repositories.checkout,
+      ),
+    ),
     accountManagementController: createAccountManagementController(
       createAccountManagementService(repositories.checkout),
       createAccountDeactivationService(repositories.checkout),
@@ -148,6 +163,7 @@ export function createPostgresComposition(
       reviews: new PostgresReviewRepository(db),
       checkout: new PostgresCheckoutTransactionCoordinator(db),
       sellerOperations: new PostgresSellerOperationsRepository(db),
+      addresses: new PostgresDeliveryAddressRepository(db),
     },
     accountMessageSender,
   );

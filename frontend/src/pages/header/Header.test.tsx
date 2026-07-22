@@ -56,7 +56,9 @@ describe('Header', () => {
     navigate.mockReset();
     vi.mocked(api.post).mockReset();
     vi.mocked(api.get).mockReset();
-    vi.mocked(api.get).mockResolvedValue({ data: { count: 0 } } as never);
+    vi.mocked(api.get).mockImplementation(async (url) => ({
+      data: url === '/cart' ? { items: [] } : { count: 0 },
+    }));
     vi.mocked(api.post).mockResolvedValue({} as never);
   });
 
@@ -136,7 +138,9 @@ describe('Header', () => {
   });
 
   it('shows the unread notification count for authenticated users', async () => {
-    vi.mocked(api.get).mockResolvedValue({ data: { count: 3 } } as never);
+    vi.mocked(api.get).mockImplementation(async (url) => ({
+      data: url === '/cart' ? { items: [] } : { count: 3 },
+    }));
 
     renderHeader('/', false, undefined, {
       _id: 'seller-1',
@@ -147,6 +151,31 @@ describe('Header', () => {
       await screen.findByLabelText('3 unread notifications'),
     ).toBeInTheDocument();
     expect(api.get).toHaveBeenCalledWith('/notifications/unread-count');
+  });
+
+  it('links to the persistent cart and derives its count from cart state', async () => {
+    vi.mocked(api.get).mockImplementation(async (url) => ({
+      data:
+        url === '/cart'
+          ? { items: [{ product: { _id: 'product-1' }, quantity: 2 }] }
+          : { count: 0 },
+    }));
+
+    renderHeader('/', false, undefined, {
+      _id: 'buyer-1',
+      username: 'Buyer',
+    });
+
+    expect(await screen.findByLabelText('2 items in cart')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /Cart/ })).toHaveAttribute(
+      'href',
+      '/cart',
+    );
+    expect(screen.getByRole('link', { name: 'My orders' })).toHaveAttribute(
+      'href',
+      '/orders',
+    );
+    expect(api.get).toHaveBeenCalledWith('/cart');
   });
 
   it('prevents conflicting logout requests while logout is pending', async () => {

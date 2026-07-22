@@ -12,6 +12,7 @@ export function mapUserRow(row: UserRow): PublicUser {
     _id: row.id,
     tenantId: row.tenantId,
     email: row.email,
+    emailVerifiedAt: row.emailVerifiedAt,
     username: row.username,
     telephone: row.telephone,
     createdAt: row.createdAt,

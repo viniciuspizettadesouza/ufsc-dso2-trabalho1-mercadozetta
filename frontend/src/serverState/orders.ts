@@ -15,6 +15,7 @@ import {
   type OrderList,
   type OrderStatusInput,
 } from '@/services/orders';
+import type { CheckoutOrderInput } from '@/services/delivery';
 
 export type { Order, OrderStatus } from '@/services/orders';
 type OrderStatusMutation = OrderStatusInput & { orderId: string };
@@ -40,7 +41,13 @@ export function useCreateOrder(userId: string, request: OrderListRequest) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: createOrder,
+    mutationFn: ({
+      idempotencyKey,
+      input,
+    }: {
+      idempotencyKey: string;
+      input: CheckoutOrderInput;
+    }) => createOrder(idempotencyKey, input),
     onSuccess: (order) => {
       queryClient.setQueryData<OrderQueryData>(
         queryKeys.orders.list(request),

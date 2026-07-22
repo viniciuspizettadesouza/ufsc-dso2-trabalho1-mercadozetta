@@ -11,8 +11,10 @@ import type { UserRepository } from '@/repositories/userRepository';
 import type { AccountLifecycleRepository } from '@/repositories/accountLifecycleRepository';
 import type { MutationIdempotencyRepository } from '@/repositories/mutationIdempotencyRepository';
 import type { ReviewRepository } from '@/repositories/reviewRepository';
+import type { DeliveryAddressRepository } from '@/repositories/deliveryAddressRepository';
 
 export type CheckoutRepositories = {
+  addresses: DeliveryAddressRepository;
   audits: AuditEventRepository;
   carts: CartRepository;
   notifications: NotificationRepository;

@@ -2,6 +2,7 @@ export type PublicUser = {
   _id: string;
   tenantId: string;
   email: string;
+  emailVerifiedAt?: Date | null;
   username?: string | null;
   telephone?: string | null;
   createdAt?: Date;

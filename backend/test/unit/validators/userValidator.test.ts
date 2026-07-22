@@ -97,6 +97,7 @@ describe('userValidator', () => {
         _id: userId,
         tenantId: 'mercadozetta',
         email: 'seller@example.com',
+        emailVerifiedAt: null,
         username: null,
         telephone: null,
         createdAt: timestamp,

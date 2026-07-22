@@ -1,5 +1,5 @@
 import { type FormEvent, type ReactNode, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useAuth } from '@/auth/AuthContext';
 import { useBrand } from '@/brands/brandContext';
 import { Button } from '@/components/Button';
@@ -168,6 +168,24 @@ export default function AccountSettings() {
       <main className="mx-auto max-w-[760px] px-4 py-8">
         <h1 className="mb-6 text-3xl font-bold">{brand.copy.account.title}</h1>
         <div className="grid gap-5">
+          <section className="rounded-surface border border-theme-border bg-surface p-5 shadow-surface">
+            <h2 className="text-xl font-bold">Checkout details</h2>
+            <Link className="mt-3 inline-block" to={appRoutes.addresses}>
+              Manage delivery addresses
+            </Link>
+          </section>
+          {user?.emailVerifiedAt === null && (
+            <section className="rounded-surface border border-theme-border bg-surface p-5 shadow-surface">
+              <h2 className="text-xl font-bold">Email verification</h2>
+              <p>Your current email address has not been verified.</p>
+              <Link
+                className="mt-3 inline-block"
+                to={appRoutes.emailVerification}
+              >
+                Request verification link
+              </Link>
+            </section>
+          )}
           <Section
             title={brand.copy.account.profileTitle}
             feedback={profileFeedback}

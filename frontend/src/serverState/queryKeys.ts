@@ -9,6 +9,22 @@ export type { ProductListRequest } from '@/services/products';
 export type { ReviewListRequest } from '@/services/reviews';
 
 export const queryKeys = {
+  addresses: {
+    all: ['delivery-addresses'] as const,
+    list: (userId: string) =>
+      [...queryKeys.addresses.all, 'list', userId] as const,
+  },
+  checkout: {
+    all: ['checkout'] as const,
+    quote: (userId: string, addressId: string, deliveryOptionId: string) =>
+      [
+        ...queryKeys.checkout.all,
+        'quote',
+        userId,
+        addressId,
+        deliveryOptionId,
+      ] as const,
+  },
   cart: {
     all: ['cart'] as const,
     items: (userId: string) =>

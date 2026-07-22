@@ -237,6 +237,8 @@ describe('commerce validator', () => {
       discount: { currency: 'USD', amountMinor: '0' },
       shipping: { currency: 'USD', amountMinor: '0' },
       total: { currency: 'USD', amountMinor: '1000' },
+      deliveryAddress: null,
+      deliveryOption: null,
       statusHistory: [
         { status: 'placed', actor: resourceId, changedAt: timestamp },
       ],

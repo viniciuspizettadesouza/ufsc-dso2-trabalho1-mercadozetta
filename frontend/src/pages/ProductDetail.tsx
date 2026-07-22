@@ -228,7 +228,7 @@ function ProductDetailPage({ productId }: { productId?: string }) {
                       ? 'In cart'
                       : 'Add to cart'}
                 </Button>
-                <Link to={appRoutes.checkout}>Checkout</Link>
+                <Link to={appRoutes.cart}>View cart</Link>
               </div>
               <MutationFeedbackMessage
                 className="mt-3"

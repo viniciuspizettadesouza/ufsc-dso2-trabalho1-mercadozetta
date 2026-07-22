@@ -41,7 +41,7 @@ database contains newer migrations. Image rollback must use the compatibility
 decision for that release; a successful no-op invocation of an old migration
 runner is not proof that the old application is safe.
 
-## Audit of migrations 0000 through 0008
+## Audit of migrations 0000 through 0009
 
 | Migration                           | Change and data work                                                                                                                                                                                                                          | Preceding application on migrated schema                                                                                                           | Supported overlap and rollback                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -54,6 +54,7 @@ runner is not proof that the old application is safe.
 | `0006_yielding_captain_america.sql` | Adds tenant/actor/operation-scoped product and review idempotency records without rewriting domain rows.                                                                                                                                      | Structurally yes; the preceding application ignores the new table.                                                                                 | Mixed versions do not share replay guarantees for product/review mutations. Drain those mutations across the switch. Application rollback leaves completed replay records in place so a later compatible release can preserve their results.                                                                                                                                                                                                                                                                     |
 | `0007_red_marvex.sql`               | Expands tenant currency, nullable product prices, explicit legacy/priced order shapes, immutable line/header snapshots, and append-only price history. No existing product or order receives a fabricated amount.                             | Yes during the expand stage: defaults preserve old product writes and classify every preceding checkout as `legacy_unpriced`.                      | Old/new checkout writers may overlap only while the new application does not require priced orders. Drain old checkout writers before priced checkout is activated. Rollback may leave nullable columns and the empty/new history table in place. After priced writes exist, do not roll back to code that can create legacy orders or ignore prices; deploy a compatible release or compensating forward migration. Rehearse the foreign-key replacement and constraint locks on production-sized order tables. |
 | `0008_tenant-eur-transition.sql`    | Adds retained tenant-currency anchors, repoints immutable snapshot currency keys, and deliberately migrates mapped CampusMarket catalog prices from USD to EUR. Unmapped CampusMarket products become non-sellable; MercadoZetta remains USD. | Old CampusMarket writers are incompatible after the authority switch because they submit USD. MercadoZetta writers remain structurally compatible. | Drain CampusMarket catalog and checkout writers. Preserve USD snapshots and anchors on rollback. Do not restore a pre-transition CampusMarket writer after EUR writes exist; use compatible code or a compensating forward migration. Rehearse an upgraded USD baseline, deliberate mappings, unmapped-product pausing, both current currencies, and mixed historical snapshots.                                                                                                                                 |
+| `0009_low_randall_flagg.sql`        | Adds tenant/user-scoped delivery addresses, a single-default partial unique index, and nullable JSON address/delivery snapshots on orders; no existing order is backfilled.                                                                   | Structurally yes; preceding writers ignore the address table and create orders with null delivery snapshots.                                       | Drain checkout during activation because only the new application validates quote fingerprints and writes fulfillment snapshots. Application rollback can leave the additive table/columns in place, but must not resume checkout after snapshot-bearing orders exist unless the old behavior is explicitly accepted. Rehearse first/default creation, default replacement/deletion, tenant isolation, and null versus populated snapshots.                                                                      |
 
 This table records compatibility of the existing history; it does not authorize
 editing an applied migration. Migration SQL, Drizzle snapshots, and journal
@@ -111,7 +112,7 @@ For each migration release, its change record must contain:
 - readiness plus critical catalog, login, checkout, fulfillment, session, and
   affected-feature smoke checks.
 
-For the existing history, an empty database must apply `0000` through `0008`
+For the existing history, an empty database must apply `0000` through `0009`
 and match the checked-in schema contract. An upgrade rehearsal from each
 supported prior release must also pass. The `0003` rehearsal must record the
 preexisting-user count and prove those users received non-null
@@ -140,6 +141,13 @@ CampusMarket orders and price history remain valid, appends reviewed EUR price
 history for mapped demo products, and makes every other preexisting
 CampusMarket product non-sellable rather than relabelling or converting its
 USD amount. Old and new monetary snapshot rows are never rewritten.
+
+Migration `0009` adds tenant/user-scoped `delivery_addresses`, including the
+single-default partial unique index and tenant-qualified owner key. It adds
+nullable JSON address and delivery-option snapshots to `orders`, so the schema
+remains readable by the immediately previous application while new checkout
+writes preserve fulfillment facts. It does not backfill or fabricate delivery
+data for existing orders.
 
 Abort before migration when the expected previous migration is absent, an
 unknown migration or schema drift is present, a second runner exists, the

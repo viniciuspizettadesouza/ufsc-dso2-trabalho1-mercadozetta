@@ -68,6 +68,15 @@ import {
   watchlistResponseSchema,
 } from '@/validators/commerceValidator';
 import {
+  checkoutOrderRequestSchema,
+  checkoutQuoteResponseSchema,
+  checkoutSelectionSchema,
+  deliveryAddressListResponseSchema,
+  deliveryAddressRequestSchema,
+  deliveryAddressResponseSchema,
+  deliveryErrorCodes,
+} from '@/validators/deliveryValidator';
+import {
   createUserSchema,
   userResponseSchema,
   sellerProfileResponseSchema,
@@ -143,6 +152,7 @@ const userExample = {
   _id: '507f1f77-bcf8-4ecd-8994-390110000001',
   tenantId: 'mercadozetta',
   email: 'seller@example.com',
+  emailVerifiedAt: '2026-01-15T12:00:00.000Z',
   username: 'seller',
   telephone: '+55 48 99999-0000',
   createdAt: '2026-01-15T12:00:00.000Z',
@@ -172,10 +182,27 @@ const orderExample = {
   buyer: userExample._id,
   status: 'placed',
   pricingState: 'priced',
-  subtotal: { currency: 'EUR', amountMinor: '12999' },
-  discount: { currency: 'EUR', amountMinor: '0' },
-  shipping: { currency: 'EUR', amountMinor: '0' },
-  total: { currency: 'EUR', amountMinor: '12999' },
+  subtotal: { currency: 'USD', amountMinor: '12999' },
+  discount: { currency: 'USD', amountMinor: '0' },
+  shipping: { currency: 'USD', amountMinor: '499' },
+  total: { currency: 'USD', amountMinor: '13498' },
+  deliveryAddress: {
+    sourceAddressId: '507f191e-810c-4197-9de8-60ea00000008',
+    label: 'Home',
+    recipientName: 'Example Buyer',
+    line1: '1 Market Street',
+    line2: null,
+    city: 'Lisbon',
+    region: 'Lisbon',
+    postalCode: '1000-001',
+    countryCode: 'PT',
+    telephone: '+351 210 000 000',
+  },
+  deliveryOption: {
+    id: 'standard',
+    label: 'Standard demo delivery',
+    estimate: '3–5 business days (demo estimate)',
+  },
   statusHistory: [
     {
       status: 'placed',
@@ -192,8 +219,8 @@ const orderExample = {
       productName: productExample.name,
       quantity: 1,
       pricingState: 'priced',
-      unitPrice: { currency: 'EUR', amountMinor: '12999' },
-      lineSubtotal: { currency: 'EUR', amountMinor: '12999' },
+      unitPrice: { currency: 'USD', amountMinor: '12999' },
+      lineSubtotal: { currency: 'USD', amountMinor: '12999' },
     },
   ],
   createdAt: '2026-07-13T10:00:00.000Z',
@@ -1127,6 +1154,130 @@ export function createOpenApiDocument() {
           },
         },
       },
+      '/account/addresses': {
+        get: {
+          tags: ['Account'],
+          summary: 'List saved delivery addresses',
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader],
+          responses: {
+            200: {
+              description: 'Saved delivery addresses',
+              content: json(deliveryAddressListResponseSchema, []),
+            },
+            400: appErrors('Invalid tenant', [
+              'TENANT_HEADER_REQUIRED',
+              'INVALID_TENANT',
+            ]),
+            401: appErrors(
+              'Missing or invalid session',
+              deliveryErrorCodes.authentication,
+            ),
+          },
+        },
+        post: {
+          tags: ['Account'],
+          summary: 'Create a saved delivery address',
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
+          requestBody: {
+            required: true,
+            content: json(deliveryAddressRequestSchema, {
+              label: 'Home',
+              recipientName: 'Example Buyer',
+              line1: '1 Market Street',
+              line2: null,
+              city: 'Lisbon',
+              region: 'Lisbon',
+              postalCode: '1000-001',
+              countryCode: 'PT',
+              telephone: '+351 210 000 000',
+              isDefault: true,
+            }),
+          },
+          responses: {
+            201: {
+              description: 'Delivery address created',
+              content: json(deliveryAddressResponseSchema),
+            },
+            400: appErrors(
+              'Invalid address or tenant',
+              deliveryErrorCodes.request,
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              deliveryErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Origin or CSRF validation failed',
+              deliveryErrorCodes.csrf,
+            ),
+          },
+        },
+      },
+      '/account/addresses/{addressId}': {
+        put: {
+          tags: ['Account'],
+          summary: 'Replace a saved delivery address',
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
+          requestParams: { path: z.object({ addressId: resourceId }) },
+          requestBody: {
+            required: true,
+            content: json(deliveryAddressRequestSchema),
+          },
+          responses: {
+            200: {
+              description: 'Delivery address updated',
+              content: json(deliveryAddressResponseSchema),
+            },
+            400: appErrors(
+              'Invalid address, identifier, or tenant',
+              deliveryErrorCodes.request,
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              deliveryErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Origin or CSRF validation failed',
+              deliveryErrorCodes.csrf,
+            ),
+            404: appErrors(
+              'Delivery address not found',
+              deliveryErrorCodes.notFound,
+            ),
+          },
+        },
+        delete: {
+          tags: ['Account'],
+          summary: 'Delete a saved delivery address',
+          description:
+            'Deleting the default promotes the most recently updated remaining address. Order snapshots are retained.',
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
+          requestParams: { path: z.object({ addressId: resourceId }) },
+          responses: {
+            204: { description: 'Delivery address deleted' },
+            400: appErrors(
+              'Invalid identifier or tenant',
+              deliveryErrorCodes.path,
+            ),
+            401: appErrors(
+              'Missing or invalid session',
+              deliveryErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Origin or CSRF validation failed',
+              deliveryErrorCodes.csrf,
+            ),
+            404: appErrors(
+              'Delivery address not found',
+              deliveryErrorCodes.notFound,
+            ),
+          },
+        },
+      },
       '/cart/items': {
         put: {
           tags: ['Commerce'],
@@ -1311,6 +1462,14 @@ export function createOpenApiDocument() {
           summary: 'Place an order from the current cart',
           security: [{ cookieAuth: [] }],
           parameters: [tenantHeader, csrfHeader, idempotencyHeader],
+          requestBody: {
+            required: true,
+            content: json(checkoutOrderRequestSchema, {
+              addressId: '507f191e-810c-4197-9de8-60ea00000008',
+              deliveryOptionId: 'standard',
+              quoteId: 'a'.repeat(64),
+            }),
+          },
           responses: {
             201: {
               description: 'Order placed',
@@ -1328,6 +1487,10 @@ export function createOpenApiDocument() {
               'Origin or CSRF validation failed',
               orderErrorCodes.csrf,
             ),
+            404: appErrors(
+              'Delivery address not found',
+              orderErrorCodes.addressNotFound,
+            ),
             409: appErrors(
               'A cart item is unavailable or the order amount is invalid',
               orderErrorCodes.inventoryConflict,
@@ -1339,6 +1502,53 @@ export function createOpenApiDocument() {
                   orderInvalidRequestExamples.totalLimit,
               },
             ),
+          },
+        },
+      },
+      '/checkout/quote': {
+        post: {
+          tags: ['Commerce'],
+          summary: 'Quote the current cart and selected delivery',
+          description:
+            'Re-prices current products and applies deterministic demo delivery. Discounts are not accepted and remain zero.',
+          security: [{ cookieAuth: [] }],
+          parameters: [tenantHeader, csrfHeader],
+          requestBody: {
+            required: true,
+            content: json(checkoutSelectionSchema, {
+              addressId: '507f191e-810c-4197-9de8-60ea00000008',
+              deliveryOptionId: 'standard',
+            }),
+          },
+          responses: {
+            200: {
+              description: 'Authoritative current checkout quote',
+              content: json(checkoutQuoteResponseSchema),
+            },
+            400: appErrors('Invalid selection, tenant, or empty cart', [
+              'TENANT_HEADER_REQUIRED',
+              'INVALID_TENANT',
+              'INVALID_REQUEST',
+              'EMPTY_CART',
+              'INVALID_DELIVERY_OPTION',
+            ]),
+            401: appErrors(
+              'Missing or invalid session',
+              orderErrorCodes.authentication,
+            ),
+            403: appErrors(
+              'Origin or CSRF validation failed',
+              orderErrorCodes.csrf,
+            ),
+            404: appErrors(
+              'Delivery address not found',
+              orderErrorCodes.addressNotFound,
+            ),
+            409: appErrors('Cart item or total is unavailable', [
+              'INSUFFICIENT_INVENTORY',
+              'PRODUCT_PRICE_REQUIRED',
+              'ORDER_TOTAL_LIMIT_EXCEEDED',
+            ]),
           },
         },
       },

@@ -42,7 +42,9 @@ test('returns to a protected route, renews cookies, and logs out', async ({
   await page.getByRole('button', { name: 'Entrar' }).click();
 
   await expect(page).toHaveURL('/checkout');
-  await expect(page.getByRole('heading', { name: 'Checkout' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Checkout review' }),
+  ).toBeVisible();
   await expectPageToBeAccessible(page);
   expect(
     await page.evaluate(() => ({
@@ -83,7 +85,9 @@ test('returns to a protected route, renews cookies, and logs out', async ({
   );
   await page.reload();
 
-  await expect(page.getByRole('heading', { name: 'Checkout' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'Checkout review' }),
+  ).toBeVisible();
   expect((await refreshResponse).status()).toBe(204);
   expect(
     (await context.cookies()).some(

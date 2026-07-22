@@ -11,6 +11,7 @@ import {
 
 type Collection = 'cart' | 'watchlist';
 type ToggleVariables = { productId: string; remove: boolean };
+type ToggleResult = CartItem[] | undefined;
 type MutationContext = {
   previous: string[] | undefined;
   previousCartItems: CartItem[] | undefined;
@@ -35,19 +36,26 @@ export function useProductCollection(
     enabled,
     queryFn: () => loadCollectionProductIds(collection),
   });
-  const mutation = useMutation<void, Error, ToggleVariables, MutationContext>({
+  const mutation = useMutation<
+    ToggleResult,
+    Error,
+    ToggleVariables,
+    MutationContext
+  >({
     mutationFn: async ({ productId, remove }) => {
       if (remove) {
         if (collection === 'cart') {
-          await removeCartItem(productId);
+          return (await removeCartItem(productId)).items;
         } else {
           await removeWatchlistItem(productId);
         }
       } else if (collection === 'cart') {
-        await putCartItem({ productId, quantity: 1 });
+        return (await putCartItem({ productId, quantity: 1 })).items;
       } else {
         await putWatchlistItem(productId);
       }
+
+      return undefined;
     },
     onMutate: async ({ productId, remove }) => {
       await Promise.all([
@@ -85,15 +93,16 @@ export function useProductCollection(
         }
       }
     },
-    onSuccess: () => {
+    onSuccess: (cartItems) => {
+      if (collection === 'cart' && cartItems) {
+        queryClient.setQueryData<CartItem[]>(cartItemsKey, cartItems);
+        queryClient.setQueryData<string[]>(
+          queryKey,
+          cartItems.map(({ product }) => product._id),
+        );
+      }
       if (enabled) {
         void queryClient.invalidateQueries({ queryKey });
-        if (collection === 'cart') {
-          void queryClient.invalidateQueries({
-            queryKey: cartItemsKey,
-            refetchType: 'inactive',
-          });
-        }
       }
     },
   });

@@ -2,12 +2,25 @@ import AppError from '@/errors/AppError';
 import type { CheckoutTransactionCoordinator } from '@/repositories/checkoutTransaction';
 import { checkedMoneyAdd, checkedMoneyMultiply, moneyFromMinor } from '@/money';
 import { resolveTenant } from '@/tenants';
+import type { CartRepository } from '@/repositories/cartRepository';
+import type { DeliveryAddressRepository } from '@/repositories/deliveryAddressRepository';
+import { calculateCheckoutQuote } from '@/services/checkoutPricing';
+import {
+  deterministicDeliveryQuoteProvider,
+  type DeliveryQuoteProvider,
+} from '@/services/deliveryOptions';
+import type {
+  CheckoutOrderRequest,
+  CheckoutSelection,
+} from '@/validators/deliveryValidator';
 
 async function createOrderInTransaction(
   transactions: CheckoutTransactionCoordinator,
   userId: string,
   tenantId: string,
   idempotencyKey: string,
+  selection?: CheckoutOrderRequest,
+  deliveryQuotes: DeliveryQuoteProvider = deterministicDeliveryQuoteProvider,
 ) {
   return transactions.run(async (repositories) => {
     const now = new Date();
@@ -82,7 +95,7 @@ async function createOrderInTransaction(
       subtotalMinor = nextSubtotal;
       return { item, product, unitPriceMinor, lineSubtotalMinor };
     });
-    const pricing = {
+    let pricing = {
       currency: tenant.currencyCode,
       currencyMinorUnit: tenant.currencyMinorUnit,
       subtotalMinor,
@@ -91,13 +104,77 @@ async function createOrderInTransaction(
       totalMinor: subtotalMinor,
     };
 
-    const order = await repositories.orders.createPlaced(
-      tenantId,
-      userId,
-      idempotencyKey,
-      pricing,
-      now,
-    );
+    let deliveryAddress;
+    let deliveryOption;
+    if (selection) {
+      const address = await repositories.addresses.findByIdForUpdate(
+        tenantId,
+        userId,
+        selection.addressId,
+      );
+      if (!address)
+        throw new AppError(
+          404,
+          'DELIVERY_ADDRESS_NOT_FOUND',
+          'Delivery address not found',
+        );
+      const selectedQuote = calculateCheckoutQuote(
+        cart.items.map((item) => ({
+          product: productMap.get(item.productId)!,
+          quantity: item.quantity,
+        })),
+        address,
+        selection.deliveryOptionId,
+        tenant.currencyCode,
+        deliveryQuotes,
+      );
+      if (selectedQuote.quoteId !== selection.quoteId)
+        throw new AppError(
+          409,
+          'CHECKOUT_QUOTE_CHANGED',
+          'Cart price, availability, address, or delivery quote changed',
+        );
+      pricing = {
+        ...selectedQuote.pricing,
+        currencyMinorUnit: tenant.currencyMinorUnit,
+      };
+      deliveryAddress = {
+        sourceAddressId: address._id,
+        label: address.label,
+        recipientName: address.recipientName,
+        line1: address.line1,
+        line2: address.line2,
+        city: address.city,
+        region: address.region,
+        postalCode: address.postalCode,
+        countryCode: address.countryCode,
+        telephone: address.telephone,
+      };
+      deliveryOption = {
+        id: selectedQuote.deliveryOption.id,
+        label: selectedQuote.deliveryOption.label,
+        estimate: selectedQuote.deliveryOption.estimate,
+      };
+    }
+
+    const order =
+      deliveryAddress && deliveryOption
+        ? await repositories.orders.createPlaced(
+            tenantId,
+            userId,
+            idempotencyKey,
+            pricing,
+            now,
+            deliveryAddress,
+            deliveryOption,
+          )
+        : await repositories.orders.createPlaced(
+            tenantId,
+            userId,
+            idempotencyKey,
+            pricing,
+            now,
+          );
     const items = pricedItems.map(
       ({ item, product, unitPriceMinor, lineSubtotalMinor }) => {
         return {
@@ -182,10 +259,52 @@ async function createOrderInTransaction(
 
 export function createCheckoutService(
   transactions: CheckoutTransactionCoordinator,
+  carts?: CartRepository,
+  addresses?: DeliveryAddressRepository,
+  deliveryQuotes: DeliveryQuoteProvider = deterministicDeliveryQuoteProvider,
 ) {
   return {
-    createOrder: (userId: string, tenantId: string, idempotencyKey: string) =>
-      createOrderInTransaction(transactions, userId, tenantId, idempotencyKey),
+    getCheckoutQuote: async (
+      userId: string,
+      tenantId: string,
+      selection: CheckoutSelection,
+    ) => {
+      if (!carts || !addresses)
+        throw new Error('Checkout quote repositories missing');
+      const [cart, address] = await Promise.all([
+        carts.get(tenantId, userId),
+        addresses.findById(tenantId, userId, selection.addressId),
+      ]);
+      if (!address)
+        throw new AppError(
+          404,
+          'DELIVERY_ADDRESS_NOT_FOUND',
+          'Delivery address not found',
+        );
+      const tenant = resolveTenant(tenantId);
+      if (!tenant) throw new Error('Checkout tenant is missing');
+      return calculateCheckoutQuote(
+        cart?.items ?? [],
+        address,
+        selection.deliveryOptionId,
+        tenant.currencyCode,
+        deliveryQuotes,
+      ).response;
+    },
+    createOrder: (
+      userId: string,
+      tenantId: string,
+      idempotencyKey: string,
+      selection?: CheckoutOrderRequest,
+    ) =>
+      createOrderInTransaction(
+        transactions,
+        userId,
+        tenantId,
+        idempotencyKey,
+        selection,
+        deliveryQuotes,
+      ),
   };
 }
 

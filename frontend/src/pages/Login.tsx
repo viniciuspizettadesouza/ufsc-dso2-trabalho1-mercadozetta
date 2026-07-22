@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 
 import Header from '@/pages/header';
 import { useBrand } from '@/brands/brandContext';
@@ -104,6 +104,10 @@ export default function Login() {
           >
             {brand.copy.forms.loginAction}
           </Button>
+          <div className="mt-4 flex justify-between gap-3 text-sm">
+            <Link to={appRoutes.passwordReset}>Forgot password?</Link>
+            <Link to={appRoutes.emailVerification}>Verify email</Link>
+          </div>
         </form>
       </main>
     </div>

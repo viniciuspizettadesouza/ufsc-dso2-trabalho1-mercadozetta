@@ -92,13 +92,45 @@ test('registers a tenant buyer and completes checkout and fulfillment', async ({
   ).toBeVisible();
   await page.getByRole('button', { name: 'Add to cart' }).click();
   await expect(page.getByRole('status')).toHaveText('Added to cart.');
-  await page.getByRole('link', { name: 'Checkout' }).click();
+  await page.getByRole('link', { name: 'View cart' }).click();
 
-  await expect(page.getByRole('heading', { name: 'Checkout' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Cart' })).toBeVisible();
   await expectPageToBeAccessible(page);
   await page.getByLabel(`Quantity for ${product.name}`).selectOption('2');
   await expect(page.getByRole('status')).toHaveText('Cart quantity updated.');
   await expect(page.getByText(product.quotePattern)).toBeVisible();
+
+  await page.goto('/account/addresses');
+  await expect(
+    page.getByRole('heading', { name: 'Delivery addresses' }),
+  ).toBeVisible();
+  await expectPageToBeAccessible(page);
+  await page.getByLabel('Address label').fill('Home');
+  await page.getByLabel('Recipient name').fill(buyer.name);
+  await page.getByLabel('Address line 1').fill('10 Market Street');
+  await page.getByLabel('City').fill('Lisbon');
+  await page.getByLabel('Postal code').fill('1000-001');
+  await page.getByLabel('Telephone').fill(buyer.phone);
+  const addressResponsePromise = page.waitForResponse(
+    (response) =>
+      response.url() === `${apiUrl}/account/addresses` &&
+      response.request().method() === 'POST',
+  );
+  await page.getByRole('button', { name: 'Add address' }).click();
+  expect((await addressResponsePromise).status()).toBe(201);
+  await expect(page.getByRole('status')).toHaveText('Delivery address added.');
+  await page.getByRole('link', { name: 'Return to checkout' }).click();
+
+  await expect(
+    page.getByRole('heading', { name: 'Checkout review' }),
+  ).toBeVisible();
+  await expect(page.getByLabel(/Home \(default\)/)).toBeChecked();
+  await expect(page.getByLabel(/Standard demo delivery/)).toBeChecked();
+  await expect(
+    page.getByRole('heading', { name: 'Authoritative order total' }),
+  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Place order' })).toBeEnabled();
+  await expectPageToBeAccessible(page);
 
   const orderResponsePromise = page.waitForResponse(
     (response) =>
@@ -114,9 +146,16 @@ test('registers a tenant buyer and completes checkout and fulfillment', async ({
     'Order placed successfully.',
   );
   await expect(page.getByText('Cart is empty.')).toBeVisible();
+  await page.getByRole('link', { name: 'View order history' }).click();
+  await expect(
+    page.getByRole('heading', { name: 'Order history' }),
+  ).toBeVisible();
   await expect(
     page.getByText(new RegExp(`${order._id} \\(placed\\)`)),
   ).toBeVisible();
+  await expect(page.getByText(/Delivery snapshot:/)).toHaveText(
+    /E2E Buyer, 10 Market Street, Lisbon, 1000-001, PT.*3–5 business days/,
+  );
 
   await page.goto(`/products/${product.id}`);
   await expect(

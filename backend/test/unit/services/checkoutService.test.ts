@@ -8,6 +8,23 @@ const tenantId = 'mercadozetta';
 const buyerId = '507f1f77-bcf8-4ecd-8994-390110000001';
 const sellerId = '507f1f77-bcf8-4ecd-8994-390110000002';
 const idempotencyKey = '507f191e-810c-4197-9de8-60ea00000005';
+const address = {
+  _id: '507f191e-810c-4197-9de8-60ea00000006',
+  tenantId,
+  userId: buyerId,
+  label: 'Home',
+  recipientName: 'Buyer',
+  line1: '1 Market Street',
+  line2: null,
+  city: 'Lisbon',
+  region: 'Lisbon',
+  postalCode: '1000-001',
+  countryCode: 'PT',
+  telephone: '+351210000000',
+  isDefault: true,
+  createdAt: now,
+  updatedAt: now,
+};
 const cart = {
   id: '507f191e-810c-4197-9de8-60ea00000001',
   tenantId,
@@ -74,6 +91,20 @@ function harness(
 ) {
   const checkoutCart = overrides.cart === undefined ? cart : overrides.cart;
   const carts = {
+    get: vi.fn().mockResolvedValue(
+      checkoutCart
+        ? {
+            tenantId,
+            buyer: buyerId,
+            items: checkoutCart.items.map((item) => ({
+              product: (overrides.products ?? products).find(
+                (product) => product._id === item.productId,
+              )!,
+              quantity: item.quantity,
+            })),
+          }
+        : null,
+    ),
     findForCheckout: vi.fn().mockResolvedValue(checkoutCart),
     clear: vi.fn().mockResolvedValue(undefined),
   };
@@ -101,7 +132,12 @@ function harness(
     create: vi.fn().mockResolvedValue(undefined),
     createMany: vi.fn().mockResolvedValue(undefined),
   };
+  const addresses = {
+    findById: vi.fn().mockResolvedValue(address),
+    findByIdForUpdate: vi.fn().mockResolvedValue(address),
+  };
   const repositories = {
+    addresses,
     carts,
     products: productRepository,
     orders,
@@ -114,7 +150,7 @@ function harness(
   } as unknown as CheckoutTransactionCoordinator;
 
   return {
-    ...createCheckoutService(transactions),
+    ...createCheckoutService(transactions, carts as never, addresses as never),
     transactions,
     carts,
     products: productRepository,
@@ -122,6 +158,7 @@ function harness(
     orderItems,
     audits,
     notifications,
+    addresses,
   };
 }
 
@@ -286,6 +323,79 @@ describe('checkoutService', () => {
     expect(test.audits.appendMany).not.toHaveBeenCalled();
     expect(test.carts.clear).not.toHaveBeenCalled();
     expect(test.notifications.create).not.toHaveBeenCalled();
+  });
+
+  it('quotes and snapshots selected delivery with authoritative shipping', async () => {
+    const test = harness();
+    const quote = await test.getCheckoutQuote(buyerId, tenantId, {
+      addressId: address._id,
+      deliveryOptionId: 'standard',
+    });
+
+    expect(quote).toMatchObject({
+      address,
+      shipping: { currency: 'USD', amountMinor: '499' },
+      subtotal: { currency: 'USD', amountMinor: '4000' },
+      discount: { currency: 'USD', amountMinor: '0' },
+      total: { currency: 'USD', amountMinor: '4499' },
+    });
+
+    await test.createOrder(buyerId, tenantId, idempotencyKey, {
+      addressId: address._id,
+      deliveryOptionId: 'standard',
+      quoteId: quote.quoteId,
+    });
+
+    expect(test.orders.createPlaced).toHaveBeenCalledWith(
+      tenantId,
+      buyerId,
+      idempotencyKey,
+      {
+        currency: 'USD',
+        currencyMinorUnit: 2,
+        subtotalMinor: 4000n,
+        discountMinor: 0n,
+        shippingMinor: 499n,
+        totalMinor: 4499n,
+      },
+      now,
+      {
+        sourceAddressId: address._id,
+        label: address.label,
+        recipientName: address.recipientName,
+        line1: address.line1,
+        line2: null,
+        city: address.city,
+        region: address.region,
+        postalCode: address.postalCode,
+        countryCode: address.countryCode,
+        telephone: address.telephone,
+      },
+      {
+        id: 'standard',
+        label: 'Standard demo delivery',
+        estimate: '3–5 business days (demo estimate)',
+      },
+    );
+  });
+
+  it('preserves the cart when the submitted quote is stale', async () => {
+    const test = harness();
+
+    await expect(
+      test.createOrder(buyerId, tenantId, idempotencyKey, {
+        addressId: address._id,
+        deliveryOptionId: 'express',
+        quoteId: 'a'.repeat(64),
+      }),
+    ).rejects.toMatchObject({
+      statusCode: 409,
+      code: 'CHECKOUT_QUOTE_CHANGED',
+    });
+
+    expect(test.orders.createPlaced).not.toHaveBeenCalled();
+    expect(test.carts.clear).not.toHaveBeenCalled();
+    expect(test.products.decrementAvailableInventory).not.toHaveBeenCalled();
   });
 
   it('rejects an empty cart before loading products', async () => {

@@ -162,6 +162,7 @@
                     "_id": "507f1f77-bcf8-4ecd-8994-390110000001",
                     "tenantId": "mercadozetta",
                     "email": "seller@example.com",
+                    "emailVerifiedAt": "2026-01-15T12:00:00.000Z",
                     "username": "seller",
                     "telephone": "+55 48 99999-0000",
                     "createdAt": "2026-01-15T12:00:00.000Z",
@@ -1541,6 +1542,7 @@
                   "_id": "507f1f77-bcf8-4ecd-8994-390110000001",
                   "tenantId": "mercadozetta",
                   "email": "seller@example.com",
+                  "emailVerifiedAt": "2026-01-15T12:00:00.000Z",
                   "username": "Updated Seller",
                   "telephone": null,
                   "createdAt": "2026-01-15T12:00:00.000Z",
@@ -2725,6 +2727,7 @@
                     "_id": "507f1f77-bcf8-4ecd-8994-390110000001",
                     "tenantId": "mercadozetta",
                     "email": "seller@example.com",
+                    "emailVerifiedAt": "2026-01-15T12:00:00.000Z",
                     "username": "seller",
                     "telephone": "+55 48 99999-0000",
                     "createdAt": "2026-01-15T12:00:00.000Z",
@@ -3823,6 +3826,7 @@
                   "_id": "507f1f77-bcf8-4ecd-8994-390110000001",
                   "tenantId": "mercadozetta",
                   "email": "seller@example.com",
+                  "emailVerifiedAt": "2026-01-15T12:00:00.000Z",
                   "username": "seller",
                   "telephone": "+55 48 99999-0000",
                   "createdAt": "2026-01-15T12:00:00.000Z",
@@ -6180,6 +6184,860 @@
         }
       }
     },
+    "/account/addresses": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "List saved delivery addresses",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Saved delivery addresses",
+            "content": {
+              "application/json": {
+                "example": [],
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryAddressList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid tenant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "TENANT_HEADER_REQUIRED",
+                        "INVALID_TENANT"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "TENANT_HEADER_REQUIRED": {
+                    "summary": "TENANT_HEADER_REQUIRED",
+                    "value": {
+                      "error": "X-Tenant-Id header is required",
+                      "code": "TENANT_HEADER_REQUIRED"
+                    }
+                  },
+                  "INVALID_TENANT": {
+                    "summary": "INVALID_TENANT",
+                    "value": {
+                      "error": "Invalid tenant",
+                      "code": "INVALID_TENANT"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "AUTH_TOKEN_REQUIRED",
+                        "INVALID_AUTH_TOKEN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "AUTH_TOKEN_REQUIRED": {
+                    "summary": "AUTH_TOKEN_REQUIRED",
+                    "value": {
+                      "error": "Authorization token is required",
+                      "code": "AUTH_TOKEN_REQUIRED"
+                    }
+                  },
+                  "INVALID_AUTH_TOKEN": {
+                    "summary": "INVALID_AUTH_TOKEN",
+                    "value": {
+                      "error": "Invalid authorization token",
+                      "code": "INVALID_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Create a saved delivery address",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "label": "Home",
+                "recipientName": "Example Buyer",
+                "line1": "1 Market Street",
+                "line2": null,
+                "city": "Lisbon",
+                "region": "Lisbon",
+                "postalCode": "1000-001",
+                "countryCode": "PT",
+                "telephone": "+351 210 000 000",
+                "isDefault": true
+              },
+              "schema": {
+                "$ref": "#/components/schemas/DeliveryAddressRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Delivery address created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryAddress"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid address or tenant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "TENANT_HEADER_REQUIRED",
+                        "INVALID_TENANT",
+                        "INVALID_REQUEST",
+                        "MISSING_ADDRESS_FIELDS",
+                        "INVALID_ADDRESS",
+                        "INVALID_POSTAL_CODE"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "TENANT_HEADER_REQUIRED": {
+                    "summary": "TENANT_HEADER_REQUIRED",
+                    "value": {
+                      "error": "X-Tenant-Id header is required",
+                      "code": "TENANT_HEADER_REQUIRED"
+                    }
+                  },
+                  "INVALID_TENANT": {
+                    "summary": "INVALID_TENANT",
+                    "value": {
+                      "error": "Invalid tenant",
+                      "code": "INVALID_TENANT"
+                    }
+                  },
+                  "INVALID_REQUEST": {
+                    "summary": "INVALID_REQUEST",
+                    "value": {
+                      "error": "Invalid option: expected one of \"draft\"|\"active\"|\"paused\"|\"sold_out\"|\"archived\"",
+                      "code": "INVALID_REQUEST"
+                    }
+                  },
+                  "MISSING_ADDRESS_FIELDS": {
+                    "summary": "MISSING_ADDRESS_FIELDS",
+                    "value": {
+                      "error": "Required delivery-address fields are missing",
+                      "code": "MISSING_ADDRESS_FIELDS"
+                    }
+                  },
+                  "INVALID_ADDRESS": {
+                    "summary": "INVALID_ADDRESS",
+                    "value": {
+                      "error": "Delivery address is invalid",
+                      "code": "INVALID_ADDRESS"
+                    }
+                  },
+                  "INVALID_POSTAL_CODE": {
+                    "summary": "INVALID_POSTAL_CODE",
+                    "value": {
+                      "error": "Postal code is invalid for the selected country",
+                      "code": "INVALID_POSTAL_CODE"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "AUTH_TOKEN_REQUIRED",
+                        "INVALID_AUTH_TOKEN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "AUTH_TOKEN_REQUIRED": {
+                    "summary": "AUTH_TOKEN_REQUIRED",
+                    "value": {
+                      "error": "Authorization token is required",
+                      "code": "AUTH_TOKEN_REQUIRED"
+                    }
+                  },
+                  "INVALID_AUTH_TOKEN": {
+                    "summary": "INVALID_AUTH_TOKEN",
+                    "value": {
+                      "error": "Invalid authorization token",
+                      "code": "INVALID_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin or CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_ORIGIN",
+                        "INVALID_CSRF_TOKEN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "INVALID_ORIGIN": {
+                    "summary": "INVALID_ORIGIN",
+                    "value": {
+                      "error": "Request origin is invalid",
+                      "code": "INVALID_ORIGIN"
+                    }
+                  },
+                  "INVALID_CSRF_TOKEN": {
+                    "summary": "INVALID_CSRF_TOKEN",
+                    "value": {
+                      "error": "CSRF token is invalid",
+                      "code": "INVALID_CSRF_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/account/addresses/{addressId}": {
+      "put": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Replace a saved delivery address",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "addressId",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "example": "507f191e-810c-4197-9de8-60ea00000001"
+            },
+            "required": true
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeliveryAddressRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Delivery address updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeliveryAddress"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid address, identifier, or tenant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "TENANT_HEADER_REQUIRED",
+                        "INVALID_TENANT",
+                        "INVALID_REQUEST",
+                        "MISSING_ADDRESS_FIELDS",
+                        "INVALID_ADDRESS",
+                        "INVALID_POSTAL_CODE"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "TENANT_HEADER_REQUIRED": {
+                    "summary": "TENANT_HEADER_REQUIRED",
+                    "value": {
+                      "error": "X-Tenant-Id header is required",
+                      "code": "TENANT_HEADER_REQUIRED"
+                    }
+                  },
+                  "INVALID_TENANT": {
+                    "summary": "INVALID_TENANT",
+                    "value": {
+                      "error": "Invalid tenant",
+                      "code": "INVALID_TENANT"
+                    }
+                  },
+                  "INVALID_REQUEST": {
+                    "summary": "INVALID_REQUEST",
+                    "value": {
+                      "error": "Invalid option: expected one of \"draft\"|\"active\"|\"paused\"|\"sold_out\"|\"archived\"",
+                      "code": "INVALID_REQUEST"
+                    }
+                  },
+                  "MISSING_ADDRESS_FIELDS": {
+                    "summary": "MISSING_ADDRESS_FIELDS",
+                    "value": {
+                      "error": "Required delivery-address fields are missing",
+                      "code": "MISSING_ADDRESS_FIELDS"
+                    }
+                  },
+                  "INVALID_ADDRESS": {
+                    "summary": "INVALID_ADDRESS",
+                    "value": {
+                      "error": "Delivery address is invalid",
+                      "code": "INVALID_ADDRESS"
+                    }
+                  },
+                  "INVALID_POSTAL_CODE": {
+                    "summary": "INVALID_POSTAL_CODE",
+                    "value": {
+                      "error": "Postal code is invalid for the selected country",
+                      "code": "INVALID_POSTAL_CODE"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "AUTH_TOKEN_REQUIRED",
+                        "INVALID_AUTH_TOKEN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "AUTH_TOKEN_REQUIRED": {
+                    "summary": "AUTH_TOKEN_REQUIRED",
+                    "value": {
+                      "error": "Authorization token is required",
+                      "code": "AUTH_TOKEN_REQUIRED"
+                    }
+                  },
+                  "INVALID_AUTH_TOKEN": {
+                    "summary": "INVALID_AUTH_TOKEN",
+                    "value": {
+                      "error": "Invalid authorization token",
+                      "code": "INVALID_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin or CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_ORIGIN",
+                        "INVALID_CSRF_TOKEN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "INVALID_ORIGIN": {
+                    "summary": "INVALID_ORIGIN",
+                    "value": {
+                      "error": "Request origin is invalid",
+                      "code": "INVALID_ORIGIN"
+                    }
+                  },
+                  "INVALID_CSRF_TOKEN": {
+                    "summary": "INVALID_CSRF_TOKEN",
+                    "value": {
+                      "error": "CSRF token is invalid",
+                      "code": "INVALID_CSRF_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Delivery address not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "DELIVERY_ADDRESS_NOT_FOUND"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "DELIVERY_ADDRESS_NOT_FOUND": {
+                    "summary": "DELIVERY_ADDRESS_NOT_FOUND",
+                    "value": {
+                      "error": "Delivery address not found",
+                      "code": "DELIVERY_ADDRESS_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Delete a saved delivery address",
+        "description": "Deleting the default promotes the most recently updated remaining address. Order snapshots are retained.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "addressId",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "example": "507f191e-810c-4197-9de8-60ea00000001"
+            },
+            "required": true
+          },
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Delivery address deleted"
+          },
+          "400": {
+            "description": "Invalid identifier or tenant",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "TENANT_HEADER_REQUIRED",
+                        "INVALID_TENANT",
+                        "INVALID_RESOURCE_ID"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "TENANT_HEADER_REQUIRED": {
+                    "summary": "TENANT_HEADER_REQUIRED",
+                    "value": {
+                      "error": "X-Tenant-Id header is required",
+                      "code": "TENANT_HEADER_REQUIRED"
+                    }
+                  },
+                  "INVALID_TENANT": {
+                    "summary": "INVALID_TENANT",
+                    "value": {
+                      "error": "Invalid tenant",
+                      "code": "INVALID_TENANT"
+                    }
+                  },
+                  "INVALID_RESOURCE_ID": {
+                    "summary": "INVALID_RESOURCE_ID",
+                    "value": {
+                      "error": "Invalid resource id",
+                      "code": "INVALID_RESOURCE_ID"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "AUTH_TOKEN_REQUIRED",
+                        "INVALID_AUTH_TOKEN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "AUTH_TOKEN_REQUIRED": {
+                    "summary": "AUTH_TOKEN_REQUIRED",
+                    "value": {
+                      "error": "Authorization token is required",
+                      "code": "AUTH_TOKEN_REQUIRED"
+                    }
+                  },
+                  "INVALID_AUTH_TOKEN": {
+                    "summary": "INVALID_AUTH_TOKEN",
+                    "value": {
+                      "error": "Invalid authorization token",
+                      "code": "INVALID_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin or CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_ORIGIN",
+                        "INVALID_CSRF_TOKEN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "INVALID_ORIGIN": {
+                    "summary": "INVALID_ORIGIN",
+                    "value": {
+                      "error": "Request origin is invalid",
+                      "code": "INVALID_ORIGIN"
+                    }
+                  },
+                  "INVALID_CSRF_TOKEN": {
+                    "summary": "INVALID_CSRF_TOKEN",
+                    "value": {
+                      "error": "CSRF token is invalid",
+                      "code": "INVALID_CSRF_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Delivery address not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "DELIVERY_ADDRESS_NOT_FOUND"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "DELIVERY_ADDRESS_NOT_FOUND": {
+                    "summary": "DELIVERY_ADDRESS_NOT_FOUND",
+                    "value": {
+                      "error": "Delivery address not found",
+                      "code": "DELIVERY_ADDRESS_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/cart/items": {
       "put": {
         "tags": [
@@ -7505,6 +8363,21 @@
             "description": "Client-generated checkout intent identifier. Reusing it for the same buyer returns the original order without repeating side effects."
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "addressId": "507f191e-810c-4197-9de8-60ea00000008",
+                "deliveryOptionId": "standard",
+                "quoteId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutOrderRequest"
+              }
+            }
+          }
+        },
         "responses": {
           "201": {
             "description": "Order placed",
@@ -7517,20 +8390,37 @@
                   "status": "placed",
                   "pricingState": "priced",
                   "subtotal": {
-                    "currency": "EUR",
+                    "currency": "USD",
                     "amountMinor": "12999"
                   },
                   "discount": {
-                    "currency": "EUR",
+                    "currency": "USD",
                     "amountMinor": "0"
                   },
                   "shipping": {
-                    "currency": "EUR",
-                    "amountMinor": "0"
+                    "currency": "USD",
+                    "amountMinor": "499"
                   },
                   "total": {
-                    "currency": "EUR",
-                    "amountMinor": "12999"
+                    "currency": "USD",
+                    "amountMinor": "13498"
+                  },
+                  "deliveryAddress": {
+                    "sourceAddressId": "507f191e-810c-4197-9de8-60ea00000008",
+                    "label": "Home",
+                    "recipientName": "Example Buyer",
+                    "line1": "1 Market Street",
+                    "line2": null,
+                    "city": "Lisbon",
+                    "region": "Lisbon",
+                    "postalCode": "1000-001",
+                    "countryCode": "PT",
+                    "telephone": "+351 210 000 000"
+                  },
+                  "deliveryOption": {
+                    "id": "standard",
+                    "label": "Standard demo delivery",
+                    "estimate": "3–5 business days (demo estimate)"
                   },
                   "statusHistory": [
                     {
@@ -7549,11 +8439,11 @@
                       "quantity": 1,
                       "pricingState": "priced",
                       "unitPrice": {
-                        "currency": "EUR",
+                        "currency": "USD",
                         "amountMinor": "12999"
                       },
                       "lineSubtotal": {
-                        "currency": "EUR",
+                        "currency": "USD",
                         "amountMinor": "12999"
                       }
                     }
@@ -7584,7 +8474,9 @@
                         "INVALID_TENANT",
                         "IDEMPOTENCY_KEY_REQUIRED",
                         "INVALID_IDEMPOTENCY_KEY",
-                        "EMPTY_CART"
+                        "EMPTY_CART",
+                        "INVALID_REQUEST",
+                        "INVALID_DELIVERY_OPTION"
                       ]
                     },
                     "details": {}
@@ -7629,6 +8521,20 @@
                     "value": {
                       "error": "Cart is empty",
                       "code": "EMPTY_CART"
+                    }
+                  },
+                  "INVALID_REQUEST": {
+                    "summary": "INVALID_REQUEST",
+                    "value": {
+                      "error": "Invalid option: expected one of \"draft\"|\"active\"|\"paused\"|\"sold_out\"|\"archived\"",
+                      "code": "INVALID_REQUEST"
+                    }
+                  },
+                  "INVALID_DELIVERY_OPTION": {
+                    "summary": "INVALID_DELIVERY_OPTION",
+                    "value": {
+                      "error": "Delivery option is invalid",
+                      "code": "INVALID_DELIVERY_OPTION"
                     }
                   }
                 }
@@ -7723,8 +8629,359 @@
               }
             }
           },
+          "404": {
+            "description": "Delivery address not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "DELIVERY_ADDRESS_NOT_FOUND"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "DELIVERY_ADDRESS_NOT_FOUND": {
+                    "summary": "DELIVERY_ADDRESS_NOT_FOUND",
+                    "value": {
+                      "error": "Delivery address not found",
+                      "code": "DELIVERY_ADDRESS_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
           "409": {
             "description": "A cart item is unavailable or the order amount is invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INSUFFICIENT_INVENTORY",
+                        "PRODUCT_PRICE_REQUIRED",
+                        "ORDER_TOTAL_LIMIT_EXCEEDED",
+                        "CHECKOUT_QUOTE_CHANGED"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "INSUFFICIENT_INVENTORY": {
+                    "summary": "INSUFFICIENT_INVENTORY",
+                    "value": {
+                      "error": "A cart item is unavailable",
+                      "code": "INSUFFICIENT_INVENTORY"
+                    }
+                  },
+                  "PRODUCT_PRICE_REQUIRED": {
+                    "summary": "PRODUCT_PRICE_REQUIRED",
+                    "value": {
+                      "error": "A cart item has no current price",
+                      "code": "PRODUCT_PRICE_REQUIRED"
+                    }
+                  },
+                  "ORDER_TOTAL_LIMIT_EXCEEDED": {
+                    "summary": "ORDER_TOTAL_LIMIT_EXCEEDED",
+                    "value": {
+                      "error": "Order amount exceeds the supported limit",
+                      "code": "ORDER_TOTAL_LIMIT_EXCEEDED"
+                    }
+                  },
+                  "CHECKOUT_QUOTE_CHANGED": {
+                    "summary": "CHECKOUT_QUOTE_CHANGED",
+                    "value": {
+                      "error": "Cart price, availability, address, or delivery quote changed",
+                      "code": "CHECKOUT_QUOTE_CHANGED"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/checkout/quote": {
+      "post": {
+        "tags": [
+          "Commerce"
+        ],
+        "summary": "Quote the current cart and selected delivery",
+        "description": "Re-prices current products and applies deterministic demo delivery. Discounts are not accepted and remain zero.",
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "schema": {
+              "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise.",
+              "example": "mercadozetta",
+              "type": "string"
+            },
+            "description": "Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise."
+          },
+          {
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string",
+              "description": "Session-bound double-submit proof required for cookie-authenticated mutations.",
+              "example": "nonce.signature"
+            },
+            "required": true,
+            "description": "Session-bound double-submit proof required for cookie-authenticated mutations."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "addressId": "507f191e-810c-4197-9de8-60ea00000008",
+                "deliveryOptionId": "standard"
+              },
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutSelection"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authoritative current checkout quote",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutQuote"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid selection, tenant, or empty cart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "TENANT_HEADER_REQUIRED",
+                        "INVALID_TENANT",
+                        "INVALID_REQUEST",
+                        "EMPTY_CART",
+                        "INVALID_DELIVERY_OPTION"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "TENANT_HEADER_REQUIRED": {
+                    "summary": "TENANT_HEADER_REQUIRED",
+                    "value": {
+                      "error": "X-Tenant-Id header is required",
+                      "code": "TENANT_HEADER_REQUIRED"
+                    }
+                  },
+                  "INVALID_TENANT": {
+                    "summary": "INVALID_TENANT",
+                    "value": {
+                      "error": "Invalid tenant",
+                      "code": "INVALID_TENANT"
+                    }
+                  },
+                  "INVALID_REQUEST": {
+                    "summary": "INVALID_REQUEST",
+                    "value": {
+                      "error": "Invalid option: expected one of \"draft\"|\"active\"|\"paused\"|\"sold_out\"|\"archived\"",
+                      "code": "INVALID_REQUEST"
+                    }
+                  },
+                  "EMPTY_CART": {
+                    "summary": "EMPTY_CART",
+                    "value": {
+                      "error": "Cart is empty",
+                      "code": "EMPTY_CART"
+                    }
+                  },
+                  "INVALID_DELIVERY_OPTION": {
+                    "summary": "INVALID_DELIVERY_OPTION",
+                    "value": {
+                      "error": "Delivery option is invalid",
+                      "code": "INVALID_DELIVERY_OPTION"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "AUTH_TOKEN_REQUIRED",
+                        "INVALID_AUTH_TOKEN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "AUTH_TOKEN_REQUIRED": {
+                    "summary": "AUTH_TOKEN_REQUIRED",
+                    "value": {
+                      "error": "Authorization token is required",
+                      "code": "AUTH_TOKEN_REQUIRED"
+                    }
+                  },
+                  "INVALID_AUTH_TOKEN": {
+                    "summary": "INVALID_AUTH_TOKEN",
+                    "value": {
+                      "error": "Invalid authorization token",
+                      "code": "INVALID_AUTH_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Origin or CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "INVALID_ORIGIN",
+                        "INVALID_CSRF_TOKEN"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "INVALID_ORIGIN": {
+                    "summary": "INVALID_ORIGIN",
+                    "value": {
+                      "error": "Request origin is invalid",
+                      "code": "INVALID_ORIGIN"
+                    }
+                  },
+                  "INVALID_CSRF_TOKEN": {
+                    "summary": "INVALID_CSRF_TOKEN",
+                    "value": {
+                      "error": "CSRF token is invalid",
+                      "code": "INVALID_CSRF_TOKEN"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Delivery address not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    },
+                    "code": {
+                      "type": "string",
+                      "enum": [
+                        "DELIVERY_ADDRESS_NOT_FOUND"
+                      ]
+                    },
+                    "details": {}
+                  },
+                  "required": [
+                    "error",
+                    "code"
+                  ],
+                  "additionalProperties": false
+                },
+                "examples": {
+                  "DELIVERY_ADDRESS_NOT_FOUND": {
+                    "summary": "DELIVERY_ADDRESS_NOT_FOUND",
+                    "value": {
+                      "error": "Delivery address not found",
+                      "code": "DELIVERY_ADDRESS_NOT_FOUND"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Cart item or total is unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -7753,14 +9010,14 @@
                   "INSUFFICIENT_INVENTORY": {
                     "summary": "INSUFFICIENT_INVENTORY",
                     "value": {
-                      "error": "A cart item is unavailable",
+                      "error": "Insufficient product inventory",
                       "code": "INSUFFICIENT_INVENTORY"
                     }
                   },
                   "PRODUCT_PRICE_REQUIRED": {
                     "summary": "PRODUCT_PRICE_REQUIRED",
                     "value": {
-                      "error": "A cart item has no current price",
+                      "error": "Active products require a price",
                       "code": "PRODUCT_PRICE_REQUIRED"
                     }
                   },
@@ -8039,20 +9296,37 @@
                   "status": "shipped",
                   "pricingState": "priced",
                   "subtotal": {
-                    "currency": "EUR",
+                    "currency": "USD",
                     "amountMinor": "12999"
                   },
                   "discount": {
-                    "currency": "EUR",
+                    "currency": "USD",
                     "amountMinor": "0"
                   },
                   "shipping": {
-                    "currency": "EUR",
-                    "amountMinor": "0"
+                    "currency": "USD",
+                    "amountMinor": "499"
                   },
                   "total": {
-                    "currency": "EUR",
-                    "amountMinor": "12999"
+                    "currency": "USD",
+                    "amountMinor": "13498"
+                  },
+                  "deliveryAddress": {
+                    "sourceAddressId": "507f191e-810c-4197-9de8-60ea00000008",
+                    "label": "Home",
+                    "recipientName": "Example Buyer",
+                    "line1": "1 Market Street",
+                    "line2": null,
+                    "city": "Lisbon",
+                    "region": "Lisbon",
+                    "postalCode": "1000-001",
+                    "countryCode": "PT",
+                    "telephone": "+351 210 000 000"
+                  },
+                  "deliveryOption": {
+                    "id": "standard",
+                    "label": "Standard demo delivery",
+                    "estimate": "3–5 business days (demo estimate)"
                   },
                   "statusHistory": [
                     {
@@ -8076,11 +9350,11 @@
                       "quantity": 1,
                       "pricingState": "priced",
                       "unitPrice": {
-                        "currency": "EUR",
+                        "currency": "USD",
                         "amountMinor": "12999"
                       },
                       "lineSubtotal": {
-                        "currency": "EUR",
+                        "currency": "USD",
                         "amountMinor": "12999"
                       }
                     }
@@ -9664,6 +10938,68 @@
           }
         }
       },
+      "DeliveryAddressRequest": {
+        "description": "A tenant/user-scoped delivery address. PT and US postal formats are validated syntactically without claiming deliverability.",
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "recipientName": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "line1": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "line2": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          },
+          "city": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "region": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 120
+          },
+          "postalCode": {
+            "type": "string",
+            "maxLength": 20
+          },
+          "countryCode": {
+            "type": "string",
+            "pattern": "^[A-Z]{2}$"
+          },
+          "telephone": {
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 40
+          },
+          "isDefault": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": [
+          "label",
+          "recipientName",
+          "line1",
+          "city",
+          "postalCode",
+          "countryCode",
+          "telephone"
+        ]
+      },
       "CartItemRequest": {
         "type": "object",
         "properties": {
@@ -9695,6 +11031,55 @@
           "delivered",
           "cancelled"
         ]
+      },
+      "CheckoutOrderRequest": {
+        "type": "object",
+        "properties": {
+          "addressId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "deliveryOptionId": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "express"
+            ]
+          },
+          "quoteId": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "addressId",
+          "deliveryOptionId",
+          "quoteId"
+        ],
+        "additionalProperties": false
+      },
+      "CheckoutSelection": {
+        "type": "object",
+        "properties": {
+          "addressId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "deliveryOptionId": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "express"
+            ]
+          }
+        },
+        "required": [
+          "addressId",
+          "deliveryOptionId"
+        ],
+        "additionalProperties": false
       },
       "OrderStatusUpdateRequest": {
         "type": "object",
@@ -9828,6 +11213,18 @@
             "format": "email",
             "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
           },
+          "emailVerifiedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "username": {
             "anyOf": [
               {
@@ -9863,6 +11260,7 @@
           "_id",
           "tenantId",
           "email",
+          "emailVerifiedAt",
           "username",
           "telephone",
           "createdAt",
@@ -10184,6 +11582,105 @@
         ],
         "additionalProperties": false
       },
+      "DeliveryAddressList": {
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/DeliveryAddress"
+        }
+      },
+      "DeliveryAddress": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+            "example": "507f191e-810c-4197-9de8-60ea00000001"
+          },
+          "tenantId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "label": {
+            "type": "string"
+          },
+          "recipientName": {
+            "type": "string"
+          },
+          "line1": {
+            "type": "string"
+          },
+          "line2": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "city": {
+            "type": "string"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "countryCode": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 2
+          },
+          "telephone": {
+            "type": "string"
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          }
+        },
+        "required": [
+          "_id",
+          "tenantId",
+          "userId",
+          "label",
+          "recipientName",
+          "line1",
+          "line2",
+          "city",
+          "region",
+          "postalCode",
+          "countryCode",
+          "telephone",
+          "isDefault",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
       "Watchlist": {
         "type": "array",
         "items": {
@@ -10371,6 +11868,106 @@
               }
             ]
           },
+          "deliveryAddress": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "label": {
+                    "type": "string"
+                  },
+                  "recipientName": {
+                    "type": "string"
+                  },
+                  "line1": {
+                    "type": "string"
+                  },
+                  "line2": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "city": {
+                    "type": "string"
+                  },
+                  "region": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "postalCode": {
+                    "type": "string"
+                  },
+                  "countryCode": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 2
+                  },
+                  "telephone": {
+                    "type": "string"
+                  },
+                  "sourceAddressId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  }
+                },
+                "required": [
+                  "label",
+                  "recipientName",
+                  "line1",
+                  "line2",
+                  "city",
+                  "region",
+                  "postalCode",
+                  "countryCode",
+                  "telephone",
+                  "sourceAddressId"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deliveryOption": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "label": {
+                    "type": "string"
+                  },
+                  "estimate": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "label",
+                  "estimate"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "statusHistory": {
             "type": "array",
             "items": {
@@ -10404,6 +12001,8 @@
           "discount",
           "shipping",
           "total",
+          "deliveryAddress",
+          "deliveryOption",
           "statusHistory",
           "items",
           "createdAt",
@@ -10532,6 +12131,151 @@
           "pricingState",
           "unitPrice",
           "lineSubtotal"
+        ],
+        "additionalProperties": false
+      },
+      "CheckoutQuote": {
+        "type": "object",
+        "properties": {
+          "quoteId": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "address": {
+            "$ref": "#/components/schemas/DeliveryAddress"
+          },
+          "deliveryOption": {
+            "$ref": "#/components/schemas/DeliveryOption"
+          },
+          "subtotal": {
+            "type": "object",
+            "properties": {
+              "currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3
+              },
+              "amountMinor": {
+                "type": "string",
+                "pattern": "^\\d+$"
+              }
+            },
+            "required": [
+              "currency",
+              "amountMinor"
+            ],
+            "additionalProperties": false
+          },
+          "discount": {
+            "type": "object",
+            "properties": {
+              "currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3
+              },
+              "amountMinor": {
+                "type": "string",
+                "pattern": "^\\d+$"
+              }
+            },
+            "required": [
+              "currency",
+              "amountMinor"
+            ],
+            "additionalProperties": false
+          },
+          "shipping": {
+            "type": "object",
+            "properties": {
+              "currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3
+              },
+              "amountMinor": {
+                "type": "string",
+                "pattern": "^\\d+$"
+              }
+            },
+            "required": [
+              "currency",
+              "amountMinor"
+            ],
+            "additionalProperties": false
+          },
+          "total": {
+            "type": "object",
+            "properties": {
+              "currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3
+              },
+              "amountMinor": {
+                "type": "string",
+                "pattern": "^\\d+$"
+              }
+            },
+            "required": [
+              "currency",
+              "amountMinor"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "quoteId",
+          "address",
+          "deliveryOption",
+          "subtotal",
+          "discount",
+          "shipping",
+          "total"
+        ],
+        "additionalProperties": false
+      },
+      "DeliveryOption": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "standard",
+              "express"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "estimate": {
+            "type": "string"
+          },
+          "shipping": {
+            "type": "object",
+            "properties": {
+              "currency": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 3
+              },
+              "amountMinor": {
+                "type": "string",
+                "pattern": "^\\d+$"
+              }
+            },
+            "required": [
+              "currency",
+              "amountMinor"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "estimate",
+          "shipping"
         ],
         "additionalProperties": false
       },

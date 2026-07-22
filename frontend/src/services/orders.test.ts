@@ -27,6 +27,8 @@ const order = {
   discount: null,
   shipping: null,
   total: null,
+  deliveryAddress: null,
+  deliveryOption: null,
   statusHistory: [],
   items: [],
   createdAt: '2026-07-18T10:00:00.000Z',
@@ -98,10 +100,15 @@ describe('order service', () => {
 
   it('checks out and returns the created order', async () => {
     vi.mocked(api.post).mockResolvedValue({ data: order });
+    const input = {
+      addressId: '44444444-4444-4444-8444-444444444444',
+      deliveryOptionId: 'standard' as const,
+      quoteId: 'a'.repeat(64),
+    };
 
-    await expect(createOrder(idempotencyKey)).resolves.toBe(order);
+    await expect(createOrder(idempotencyKey, input)).resolves.toBe(order);
 
-    expect(api.post).toHaveBeenCalledWith('/orders', undefined, {
+    expect(api.post).toHaveBeenCalledWith('/orders', input, {
       headers: { 'Idempotency-Key': idempotencyKey },
     });
   });

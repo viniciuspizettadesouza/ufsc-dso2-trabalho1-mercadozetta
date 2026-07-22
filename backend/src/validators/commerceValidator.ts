@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { deliveryAddressResponseSchema } from '@/validators/deliveryValidator';
 import { isUuid, UUID_EXAMPLE } from '@/ids';
 import { orderStatuses } from '@/orderStatus';
 import { parseAppSchema, requestString } from '@/validators/parseSchema';
@@ -187,6 +188,20 @@ export const orderResponseSchema = z
     discount: exactMoneySchema.nullable(),
     shipping: exactMoneySchema.nullable(),
     total: exactMoneySchema.nullable(),
+    deliveryAddress: deliveryAddressResponseSchema
+      .omit({
+        _id: true,
+        tenantId: true,
+        userId: true,
+        isDefault: true,
+        createdAt: true,
+        updatedAt: true,
+      })
+      .extend({ sourceAddressId: z.string().uuid() })
+      .nullable(),
+    deliveryOption: z
+      .object({ id: z.string(), label: z.string(), estimate: z.string() })
+      .nullable(),
     statusHistory: z.array(orderStatusHistoryResponseSchema),
     items: z.array(orderItemResponseSchema),
     createdAt: z.iso.datetime(),
@@ -206,6 +221,8 @@ export const orderErrorCodes = {
     'IDEMPOTENCY_KEY_REQUIRED',
     'INVALID_IDEMPOTENCY_KEY',
     'EMPTY_CART',
+    'INVALID_REQUEST',
+    'INVALID_DELIVERY_OPTION',
   ],
   statusRequest: [
     'TENANT_HEADER_REQUIRED',
@@ -220,7 +237,9 @@ export const orderErrorCodes = {
     'INSUFFICIENT_INVENTORY',
     'PRODUCT_PRICE_REQUIRED',
     'ORDER_TOTAL_LIMIT_EXCEEDED',
+    'CHECKOUT_QUOTE_CHANGED',
   ],
+  addressNotFound: ['DELIVERY_ADDRESS_NOT_FOUND'],
   notFound: ['ORDER_NOT_FOUND'],
   transitionConflict: ['ORDER_STATUS_TRANSITION_INVALID'],
 } as const;

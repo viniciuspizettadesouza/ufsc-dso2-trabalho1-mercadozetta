@@ -57,7 +57,7 @@ describe('useProductCollection', () => {
     const { result } = renderCollection('watchlist', 'user-1', true);
 
     await waitFor(() => expect(api.get).toHaveBeenCalledWith('/watchlist'));
-    let mutation!: Promise<void>;
+    let mutation!: Promise<unknown>;
     act(() => {
       mutation = result.current.toggle({
         productId: 'product-1',
@@ -101,7 +101,11 @@ describe('useProductCollection', () => {
   });
 
   it('keeps anonymous reads disabled while preserving mutation controls', async () => {
-    vi.mocked(api.put).mockResolvedValue({} as never);
+    vi.mocked(api.put).mockResolvedValue({
+      data: {
+        items: [{ product: { _id: 'product-1' }, quantity: 1 }],
+      },
+    } as never);
     const { result } = renderCollection('cart', undefined, false);
 
     await act(async () => {

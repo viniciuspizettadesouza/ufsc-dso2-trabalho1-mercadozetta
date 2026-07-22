@@ -50,6 +50,7 @@ import { paginated } from '@/pagination';
 import type { Pagination } from '@/pagination';
 import type { OrderListData } from '@/validators/commerceValidator';
 import { moneyFromMinor } from '@/money';
+import { PostgresDeliveryAddressRepository } from '@/repositories/postgres/deliveryAddressRepository';
 
 type TransactionDatabase = Parameters<
   Parameters<Database['transaction']>[0]
@@ -238,6 +239,8 @@ export class PostgresOrderRepository implements OrderRepository {
         order.currencyCode && order.totalMinor !== null
           ? moneyFromMinor(order.currencyCode, order.totalMinor)
           : null,
+      deliveryAddress: order.deliveryAddress,
+      deliveryOption: order.deliveryOption,
       statusHistory: history
         .filter((entry) => entry.orderId === order.id)
         .map((entry) => ({
@@ -256,6 +259,8 @@ export class PostgresOrderRepository implements OrderRepository {
     idempotencyKey: string,
     pricing: CreateOrderPricing,
     now: Date,
+    deliveryAddress?: Parameters<OrderRepository['createPlaced']>[5],
+    deliveryOption?: Parameters<OrderRepository['createPlaced']>[6],
   ) {
     const id = randomUUID();
     const [order] = await this.db
@@ -272,6 +277,8 @@ export class PostgresOrderRepository implements OrderRepository {
         discountMinor: pricing.discountMinor,
         shippingMinor: pricing.shippingMinor,
         totalMinor: pricing.totalMinor,
+        deliveryAddress: deliveryAddress ?? null,
+        deliveryOption: deliveryOption ?? null,
         status: 'placed',
         createdAt: now,
         updatedAt: now,
@@ -295,6 +302,8 @@ export class PostgresOrderRepository implements OrderRepository {
       discount: moneyFromMinor(pricing.currency, pricing.discountMinor),
       shipping: moneyFromMinor(pricing.currency, pricing.shippingMinor),
       total: moneyFromMinor(pricing.currency, pricing.totalMinor),
+      deliveryAddress: deliveryAddress ?? null,
+      deliveryOption: deliveryOption ?? null,
       statusHistory: [
         { status: 'placed' as const, actor: buyerId, changedAt: now },
       ],
@@ -634,6 +643,7 @@ export class PostgresNotificationRepository implements NotificationRepository {
 
 function repositories(db: TransactionDatabase): MutationRepositories {
   return {
+    addresses: new PostgresDeliveryAddressRepository(db),
     accountLifecycle: new PostgresAccountLifecycleRepository(db),
     accountTokens: new PostgresAccountTokenRepository(db),
     pendingEmailChanges: new PostgresPendingEmailChangeRepository(db),

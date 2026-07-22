@@ -9,8 +9,8 @@ isolated by `tenantId`.
 
 The project demonstrates a marketplace's main consistency and authorization
 boundaries: catalog discovery, seller-owned listings, exact tenant-currency pricing, buyer
-state, authoritative checkout totals, inventory, order fulfillment, reviews,
-and notifications. It does not model payments, shipping addresses, refunds, or
+state, authoritative checkout totals, delivery addresses, inventory, order fulfillment, reviews,
+and notifications. It does not model payments, live carrier shipping, refunds, or
 production deployment. It should therefore be understood as a development and
 teaching system rather than a complete commerce platform.
 
@@ -35,9 +35,11 @@ priorities, and session handoff belong only in the
 
 - Maintain one persistent cart and a persistent watchlist within a tenant.
 - Add, remove, and change cart quantities subject to current inventory.
-- View an exact current-price cart quote and convert the cart into an order
-  whose backend-calculated price snapshots, totals, and inventory effects share
-  one PostgreSQL transaction.
+- Create, update, choose, and explicitly delete tenant-scoped delivery
+  addresses, with one deterministic default.
+- View an authoritative checkout quote including a deterministic delivery
+  option, then convert the cart into an order whose backend-calculated price,
+  address, delivery, and inventory snapshots share one PostgreSQL transaction.
 - View owned orders and status history, and cancel orders in permitted states.
 - Create or update one review per purchased product; sellers cannot review
   their own products.
@@ -215,9 +217,12 @@ demo records use fixed UUIDs.
 - A tenant/user has at most one cart. Cart lines reference products and store
   current quantities; they are not historical records.
 - Watchlist records uniquely connect one tenant, user, and product.
+- Delivery-address records belong to one tenant/user; at most one is the
+  default. They remain editable working preferences rather than order history.
 - An order belongs to a buyer and stores its current status, actor/timestamp
   history, and either an explicit legacy-unpriced shape or immutable currency
-  and component totals.
+  and component totals. New checkout also stores immutable address and
+  delivery-option snapshots.
 - Order items connect an order, product, and seller and snapshot product name,
   quantity, and, for priced orders, exact unit price and line subtotal. This
   allows seller-scoped order views and preserves checkout facts when the live
@@ -272,14 +277,25 @@ tracked in the [improvement plan](../PROJECT_IMPROVEMENT_PLAN.md).
 
 ## 8. Commerce consistency
 
-Checkout is authoritative on the backend. The service starts a short PostgreSQL
-transaction, locks the user's tenant cart and referenced products, and rejects an empty cart. It
-then loads all referenced tenant products and rejects missing, inactive, or
-understocked items.
+Checkout is authoritative on the backend. Before submission, `POST
+/checkout/quote` validates the selected owned address and known deterministic
+delivery option, re-prices the current cart, and returns subtotal, explicit zero
+discount, shipping, total, delivery estimate, and a fingerprint. The demo
+standard and express estimates are fixed application data and are not described
+as live carrier promises. Checkout depends on the `DeliveryQuoteProvider`
+contract, so a future carrier adapter does not enter the commerce service as a
+provider-specific API.
+
+The order command starts a short PostgreSQL transaction, locks the user's
+tenant cart, selected address, and referenced products, and rejects an empty
+cart. It re-runs the same calculation and rejects a changed fingerprint,
+missing/inactive product, changed price, or insufficient stock without clearing
+the cart.
 
 Within the same transaction it:
 
-1. creates the order with `placed` status and its first history event;
+1. creates the order with `placed` status, exact component totals, immutable
+   address/delivery snapshots, and its first history event;
 2. inserts order-item snapshots;
 3. conditionally decrements each product only if it remains active and has
    sufficient inventory;
@@ -287,9 +303,9 @@ Within the same transaction it:
 5. creates buyer and distinct-seller notifications.
 
 Any failure aborts all of these writes. The conditional decrement protects
-against stock changing after the initial read. Checkout is not idempotent, so a
-client must not assume retrying an uncertain request cannot create a second
-order.
+against stock changing after the initial read. Checkout is idempotent within
+the tenant/buyer/key scope, so an exact retry returns the created order and a
+key reused for a different request is rejected.
 
 Sellers can advance an order exactly one configured step through confirmation,
 shipping, and delivery. Buyers can cancel only `placed` or `confirmed` orders.
@@ -309,10 +325,21 @@ guard backed by `AuthProvider`. Route patterns and API paths are centralized in
 the base URL, credential transport, tenant and CSRF headers, and bounded
 automatic renewal.
 
-Pages currently own remote data through `useState` and `useEffect`. Commerce
-mutations show pending, success, and failure feedback, disable conflicting
-actions while pending, and generally update local state only after the API
-succeeds. There is no centralized server-state cache.
+React Query owns frontend server state through domain hooks and user/request
+scoped query keys. Commerce mutations show pending, success, and failure
+feedback, disable conflicting actions while pending, optimistically update
+where rollback is safe, and reconcile affected caches with authoritative API
+responses or invalidation.
+
+The authenticated buyer flow separates `/cart`, `/checkout`, `/orders`, and
+`/account/addresses`.
+The persistent cart owns quantity edits and removal; checkout reads the same
+cart cache and combines it with saved addresses plus a server quote for a final
+line, address, delivery, and amount review; buyer history owns the paginated
+immutable result. The header cart count is
+derived from the detailed-cart cache rather than a separate client store. The
+ownership audit is recorded in
+[checkout-ui-state-audit.md](checkout-ui-state-audit.md).
 
 The brand provider selects a typed checked-in configuration, updates document
 identity and CSS variables, and supplies tenant-specific copy. Both current
@@ -322,7 +349,9 @@ flags must not be treated as an authoritative capability registry.
 
 The current frontend route surface includes the catalog, seller product and
 profile pages, product detail, login, registration, product creation and
-management, checkout, seller orders, and authenticated notifications.
+management, cart, checkout review, delivery-address management, buyer order
+history, seller orders, account management, password recovery, email
+verification, and authenticated notifications.
 
 ## 10. API contract and validation
 
@@ -397,6 +426,12 @@ smoke lane are documented in [the production guide](production-deployment.md).
 The baseline still requires platform-managed TLS, secrets, backups, monitoring,
 and production database operations before hosting real data.
 
+External deployment is not an active project objective as of 2026-07-22. No
+cloud provider has been selected and the production Compose topology is
+currently a local production-like verification and portability boundary. Keep
+provider accounts, external staging, infrastructure spending, and live traffic
+out of scope until the project owner explicitly changes that decision.
+
 ## 14. Operational behavior
 
 - `GET /health` reports process liveness with `{ status: "ok" }`.
@@ -430,10 +465,11 @@ recovery automation.
   and seller-scoped inventory history are implemented.
 - Product APIs require and expose exact tenant-currency prices, and price changes append
   immutable history. Checkout locks current prices, creates immutable priced
-  lines, and calculates subtotal, zero discount, zero shipping, and total on
-  the backend. Historical legacy orders remain visibly unpriced and excluded
-  from gross revenue. There are no payment, address, shipment, return, refund,
-  or dispute models. Cancellation does not replenish stock.
+  lines, and calculates subtotal, zero discount, selected deterministic
+  shipping, and total on the backend. New orders retain immutable address and
+  delivery snapshots. Historical legacy orders remain visibly unpriced and
+  excluded from gross revenue. There are no payment, live carrier, shipment,
+  return, refund, or dispute models. Cancellation does not replenish stock.
 - Checkout, product creation, and review upsert use scoped idempotency keys;
   target-state retries suppress duplicate lifecycle, inventory, and profile
   audit writes.

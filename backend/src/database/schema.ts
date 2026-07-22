@@ -367,6 +367,55 @@ export const cartItems = pgTable(
   ],
 );
 
+export const deliveryAddresses = pgTable(
+  'delivery_addresses',
+  {
+    id: uuid().primaryKey(),
+    tenantId: text('tenant_id')
+      .notNull()
+      .references(() => tenants.id, {
+        onDelete: 'restrict',
+        onUpdate: 'restrict',
+      }),
+    userId: uuid('user_id').notNull(),
+    label: varchar({ length: 80 }).notNull(),
+    recipientName: varchar('recipient_name', { length: 160 }).notNull(),
+    line1: varchar({ length: 200 }).notNull(),
+    line2: varchar({ length: 200 }),
+    city: varchar({ length: 120 }).notNull(),
+    region: varchar({ length: 120 }),
+    postalCode: varchar('postal_code', { length: 20 }).notNull(),
+    countryCode: char('country_code', { length: 2 }).notNull(),
+    telephone: varchar({ length: 40 }).notNull(),
+    isDefault: boolean('is_default').default(false).notNull(),
+    ...lifecycleTimestamps(),
+  },
+  (table) => [
+    unique('delivery_addresses_tenant_id_id_key').on(table.tenantId, table.id),
+    foreignKey({
+      name: 'delivery_addresses_tenant_user_fkey',
+      columns: [table.tenantId, table.userId],
+      foreignColumns: [users.tenantId, users.id],
+    })
+      .onDelete('restrict')
+      .onUpdate('restrict'),
+    uniqueIndex('delivery_addresses_default_key')
+      .on(table.tenantId, table.userId)
+      .where(sql`${table.isDefault} = true`),
+    check(
+      'delivery_addresses_country_code_check',
+      sql`${table.countryCode} ~ '^[A-Z]{2}$'`,
+    ),
+    index('delivery_addresses_user_idx').on(
+      table.tenantId,
+      table.userId,
+      table.isDefault.desc(),
+      table.updatedAt.desc(),
+      table.id.desc(),
+    ),
+  ],
+);
+
 export const watchlistEntries = pgTable(
   'watchlist_entries',
   {
@@ -434,6 +483,23 @@ export const orders = pgTable(
     discountMinor: bigint('discount_minor', { mode: 'bigint' }),
     shippingMinor: bigint('shipping_minor', { mode: 'bigint' }),
     totalMinor: bigint('total_minor', { mode: 'bigint' }),
+    deliveryAddress: jsonb('delivery_address').$type<{
+      sourceAddressId: string;
+      label: string;
+      recipientName: string;
+      line1: string;
+      line2: string | null;
+      city: string;
+      region: string | null;
+      postalCode: string;
+      countryCode: string;
+      telephone: string;
+    }>(),
+    deliveryOption: jsonb('delivery_option').$type<{
+      id: string;
+      label: string;
+      estimate: string;
+    }>(),
     status: text().default('placed').notNull(),
     ...lifecycleTimestamps(),
   },

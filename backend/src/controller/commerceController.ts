@@ -6,6 +6,10 @@ import type {
   OrderListData,
   SellerOperationsQuery,
 } from '@/validators/commerceValidator';
+import type {
+  CheckoutOrderRequest,
+  CheckoutSelection,
+} from '@/validators/deliveryValidator';
 
 const pagination = (req: Request) => req.validated?.query as Pagination;
 
@@ -71,8 +75,23 @@ export function createCommerceController(service: CommerceService) {
     res
       .status(201)
       .send(
-        await service.createOrder(userId, tenantId, req.idempotencyKey ?? ''),
+        await service.createOrder(
+          userId,
+          tenantId,
+          req.idempotencyKey ?? '',
+          req.validated?.body as CheckoutOrderRequest,
+        ),
       );
+  }
+  async function getCheckoutQuote(req: Request, res: Response) {
+    const { userId, tenantId } = context(req);
+    res.send(
+      await service.getCheckoutQuote(
+        userId,
+        tenantId,
+        req.validated?.body as CheckoutSelection,
+      ),
+    );
   }
   async function listOrders(req: Request, res: Response) {
     const { userId, tenantId } = context(req);
@@ -164,6 +183,7 @@ export function createCommerceController(service: CommerceService) {
     addWatchlist,
     removeWatchlist,
     createOrder,
+    getCheckoutQuote,
     listOrders,
     updateOrderStatus,
     getSellerOperations,

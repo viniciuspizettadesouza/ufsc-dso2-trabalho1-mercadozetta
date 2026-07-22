@@ -8,6 +8,7 @@ import { getPostgresReadiness } from '@/database/postgres';
 import { createRoutes } from '@/routes';
 import { Server } from 'http';
 import { logger } from '@/logging';
+import { createDevelopmentAccountMessageSender } from '@/services/developmentAccountMessageSender';
 
 let runtime: ReturnType<typeof getRuntimeConfig>;
 
@@ -42,7 +43,15 @@ async function start() {
   try {
     const db = await initializePostgres(runtime.postgres);
     logger.info({ event: 'postgresql_connected' });
-    const composition = createPostgresComposition(db);
+    const accountMessageSender =
+      process.env.NODE_ENV === 'production'
+        ? undefined
+        : createDevelopmentAccountMessageSender(
+            String(process.env.CORS_ORIGIN || 'http://localhost:5173')
+              .split(',')[0]
+              .trim(),
+          );
+    const composition = createPostgresComposition(db, accountMessageSender);
     const readiness = async () => {
       const postgresql = await getPostgresReadiness();
       return {

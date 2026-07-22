@@ -3,7 +3,9 @@ import type { components } from '@/contracts/api';
 
 type ContractUser = components['schemas']['User'];
 export type AuthUser = Pick<ContractUser, '_id'> &
-  Partial<Pick<ContractUser, 'email' | 'username' | 'telephone'>>;
+  Partial<
+    Pick<ContractUser, 'email' | 'emailVerifiedAt' | 'username' | 'telephone'>
+  >;
 
 export type AuthState = {
   status: 'loading' | 'authenticated' | 'anonymous';

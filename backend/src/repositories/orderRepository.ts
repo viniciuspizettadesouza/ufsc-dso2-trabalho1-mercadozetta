@@ -2,6 +2,7 @@ import type { OrderStatus } from '@/orderStatus';
 import type { Paginated } from '@/pagination';
 import type { OrderListData } from '@/validators/commerceValidator';
 import type { Money } from '@/money';
+import type { DeliveryAddressSnapshot } from '@/repositories/deliveryAddressRepository';
 
 export type OrderPricingState = 'legacy_unpriced' | 'priced';
 
@@ -14,6 +15,12 @@ export type CreateOrderPricing = {
   totalMinor: bigint;
 };
 
+export type DeliveryOptionSnapshot = {
+  id: string;
+  label: string;
+  estimate: string;
+};
+
 export type CheckoutOrder = {
   _id: string;
   tenantId: string;
@@ -24,6 +31,8 @@ export type CheckoutOrder = {
   discount: Money | null;
   shipping: Money | null;
   total: Money | null;
+  deliveryAddress: DeliveryAddressSnapshot | null;
+  deliveryOption: DeliveryOptionSnapshot | null;
   statusHistory: Array<{
     status: OrderStatus;
     actor: string;
@@ -40,6 +49,8 @@ export interface OrderRepository {
     idempotencyKey: string,
     pricing: CreateOrderPricing,
     now: Date,
+    deliveryAddress?: DeliveryAddressSnapshot,
+    deliveryOption?: DeliveryOptionSnapshot,
   ): Promise<CheckoutOrder>;
   findByCheckoutIdempotencyKey(
     tenantId: string,

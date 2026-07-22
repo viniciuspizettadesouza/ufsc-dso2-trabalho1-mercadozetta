@@ -6,6 +6,7 @@ import { appRoutes } from '@/routes';
 import { useAuth } from '@/auth/AuthContext';
 import { Button } from '@/components/Button';
 import { useLogout } from '@/serverState/auth';
+import { useCartItems } from '@/serverState/cart';
 import { useUnreadNotificationCount } from '@/serverState/notifications';
 
 type HeaderProps = {
@@ -34,6 +35,11 @@ const Header = ({ hideLoginAction = false }: HeaderProps) => {
     user?._id ?? 'anonymous',
     Boolean(user),
   );
+  const { items: cartItems } = useCartItems(
+    user?._id ?? 'anonymous',
+    Boolean(user),
+  );
+  const cartCount = cartItems.reduce((count, item) => count + item.quantity, 0);
 
   async function handleLogout() {
     try {
@@ -64,6 +70,18 @@ const Header = ({ hideLoginAction = false }: HeaderProps) => {
 
       {user ? (
         <div className="mr-[100px] flex items-center gap-4 text-content max-[700px]:mx-5 max-[700px]:items-start">
+          <Link className="font-bold" to={appRoutes.cart}>
+            Cart
+            {cartCount > 0 && (
+              <span aria-label={`${cartCount} items in cart`}>
+                {' '}
+                ({cartCount})
+              </span>
+            )}
+          </Link>
+          <Link className="font-bold" to={appRoutes.buyerOrders}>
+            My orders
+          </Link>
           <Link className="font-bold" to={appRoutes.sellerOrders}>
             Seller orders
           </Link>

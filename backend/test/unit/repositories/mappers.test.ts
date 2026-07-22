@@ -24,6 +24,7 @@ describe('PostgreSQL repository mappers', () => {
       _id: '507f1f77-bcf8-4ecd-8994-390110000001',
       tenantId: 'mercadozetta',
       email: 'seller@example.com',
+      emailVerifiedAt: null,
       username: 'seller',
       telephone: '123',
       createdAt: now,

@@ -32,7 +32,11 @@ vi.mock('react-router', async () => {
   return { ...actual, useNavigate: () => navigate };
 });
 
-function renderAccount(establishSession = vi.fn(), clearSession = vi.fn()) {
+function renderAccount(
+  establishSession = vi.fn(),
+  clearSession = vi.fn(),
+  emailVerifiedAt?: string | null,
+) {
   render(
     <BrandProvider>
       <ServerStateProvider>
@@ -40,6 +44,7 @@ function renderAccount(establishSession = vi.fn(), clearSession = vi.fn()) {
           user={{
             _id: 'user-1',
             email: 'seller@example.com',
+            emailVerifiedAt,
             username: 'Seller',
             telephone: '123',
           }}
@@ -92,6 +97,17 @@ describe('AccountSettings', () => {
     });
     expect(establishSession).toHaveBeenCalledWith(updated);
     expect(screen.getByRole('status')).toHaveTextContent('Perfil atualizado.');
+  });
+
+  it('offers verification and address management for an unverified account', () => {
+    renderAccount(vi.fn(), vi.fn(), null);
+
+    expect(
+      screen.getByRole('link', { name: 'Manage delivery addresses' }),
+    ).toHaveAttribute('href', '/account/addresses');
+    expect(
+      screen.getByRole('link', { name: 'Request verification link' }),
+    ).toHaveAttribute('href', '/email-verification');
   });
 
   it('shows an API profile error without replacing the current identity', async () => {

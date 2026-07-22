@@ -290,6 +290,30 @@ export const appErrorExamples = {
     error: 'Invalid resource id',
     code: 'INVALID_RESOURCE_ID',
   },
+  MISSING_ADDRESS_FIELDS: {
+    error: 'Required delivery-address fields are missing',
+    code: 'MISSING_ADDRESS_FIELDS',
+  },
+  INVALID_ADDRESS: {
+    error: 'Delivery address is invalid',
+    code: 'INVALID_ADDRESS',
+  },
+  INVALID_POSTAL_CODE: {
+    error: 'Postal code is invalid for the selected country',
+    code: 'INVALID_POSTAL_CODE',
+  },
+  DELIVERY_ADDRESS_NOT_FOUND: {
+    error: 'Delivery address not found',
+    code: 'DELIVERY_ADDRESS_NOT_FOUND',
+  },
+  INVALID_DELIVERY_OPTION: {
+    error: 'Delivery option is invalid',
+    code: 'INVALID_DELIVERY_OPTION',
+  },
+  CHECKOUT_QUOTE_CHANGED: {
+    error: 'Cart price, availability, address, or delivery quote changed',
+    code: 'CHECKOUT_QUOTE_CHANGED',
+  },
   SESSION_NOT_FOUND: {
     error: 'Session not found',
     code: 'SESSION_NOT_FOUND',

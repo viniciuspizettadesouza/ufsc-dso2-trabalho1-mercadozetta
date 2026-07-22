@@ -49,7 +49,9 @@ export ACCOUNT_TOKEN_HASH_ACTIVE_VERSION=2026-07
 Do not put real values in repository files or shell history. The sample above
 shows the shape only. Retain previous key-ring versions for the overlap periods
 defined in the [cookie-session ADR](decisions/0001-cookie-sessions.md) and
-[account recovery ADR](decisions/0004-account-verification-recovery.md).
+[account recovery ADR](decisions/0004-account-verification-recovery.md). The
+[development account-message sink](decisions/0008-development-account-message-sink.md)
+is explicitly excluded from production and is not a delivery fallback.
 
 The production backend refuses to start when its PostgreSQL connection string,
 port, trusted-proxy, CORS, or security-ring configuration is missing or invalid.

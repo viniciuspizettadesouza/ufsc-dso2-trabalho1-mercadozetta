@@ -1,8 +1,8 @@
 # Persistent data-lifecycle inventory
 
-- Status: Inventory complete; security and notification retention accepted
-- Date: 2026-07-19
-- Scope: The 15 PostgreSQL tables currently declared by MercadoZetta
+- Status: Inventory complete; delivery-address lifecycle accepted
+- Date: 2026-07-22
+- Scope: The 18 PostgreSQL tables currently declared by MercadoZetta
 
 This inventory is the first data-lifecycle slice in Step 12. It records current
 schema and repository behavior without selecting retention windows, scheduling
@@ -34,6 +34,7 @@ under `backend/src/repositories/postgres/`.
 | `products`              | Seller catalog, current price, and inventory                       | `created_at`, `updated_at`, `status`, inventory, and nullable expand-stage `unit_price_minor`; `archived` represents retirement                     | No hard-delete operation. Sellers change lifecycle state, and account deactivation archives owned listings                                                                                                                   | Seller and tenant references use `ON DELETE RESTRICT`; price history, cart items, watchlists, order items, and reviews also restrict product deletion                                                      | Retained domain state/history |
 | `carts`                 | Buyer checkout state                                               | `created_at` and `updated_at`; no expiry field                                                                                                      | Checkout deletes items but retains and updates the cart. Account deactivation deletes the cart. No abandoned-cart cleanup exists                                                                                             | Buyer and tenant references use `ON DELETE RESTRICT`; deleting a cart is the schema's only `ON DELETE CASCADE` and removes its `cart_items`                                                                | Disposable                    |
 | `cart_items`            | Buyer checkout state through its cart                              | No lifecycle or expiry timestamp                                                                                                                    | Explicit item removal, checkout clearing, and cart deletion remove rows. No independent age-based cleanup is possible from this table                                                                                        | Cart deletion cascades; product deletion is restricted; the composite primary key prevents duplicate products in a cart                                                                                    | Disposable                    |
+| `delivery_addresses`    | Buyer delivery preferences and checkout input                      | `created_at`, `updated_at`, and `is_default`; no expiry field                                                                                       | The owner can update or explicitly delete a saved address. Deleting the default promotes the most recently updated remaining address. Account deactivation deletes every saved address                                       | Tenant and user references use `ON DELETE RESTRICT`; all reads and writes require the tenant/user pair; a partial unique index permits at most one default per tenant/user                                 | Disposable                    |
 | `watchlist_entries`     | User marketplace preference                                        | `created_at` and `updated_at`; no expiry field                                                                                                      | User removal and account deactivation delete rows. No age-based cleanup exists                                                                                                                                               | Tenant, user, and product references use `ON DELETE RESTRICT`                                                                                                                                              | Disposable                    |
 | `orders`                | Buyer commerce and monetary-summary history                        | `created_at`, `updated_at`, lifecycle `status`, and explicit `legacy_unpriced`/`priced` shape; no expiry field                                      | No delete operation. Monetary fields cannot change after insertion                                                                                                                                                           | Buyer and tenant deletion are restricted; currency, component, and total checks constrain priced snapshots; a trigger rejects monetary-snapshot updates; order items and status history restrict deletion  | Retained domain state/history |
 | `order_items`           | Order history, with product, seller, quantity, and price snapshots | `created_at`, `updated_at`, and explicit pricing shape; no expiry field                                                                             | No update or delete repository operation; PostgreSQL triggers reject ordinary updates and deletes                                                                                                                            | Order pricing state, product, and seller references use tenant-qualified `ON DELETE RESTRICT` keys; checks bind unit price, quantity, and line subtotal                                                    | Retained domain state/history |
@@ -61,7 +62,8 @@ Other deletion is event-driven:
 - email confirmation and account deactivation remove pending email changes;
   and
 - account deactivation deletes the user's cart (cascading its items), watchlist
-  entries, and notifications inside the account mutation transaction.
+  entries, saved delivery addresses, and notifications inside the account
+  mutation transaction.
 
 No repository hard-deletes tenants, users, products, orders, order items, order
 status history, mutation replay records, reviews, or audit events. Product retirement and user removal
@@ -142,6 +144,33 @@ expire by age. They remain until the user removes the product or account
 deactivation deletes the user's disposable state. A product lifecycle change
 does not delete the entry; the product foreign key and existing UI continue to
 represent the saved relationship.
+
+## Accepted delivery-address lifecycle
+
+Saved delivery addresses exist only to let an authenticated buyer calculate a
+delivery quote and complete fulfillment. They are tenant/user scoped, are not
+shared as profile data, and remain until the buyer explicitly deletes them or
+deactivates the account. There is no age-based cleanup because a saved address
+is an intentional durable preference. The first address becomes the default;
+choosing another default is atomic, and deleting the default promotes the most
+recently updated remaining address.
+
+`GET /account/addresses` exports the buyer's current saved-address records.
+Owned order responses export the address and delivery-option snapshots attached
+to retained orders; no bulk portability archive exists yet. Operational and
+audit logs must not contain address fields. The development-only account-message
+sink logs confirmation URLs, not delivery addresses, and is disabled in
+production; its credential-handling exception is governed by
+[ADR 0008](decisions/0008-development-account-message-sink.md).
+
+Successful checkout copies the selected address fields and deterministic
+delivery description into the order. That snapshot is immutable commerce and
+fulfillment history: later edits or deletion of the saved address do not change
+it. Account deactivation deletes saved addresses immediately but retains order
+snapshots with the order, because active orders block deactivation and completed
+commerce history remains retained. Any future privacy erasure or redaction must
+separately reconcile order-record obligations and seller fulfillment access;
+the current application does not rewrite retained snapshots.
 
 ## Records excluded from automatic cleanup
 

@@ -9,6 +9,7 @@ function emptyGetData(url: string) {
   if (url === '/cart') return { items: [] };
   if (url === '/watchlist') return [];
   if (url === '/notifications/unread-count') return { count: 0 };
+  if (url === '/account/addresses') return [];
   return paginatedResponse([]);
 }
 
@@ -105,10 +106,13 @@ describe('App', () => {
   it.each([
     ['/products/new', 'Entre para criar um anúncio.'],
     ['/products/product-1/edit', 'Entre para gerenciar o anúncio.'],
+    ['/cart', 'Entre para acessar o carrinho.'],
     ['/checkout', 'Entre para acessar o checkout.'],
+    ['/orders', 'Entre para acessar seus pedidos.'],
     ['/notifications', 'Entre para acessar suas notificações.'],
     ['/seller/orders', 'Entre para acessar os pedidos de vendedor.'],
     ['/account', 'Entre para gerenciar sua conta.'],
+    ['/account/addresses', 'Entre para gerenciar endereços de entrega.'],
   ])('requires authentication for %s', async (path, prompt) => {
     await renderAppAt(path);
 
@@ -174,7 +178,25 @@ describe('App', () => {
     await renderAppAt('/checkout');
 
     expect(
-      await screen.findByRole('heading', { name: 'Checkout' }),
+      await screen.findByRole('heading', { name: 'Checkout review' }),
+    ).toBeInTheDocument();
+  });
+
+  it('renders the cart and buyer order pages for authenticated users', async () => {
+    authenticate();
+    await renderAppAt('/cart');
+
+    expect(
+      await screen.findByRole('heading', { name: 'Cart' }),
+    ).toBeInTheDocument();
+
+    cleanup();
+    vi.resetModules();
+    authenticate();
+    await renderAppAt('/orders');
+
+    expect(
+      await screen.findByRole('heading', { name: 'Order history' }),
     ).toBeInTheDocument();
   });
 

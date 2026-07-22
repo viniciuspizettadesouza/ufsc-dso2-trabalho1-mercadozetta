@@ -64,12 +64,14 @@ describe('PostgresAccountLifecycleRepository', () => {
   it('deletes cart, watchlist, and notification state with scoped counts', async () => {
     const cartDelete = chain([{ id: 'cart-1' }]);
     const watchlistDelete = chain([{ id: 'watch-1' }, { id: 'watch-2' }]);
+    const addressDelete = chain([{ id: 'address-1' }]);
     const notificationDelete = chain([{ id: 'notification-1' }]);
     const database = {
       delete: vi
         .fn()
         .mockReturnValueOnce(cartDelete)
         .mockReturnValueOnce(watchlistDelete)
+        .mockReturnValueOnce(addressDelete)
         .mockReturnValueOnce(notificationDelete),
     };
     const repository = new PostgresAccountLifecycleRepository(
@@ -80,12 +82,14 @@ describe('PostgresAccountLifecycleRepository', () => {
       repository.deleteDisposableState('mercadozetta', 'user-1'),
     ).resolves.toEqual({
       carts: 1,
+      deliveryAddresses: 1,
       watchlistEntries: 2,
       notifications: 1,
     });
-    expect(database.delete).toHaveBeenCalledTimes(3);
+    expect(database.delete).toHaveBeenCalledTimes(4);
     expect(cartDelete.where).toHaveBeenCalledOnce();
     expect(watchlistDelete.where).toHaveBeenCalledOnce();
+    expect(addressDelete.where).toHaveBeenCalledOnce();
     expect(notificationDelete.where).toHaveBeenCalledOnce();
   });
 });

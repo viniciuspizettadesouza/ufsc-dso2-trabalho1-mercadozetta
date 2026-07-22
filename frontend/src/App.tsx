@@ -10,7 +10,14 @@ import AddProduct from '@/pages/AddProduct';
 import AddUser from '@/pages/AddUser';
 import Login from '@/pages/Login';
 import Index from '@/pages/Index';
+import Cart from '@/pages/Cart';
 import Checkout from '@/pages/Checkout';
+import BuyerOrders from '@/pages/BuyerOrders';
+import DeliveryAddresses from '@/pages/DeliveryAddresses';
+import PasswordResetRequest from '@/pages/PasswordResetRequest';
+import PasswordResetConfirmation from '@/pages/PasswordResetConfirmation';
+import EmailVerificationRequest from '@/pages/EmailVerificationRequest';
+import EmailVerificationConfirmation from '@/pages/EmailVerificationConfirmation';
 import Notifications from '@/pages/Notifications';
 import ProductDetail from '@/pages/ProductDetail';
 import SellerProfile from '@/pages/SellerProfile';
@@ -68,6 +75,22 @@ const router = createBrowserRouter([
     element: <Login />,
   },
   {
+    path: routePatterns.passwordReset,
+    element: <PasswordResetRequest />,
+  },
+  {
+    path: routePatterns.passwordResetConfirmation,
+    element: <PasswordResetConfirmation />,
+  },
+  {
+    path: routePatterns.emailVerification,
+    element: <EmailVerificationRequest />,
+  },
+  {
+    path: routePatterns.emailVerificationConfirmation,
+    element: <EmailVerificationConfirmation />,
+  },
+  {
     path: routePatterns.register,
     element: <AddUser />,
   },
@@ -80,6 +103,14 @@ const router = createBrowserRouter([
     element: (
       <AuthenticatedRoute prompt="Entre para gerenciar sua conta.">
         <AccountSettings />
+      </AuthenticatedRoute>
+    ),
+  },
+  {
+    path: routePatterns.addresses,
+    element: (
+      <AuthenticatedRoute prompt="Entre para gerenciar endereços de entrega.">
+        <DeliveryAddresses />
       </AuthenticatedRoute>
     ),
   },
@@ -104,10 +135,26 @@ const router = createBrowserRouter([
     ),
   },
   {
+    path: routePatterns.cart,
+    element: (
+      <AuthenticatedRoute prompt="Entre para acessar o carrinho.">
+        <Cart />
+      </AuthenticatedRoute>
+    ),
+  },
+  {
     path: routePatterns.checkout,
     element: (
       <AuthenticatedRoute prompt="Entre para acessar o checkout.">
         <Checkout />
+      </AuthenticatedRoute>
+    ),
+  },
+  {
+    path: routePatterns.buyerOrders,
+    element: (
+      <AuthenticatedRoute prompt="Entre para acessar seus pedidos.">
+        <BuyerOrders />
       </AuthenticatedRoute>
     ),
   },

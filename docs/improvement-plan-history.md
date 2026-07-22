@@ -1197,3 +1197,51 @@ marketplace demo while evolving the new persistent commerce workflows safely.
       frontend coverage gates, frontend and production builds, all 31 PostgreSQL
       integration scenarios, both tenant Chromium runs, production-image smoke,
       Drizzle schema parity, and the nine-migration USD-to-EUR recovery rehearsal.
+
+## Step 17.1: Separate cart, checkout review, and buyer history (completed)
+
+- [x] Audit the cart and order HTTP contracts and React Query ownership. Keep
+      the backend cart, checkout transaction, exact-money snapshots, inventory
+      authority, and idempotency behavior unchanged.
+- [x] Add protected `/cart`, `/checkout`, and `/orders` responsibilities:
+      persistent cart editing, read-only final current-price review and order
+      submission, and paginated immutable buyer history respectively.
+- [x] Add authenticated header navigation and derive its quantity count from
+      the user-scoped detailed-cart cache. Reconcile canonical cart mutation
+      responses and successful checkout across detailed lines, catalog
+      membership, and header presentation without another local cart store.
+- [x] Update product-detail and documented smoke navigation, the architecture
+      overview, the feature catalog, and the Playwright workflow for the split.
+- [x] Verify generated API-type parity, typecheck, 259 backend tests across 51
+      files, 200 frontend tests across 41 files, lint, formatting, both coverage
+      gates, the frontend production build, and Playwright discovery of both
+      browser scenarios. The live browser lane was unavailable because Docker
+      was not installed in the current WSL environment.
+
+## Step 17: Complete the buyer checkout foundation (completed)
+
+- [x] Add tenant/user-scoped delivery-address CRUD, syntactic PT/US validation,
+      atomic default selection, explicit deletion/default promotion, migration
+      `0009`, and immutable order-time address/delivery snapshots.
+- [x] Add deterministic standard and express demo delivery options plus a
+      backend quote fingerprint over the address, delivery selection, current
+      products, inventory, status, prices, and tenant currency. Recompute under
+      checkout locks and reject stale quotes without changing the cart.
+- [x] Include authoritative subtotal, validated zero discount, shipping, and
+      total in the quote and order. Complete the accessible final review and
+      retained buyer-history presentation of delivery snapshots.
+- [x] Add password-reset and email-verification request/confirmation pages with
+      pending, success, error, missing-token, and recovery states, backed by a
+      development-only structured-log delivery sink. Keep production delivery
+      disabled for Step 20. Record the narrow local credential-bearing exception
+      in ADR 0008 without modifying accepted ADR 0004.
+- [x] Record address purpose, retention, export, log-redaction, deactivation,
+      and immutable-order-history rules; update architecture, migration,
+      feature, accessibility, smoke-test, generated OpenAPI, and browser-flow
+      documentation.
+- [x] Verify generated API-type parity, backend typecheck, 278 backend tests
+      across 56 files, 221 frontend tests across 46 files, lint, formatting,
+      both coverage gates, Drizzle migration-history validation, and the
+      frontend production build. The updated live Docker/PostgreSQL/Chromium
+      lanes remain unavailable in the current environment and are not
+      represented as run.

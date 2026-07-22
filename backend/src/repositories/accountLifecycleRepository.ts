@@ -1,5 +1,6 @@
 export type DisposableAccountStateCounts = {
   carts: number;
+  deliveryAddresses: number;
   watchlistEntries: number;
   notifications: number;
 };

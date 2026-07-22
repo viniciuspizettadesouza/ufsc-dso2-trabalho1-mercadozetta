@@ -191,6 +191,7 @@ export interface paths {
                          *         "_id": "507f1f77-bcf8-4ecd-8994-390110000001",
                          *         "tenantId": "mercadozetta",
                          *         "email": "seller@example.com",
+                         *         "emailVerifiedAt": "2026-01-15T12:00:00.000Z",
                          *         "username": "seller",
                          *         "telephone": "+55 48 99999-0000",
                          *         "createdAt": "2026-01-15T12:00:00.000Z",
@@ -871,6 +872,7 @@ export interface paths {
                          *       "_id": "507f1f77-bcf8-4ecd-8994-390110000001",
                          *       "tenantId": "mercadozetta",
                          *       "email": "seller@example.com",
+                         *       "emailVerifiedAt": "2026-01-15T12:00:00.000Z",
                          *       "username": "Updated Seller",
                          *       "telephone": null,
                          *       "createdAt": "2026-01-15T12:00:00.000Z",
@@ -1354,6 +1356,7 @@ export interface paths {
                          *         "_id": "507f1f77-bcf8-4ecd-8994-390110000001",
                          *         "tenantId": "mercadozetta",
                          *         "email": "seller@example.com",
+                         *         "emailVerifiedAt": "2026-01-15T12:00:00.000Z",
                          *         "username": "seller",
                          *         "telephone": "+55 48 99999-0000",
                          *         "createdAt": "2026-01-15T12:00:00.000Z",
@@ -1890,6 +1893,7 @@ export interface paths {
                          *       "_id": "507f1f77-bcf8-4ecd-8994-390110000001",
                          *       "tenantId": "mercadozetta",
                          *       "email": "seller@example.com",
+                         *       "emailVerifiedAt": "2026-01-15T12:00:00.000Z",
                          *       "username": "seller",
                          *       "telephone": "+55 48 99999-0000",
                          *       "createdAt": "2026-01-15T12:00:00.000Z",
@@ -2891,6 +2895,346 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/account/addresses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List saved delivery addresses */
+        get: {
+            parameters: {
+                query?: never;
+                header?: {
+                    /** @description Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise. */
+                    "X-Tenant-Id"?: string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Saved delivery addresses */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /** @example [] */
+                        "application/json": components["schemas"]["DeliveryAddressList"];
+                    };
+                };
+                /** @description Invalid tenant */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Missing or invalid session */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "AUTH_TOKEN_REQUIRED" | "INVALID_AUTH_TOKEN";
+                            details?: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        /** Create a saved delivery address */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise. */
+                    "X-Tenant-Id"?: string;
+                    /** @description Session-bound double-submit proof required for cookie-authenticated mutations. */
+                    "X-CSRF-Token": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "label": "Home",
+                     *       "recipientName": "Example Buyer",
+                     *       "line1": "1 Market Street",
+                     *       "line2": null,
+                     *       "city": "Lisbon",
+                     *       "region": "Lisbon",
+                     *       "postalCode": "1000-001",
+                     *       "countryCode": "PT",
+                     *       "telephone": "+351 210 000 000",
+                     *       "isDefault": true
+                     *     }
+                     */
+                    "application/json": components["schemas"]["DeliveryAddressRequest"];
+                };
+            };
+            responses: {
+                /** @description Delivery address created */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeliveryAddress"];
+                    };
+                };
+                /** @description Invalid address or tenant */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "INVALID_REQUEST" | "MISSING_ADDRESS_FIELDS" | "INVALID_ADDRESS" | "INVALID_POSTAL_CODE";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Missing or invalid session */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "AUTH_TOKEN_REQUIRED" | "INVALID_AUTH_TOKEN";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Origin or CSRF validation failed */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "INVALID_ORIGIN" | "INVALID_CSRF_TOKEN";
+                            details?: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/account/addresses/{addressId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace a saved delivery address */
+        put: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise. */
+                    "X-Tenant-Id"?: string;
+                    /** @description Session-bound double-submit proof required for cookie-authenticated mutations. */
+                    "X-CSRF-Token": string;
+                };
+                path: {
+                    addressId: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DeliveryAddressRequest"];
+                };
+            };
+            responses: {
+                /** @description Delivery address updated */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DeliveryAddress"];
+                    };
+                };
+                /** @description Invalid address, identifier, or tenant */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "INVALID_REQUEST" | "MISSING_ADDRESS_FIELDS" | "INVALID_ADDRESS" | "INVALID_POSTAL_CODE";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Missing or invalid session */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "AUTH_TOKEN_REQUIRED" | "INVALID_AUTH_TOKEN";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Origin or CSRF validation failed */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "INVALID_ORIGIN" | "INVALID_CSRF_TOKEN";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Delivery address not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "DELIVERY_ADDRESS_NOT_FOUND";
+                            details?: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        post?: never;
+        /**
+         * Delete a saved delivery address
+         * @description Deleting the default promotes the most recently updated remaining address. Order snapshots are retained.
+         */
+        delete: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise. */
+                    "X-Tenant-Id"?: string;
+                    /** @description Session-bound double-submit proof required for cookie-authenticated mutations. */
+                    "X-CSRF-Token": string;
+                };
+                path: {
+                    addressId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Delivery address deleted */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Invalid identifier or tenant */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "INVALID_RESOURCE_ID";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Missing or invalid session */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "AUTH_TOKEN_REQUIRED" | "INVALID_AUTH_TOKEN";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Origin or CSRF validation failed */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "INVALID_ORIGIN" | "INVALID_CSRF_TOKEN";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Delivery address not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "DELIVERY_ADDRESS_NOT_FOUND";
+                            details?: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/cart/items": {
         parameters: {
             query?: never;
@@ -3486,7 +3830,18 @@ export interface paths {
                 path?: never;
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "addressId": "507f191e-810c-4197-9de8-60ea00000008",
+                     *       "deliveryOptionId": "standard",
+                     *       "quoteId": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["CheckoutOrderRequest"];
+                };
+            };
             responses: {
                 /** @description Order placed */
                 201: {
@@ -3502,20 +3857,37 @@ export interface paths {
                          *       "status": "placed",
                          *       "pricingState": "priced",
                          *       "subtotal": {
-                         *         "currency": "EUR",
+                         *         "currency": "USD",
                          *         "amountMinor": "12999"
                          *       },
                          *       "discount": {
-                         *         "currency": "EUR",
+                         *         "currency": "USD",
                          *         "amountMinor": "0"
                          *       },
                          *       "shipping": {
-                         *         "currency": "EUR",
-                         *         "amountMinor": "0"
+                         *         "currency": "USD",
+                         *         "amountMinor": "499"
                          *       },
                          *       "total": {
-                         *         "currency": "EUR",
-                         *         "amountMinor": "12999"
+                         *         "currency": "USD",
+                         *         "amountMinor": "13498"
+                         *       },
+                         *       "deliveryAddress": {
+                         *         "sourceAddressId": "507f191e-810c-4197-9de8-60ea00000008",
+                         *         "label": "Home",
+                         *         "recipientName": "Example Buyer",
+                         *         "line1": "1 Market Street",
+                         *         "line2": null,
+                         *         "city": "Lisbon",
+                         *         "region": "Lisbon",
+                         *         "postalCode": "1000-001",
+                         *         "countryCode": "PT",
+                         *         "telephone": "+351 210 000 000"
+                         *       },
+                         *       "deliveryOption": {
+                         *         "id": "standard",
+                         *         "label": "Standard demo delivery",
+                         *         "estimate": "3–5 business days (demo estimate)"
                          *       },
                          *       "statusHistory": [
                          *         {
@@ -3534,11 +3906,11 @@ export interface paths {
                          *           "quantity": 1,
                          *           "pricingState": "priced",
                          *           "unitPrice": {
-                         *             "currency": "EUR",
+                         *             "currency": "USD",
                          *             "amountMinor": "12999"
                          *           },
                          *           "lineSubtotal": {
-                         *             "currency": "EUR",
+                         *             "currency": "USD",
                          *             "amountMinor": "12999"
                          *           }
                          *         }
@@ -3559,7 +3931,7 @@ export interface paths {
                         "application/json": {
                             error: string;
                             /** @enum {string} */
-                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "IDEMPOTENCY_KEY_REQUIRED" | "INVALID_IDEMPOTENCY_KEY" | "EMPTY_CART";
+                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "IDEMPOTENCY_KEY_REQUIRED" | "INVALID_IDEMPOTENCY_KEY" | "EMPTY_CART" | "INVALID_REQUEST" | "INVALID_DELIVERY_OPTION";
                             details?: unknown;
                         };
                     };
@@ -3592,7 +3964,145 @@ export interface paths {
                         };
                     };
                 };
+                /** @description Delivery address not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "DELIVERY_ADDRESS_NOT_FOUND";
+                            details?: unknown;
+                        };
+                    };
+                };
                 /** @description A cart item is unavailable or the order amount is invalid */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "INSUFFICIENT_INVENTORY" | "PRODUCT_PRICE_REQUIRED" | "ORDER_TOTAL_LIMIT_EXCEEDED" | "CHECKOUT_QUOTE_CHANGED";
+                            details?: unknown;
+                        };
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/checkout/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Quote the current cart and selected delivery
+         * @description Re-prices current products and applies deterministic demo delivery. Discounts are not accepted and remain zero.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Tenant slug. Required when TENANT_HEADER_REQUIRED is enabled; defaults to mercadozetta otherwise. */
+                    "X-Tenant-Id"?: string;
+                    /** @description Session-bound double-submit proof required for cookie-authenticated mutations. */
+                    "X-CSRF-Token": string;
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "addressId": "507f191e-810c-4197-9de8-60ea00000008",
+                     *       "deliveryOptionId": "standard"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["CheckoutSelection"];
+                };
+            };
+            responses: {
+                /** @description Authoritative current checkout quote */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CheckoutQuote"];
+                    };
+                };
+                /** @description Invalid selection, tenant, or empty cart */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "TENANT_HEADER_REQUIRED" | "INVALID_TENANT" | "INVALID_REQUEST" | "EMPTY_CART" | "INVALID_DELIVERY_OPTION";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Missing or invalid session */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "AUTH_TOKEN_REQUIRED" | "INVALID_AUTH_TOKEN";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Origin or CSRF validation failed */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "INVALID_ORIGIN" | "INVALID_CSRF_TOKEN";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Delivery address not found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                            /** @enum {string} */
+                            code: "DELIVERY_ADDRESS_NOT_FOUND";
+                            details?: unknown;
+                        };
+                    };
+                };
+                /** @description Cart item or total is unavailable */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -3768,20 +4278,37 @@ export interface paths {
                          *       "status": "shipped",
                          *       "pricingState": "priced",
                          *       "subtotal": {
-                         *         "currency": "EUR",
+                         *         "currency": "USD",
                          *         "amountMinor": "12999"
                          *       },
                          *       "discount": {
-                         *         "currency": "EUR",
+                         *         "currency": "USD",
                          *         "amountMinor": "0"
                          *       },
                          *       "shipping": {
-                         *         "currency": "EUR",
-                         *         "amountMinor": "0"
+                         *         "currency": "USD",
+                         *         "amountMinor": "499"
                          *       },
                          *       "total": {
-                         *         "currency": "EUR",
-                         *         "amountMinor": "12999"
+                         *         "currency": "USD",
+                         *         "amountMinor": "13498"
+                         *       },
+                         *       "deliveryAddress": {
+                         *         "sourceAddressId": "507f191e-810c-4197-9de8-60ea00000008",
+                         *         "label": "Home",
+                         *         "recipientName": "Example Buyer",
+                         *         "line1": "1 Market Street",
+                         *         "line2": null,
+                         *         "city": "Lisbon",
+                         *         "region": "Lisbon",
+                         *         "postalCode": "1000-001",
+                         *         "countryCode": "PT",
+                         *         "telephone": "+351 210 000 000"
+                         *       },
+                         *       "deliveryOption": {
+                         *         "id": "standard",
+                         *         "label": "Standard demo delivery",
+                         *         "estimate": "3–5 business days (demo estimate)"
                          *       },
                          *       "statusHistory": [
                          *         {
@@ -3805,11 +4332,11 @@ export interface paths {
                          *           "quantity": 1,
                          *           "pricingState": "priced",
                          *           "unitPrice": {
-                         *             "currency": "EUR",
+                         *             "currency": "USD",
                          *             "amountMinor": "12999"
                          *           },
                          *           "lineSubtotal": {
-                         *             "currency": "EUR",
+                         *             "currency": "USD",
                          *             "amountMinor": "12999"
                          *           }
                          *         }
@@ -4457,6 +4984,20 @@ export interface components {
                 amountMinor: string;
             };
         };
+        /** @description A tenant/user-scoped delivery address. PT and US postal formats are validated syntactically without claiming deliverability. */
+        DeliveryAddressRequest: {
+            label: string;
+            recipientName: string;
+            line1: string;
+            line2?: string | null;
+            city: string;
+            region?: string | null;
+            postalCode: string;
+            countryCode: string;
+            telephone: string;
+            /** @default false */
+            isDefault: boolean;
+        };
         CartItemRequest: {
             productId: components["schemas"]["ResourceId"];
             /** @default 1 */
@@ -4469,6 +5010,19 @@ export interface components {
         ResourceId: string;
         /** @enum {string} */
         OrderStatus: "placed" | "confirmed" | "shipped" | "delivered" | "cancelled";
+        CheckoutOrderRequest: {
+            /** Format: uuid */
+            addressId: string;
+            /** @enum {string} */
+            deliveryOptionId: "standard" | "express";
+            quoteId: string;
+        };
+        CheckoutSelection: {
+            /** Format: uuid */
+            addressId: string;
+            /** @enum {string} */
+            deliveryOptionId: "standard" | "express";
+        };
         OrderStatusUpdateRequest: {
             status: components["schemas"]["OrderStatus"];
         };
@@ -4507,6 +5061,7 @@ export interface components {
             tenantId: string;
             /** Format: email */
             email: string;
+            emailVerifiedAt: string | null;
             username: string | null;
             telephone: string | null;
             /** Format: date-time */
@@ -4602,6 +5157,31 @@ export interface components {
             product: components["schemas"]["Product"];
             quantity: number;
         };
+        DeliveryAddressList: components["schemas"]["DeliveryAddress"][];
+        DeliveryAddress: {
+            /**
+             * Format: uuid
+             * @example 507f191e-810c-4197-9de8-60ea00000001
+             */
+            _id: string;
+            tenantId: string;
+            /** Format: uuid */
+            userId: string;
+            label: string;
+            recipientName: string;
+            line1: string;
+            line2: string | null;
+            city: string;
+            region: string | null;
+            postalCode: string;
+            countryCode: string;
+            telephone: string;
+            isDefault: boolean;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
         Watchlist: components["schemas"]["WatchlistEntry"][];
         WatchlistEntry: {
             /**
@@ -4656,6 +5236,24 @@ export interface components {
                 currency: string;
                 amountMinor: string;
             } | null;
+            deliveryAddress: {
+                label: string;
+                recipientName: string;
+                line1: string;
+                line2: string | null;
+                city: string;
+                region: string | null;
+                postalCode: string;
+                countryCode: string;
+                telephone: string;
+                /** Format: uuid */
+                sourceAddressId: string;
+            } | null;
+            deliveryOption: {
+                id: string;
+                label: string;
+                estimate: string;
+            } | null;
             statusHistory: components["schemas"]["OrderStatusHistoryEntry"][];
             items: components["schemas"]["OrderItem"][];
             /** Format: date-time */
@@ -4702,6 +5300,37 @@ export interface components {
                 currency: string;
                 amountMinor: string;
             } | null;
+        };
+        CheckoutQuote: {
+            quoteId: string;
+            address: components["schemas"]["DeliveryAddress"];
+            deliveryOption: components["schemas"]["DeliveryOption"];
+            subtotal: {
+                currency: string;
+                amountMinor: string;
+            };
+            discount: {
+                currency: string;
+                amountMinor: string;
+            };
+            shipping: {
+                currency: string;
+                amountMinor: string;
+            };
+            total: {
+                currency: string;
+                amountMinor: string;
+            };
+        };
+        DeliveryOption: {
+            /** @enum {string} */
+            id: "standard" | "express";
+            label: string;
+            estimate: string;
+            shipping: {
+                currency: string;
+                amountMinor: string;
+            };
         };
         SellerOperations: {
             summary: {

@@ -1,13 +1,16 @@
-# Zero-cost staging spike preparation
+# Local production-like rehearsal baseline
 
-- Status: Local rehearsal baseline
+- Status: Local rehearsal baseline; external staging deferred
 - Date: 2026-07-19
-- Scope: Step 16 preparation without cloud accounts or paid resources
+- Decision update: 2026-07-22
+- Scope: Local verification without cloud accounts or paid resources
 
-This baseline reduces the paid Render and DigitalOcean spikes to provider-only
-questions. It does not select a provider and cannot prove public DNS/TLS,
-provider networking, managed secrets, cloud logs/alerts, provider-native backup,
-Portugal latency, billing, or contractual residency.
+This baseline is retained as a local production-like regression and portability
+check. The project owner deferred all external deployment work on 2026-07-22,
+so it is not preparation for an active provider spike. It does not select a
+provider and cannot prove public DNS/TLS, provider networking, managed secrets,
+cloud logs/alerts, provider-native backup, Portugal latency, billing, or
+contractual residency.
 
 Candidate adapters live under `deploy/render/` and `deploy/digitalocean/`.
 `npm run check:deployment` validates the no-secret DigitalOcean Compose model
@@ -75,9 +78,11 @@ experiment. Keep the accepted pilot baseline at 100 requests, concurrency 10,
 and 2,000 ms until a reviewed plan changes it. This is a smoke test, not a
 capacity claim or a substitute for Portugal-origin measurements.
 
-## Evidence still required from each provider
+## Evidence required only if deployment is reopened
 
-The paid spike remains responsible for:
+No provider evidence is currently pending. If the project owner explicitly
+reopens external deployment, a paid or credit-backed spike remains responsible
+for:
 
 - an exact quote, tax treatment, budget alert, service limits, and measured
   operator time;
@@ -105,8 +110,9 @@ not permission to accept a provider or enable live payment.
 
 ## No-cost stopping point
 
-When this local command and the normal repository gates pass, Step 16 is safely
-prepared but not complete. Keep the provider ADR, Stripe SDK, payment schema,
-payment surfaces, and live-mode configuration blocked. Resume with the Render
-and DigitalOcean spikes only when the project owner explicitly authorizes the
-accounts and temporary spend recorded in the deployment evaluation.
+This command remains useful even with no deployment planned because it checks
+the production image boundary, migrations, browser workflows, bounded load,
+cleanup, and recovery locally. Step 16's external acceptance remains incomplete
+and inactive. Do not create provider accounts or resources, run external
+spikes, or write a provider ADR unless the project owner explicitly restores
+deployment to the roadmap.

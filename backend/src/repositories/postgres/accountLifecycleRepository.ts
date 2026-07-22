@@ -2,6 +2,7 @@ import { and, eq, exists, inArray, ne, or, sql } from 'drizzle-orm';
 import type { Database } from '@/database/postgres';
 import {
   carts,
+  deliveryAddresses,
   notifications,
   orderItems,
   orders,
@@ -73,6 +74,15 @@ export class PostgresAccountLifecycleRepository implements AccountLifecycleRepos
         ),
       )
       .returning({ id: watchlistEntries.id });
+    const deletedDeliveryAddresses = await this.db
+      .delete(deliveryAddresses)
+      .where(
+        and(
+          eq(deliveryAddresses.tenantId, tenantId),
+          eq(deliveryAddresses.userId, userId),
+        ),
+      )
+      .returning({ id: deliveryAddresses.id });
     const deletedNotifications = await this.db
       .delete(notifications)
       .where(
@@ -84,6 +94,7 @@ export class PostgresAccountLifecycleRepository implements AccountLifecycleRepos
       .returning({ id: notifications.id });
     return {
       carts: deletedCarts.length,
+      deliveryAddresses: deletedDeliveryAddresses.length,
       watchlistEntries: deletedWatchlistEntries.length,
       notifications: deletedNotifications.length,
     };

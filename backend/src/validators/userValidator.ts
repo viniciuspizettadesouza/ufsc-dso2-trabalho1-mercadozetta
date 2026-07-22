@@ -17,6 +17,7 @@ export const userResponseSchema = z
     _id: userIdResponseSchema,
     tenantId: z.string(),
     email: z.email(),
+    emailVerifiedAt: z.iso.datetime().nullable(),
     username: z.string().nullable(),
     telephone: z.string().nullable(),
     createdAt: z.iso.datetime(),

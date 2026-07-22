@@ -6,6 +6,7 @@ import type { AccountManagementController } from '@/controller/accountManagement
 import type { UserController } from '@/controller/userController';
 import type { ProductController } from '@/controller/productController';
 import type { CommerceController } from '@/controller/commerceController';
+import type { DeliveryAddressController } from '@/controller/deliveryAddressController';
 import asyncHandler from '@/middleware/asyncHandler';
 import {
   requireAllowedOrigin,
@@ -58,6 +59,11 @@ import {
   validateOrderList,
   validateSellerOperations,
 } from '@/validators/commerceValidator';
+import {
+  validateCheckoutOrderRequest,
+  validateCheckoutSelection,
+  validateDeliveryAddress,
+} from '@/validators/deliveryValidator';
 
 export type RouteDependencies = {
   accountManagementController: AccountManagementController;
@@ -66,6 +72,7 @@ export type RouteDependencies = {
   userController: UserController;
   productController: ProductController;
   commerceController: CommerceController;
+  deliveryAddressController: DeliveryAddressController;
   authMiddleware: RequestHandler;
   readiness: () => Promise<{
     ready: boolean;
@@ -81,6 +88,7 @@ export function createRoutes(dependencies: RouteDependencies) {
     userController: UserController,
     productController: ProductController,
     commerceController: CommerceController,
+    deliveryAddressController: DeliveryAddressController,
     authMiddleware,
     readiness,
   } = dependencies;
@@ -329,6 +337,37 @@ export function createRoutes(dependencies: RouteDependencies) {
     });
 
   routes.get('/cart', authMiddleware, asyncHandler(CommerceController.getCart));
+  routes.get(
+    '/account/addresses',
+    authMiddleware,
+    asyncHandler(DeliveryAddressController.list),
+  );
+  routes.post(
+    '/account/addresses',
+    authMiddleware,
+    requireCsrf,
+    validateRequest({ body: validateDeliveryAddress }),
+    asyncHandler(DeliveryAddressController.create),
+  );
+  routes.put(
+    '/account/addresses/:addressId',
+    authMiddleware,
+    requireCsrf,
+    validateRequest({
+      params: (params) => ({ addressId: validateResourceId(params.addressId) }),
+      body: validateDeliveryAddress,
+    }),
+    asyncHandler(DeliveryAddressController.update),
+  );
+  routes.delete(
+    '/account/addresses/:addressId',
+    authMiddleware,
+    requireCsrf,
+    validateRequest({
+      params: (params) => ({ addressId: validateResourceId(params.addressId) }),
+    }),
+    asyncHandler(DeliveryAddressController.delete),
+  );
   routes.put(
     '/cart/items',
     authMiddleware,
@@ -369,10 +408,18 @@ export function createRoutes(dependencies: RouteDependencies) {
     asyncHandler(CommerceController.listOrders),
   );
   routes.post(
+    '/checkout/quote',
+    authMiddleware,
+    requireCsrf,
+    validateRequest({ body: validateCheckoutSelection }),
+    asyncHandler(CommerceController.getCheckoutQuote),
+  );
+  routes.post(
     '/orders',
     authMiddleware,
     requireCsrf,
     requireIdempotencyKey,
+    validateRequest({ body: validateCheckoutOrderRequest }),
     asyncHandler(CommerceController.createOrder),
   );
   routes.get(
