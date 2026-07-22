@@ -19,6 +19,7 @@ import {
 import { PostgresCartRepository } from '@/repositories/postgres/checkoutRepositories';
 import { PostgresDataCleanupRepository } from '@/repositories/postgres/dataCleanupRepository';
 import { runDataCleanup } from '@/services/dataCleanupService';
+import { resetPostgresTestData } from './postgresqlTestDatabase';
 
 const connectionString = process.env.POSTGRESQL_URL;
 if (!connectionString)
@@ -61,10 +62,7 @@ describe('PostgreSQL data cleanup', () => {
   });
 
   beforeEach(async () => {
-    await pool.query(`truncate table
-      audit_events, notifications, reviews, watchlist_entries, sessions,
-      pending_email_changes, account_tokens, order_status_history, order_items,
-      orders, cart_items, carts, products, users restart identity cascade`);
+    await resetPostgresTestData(pool);
     await seedOwnerAndProduct();
   });
 

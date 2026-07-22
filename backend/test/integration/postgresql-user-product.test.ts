@@ -27,9 +27,7 @@ import {
   orderStatusHistory,
   products,
   productPriceHistory,
-  pendingEmailChanges,
   reviews,
-  mutationIdempotency,
   sessions,
   users,
   watchlistEntries,
@@ -76,6 +74,7 @@ import { createUserService } from '@/services/userService';
 import { createSessionService } from '@/services/sessionService';
 import { createSellerOperationsService } from '@/services/sellerOperationsService';
 import { createRoutes } from '@/routes';
+import { resetPostgresTestData } from './postgresqlTestDatabase';
 
 const connectionString = process.env.POSTGRESQL_URL;
 if (!connectionString)
@@ -227,23 +226,7 @@ describe('PostgreSQL user and product repositories', () => {
     await pool.query('select 1');
   });
 
-  beforeEach(async () => {
-    await pool.query('truncate table audit_events');
-    await db.delete(notifications);
-    await db.delete(reviews);
-    await db.delete(mutationIdempotency);
-    await db.delete(watchlistEntries);
-    await db.delete(sessions);
-    await db.delete(pendingEmailChanges);
-    await db.delete(accountTokens);
-    await db.delete(orderStatusHistory);
-    await pool.query('truncate table product_price_history, order_items');
-    await db.delete(orders);
-    await db.delete(cartItems);
-    await db.delete(carts);
-    await db.delete(products);
-    await db.delete(users);
-  });
+  beforeEach(() => resetPostgresTestData(pool));
 
   afterAll(async () => {
     await pool.end();

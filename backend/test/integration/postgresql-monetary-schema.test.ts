@@ -13,6 +13,7 @@ import {
   tenants,
   users,
 } from '@/database/schema';
+import { resetPostgresTestData } from './postgresqlTestDatabase';
 
 const connectionString = process.env.POSTGRESQL_URL;
 if (!connectionString)
@@ -22,27 +23,6 @@ if (!connectionString)
 
 const pool = new Pool({ connectionString, max: 2 });
 const db = drizzle({ client: pool, schema });
-
-async function clearPostgres() {
-  await pool.query(`truncate table
-    audit_events,
-    mutation_idempotency,
-    notifications,
-    reviews,
-    watchlist_entries,
-    sessions,
-    pending_email_changes,
-    account_tokens,
-    order_status_history,
-    product_price_history,
-    order_items,
-    orders,
-    cart_items,
-    carts,
-    delivery_addresses,
-    products,
-    users`);
-}
 
 async function expectConstraint(
   operation: Promise<unknown>,
@@ -109,7 +89,7 @@ describe('PostgreSQL authoritative monetary schema', () => {
     await pool.query('select 1');
   });
 
-  beforeEach(clearPostgres);
+  beforeEach(() => resetPostgresTestData(pool));
 
   afterAll(async () => {
     await pool.end();

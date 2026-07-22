@@ -254,6 +254,10 @@ Run these from the repository root unless noted otherwise.
 | `npm run test:production`               | Build and smoke-test the isolated production container topology; requires Docker |
 | `npm run test:recovery`                 | Rehearse PostgreSQL forward migration, backup, fresh restore, and validation     |
 | `npm run test:coverage`                 | Backend and frontend coverage suites with configured thresholds                  |
+| `npm run audit:ci`                      | Run all three high-severity dependency audits                                    |
+| `npm run verify:push`                   | Run the fast formatting and main-test pre-push gate                              |
+| `npm run validate:ci`                   | Run static and deployment-configuration CI validation locally                    |
+| `npm run verify:ci`                     | Reproduce all CI gates; requires Docker and Playwright Chromium                  |
 | `npm run typecheck`                     | Backend TypeScript check without emitting                                        |
 | `npm run lint`                          | Backend and frontend ESLint checks                                               |
 | `npm run format:check`                  | Check Prettier formatting without rewriting files                                |
@@ -269,20 +273,16 @@ Run these from the repository root unless noted otherwise.
 See the [accessibility verification guide](docs/accessibility.md) for automated
 checks and the manual keyboard and screen-reader smoke test.
 
-Dependency audits are run separately because there is no root aggregate script:
+CI runs independent audit, static-validation, deployment, database-integration,
+browser-E2E, and production-smoke jobs so one failure does not hide later
+failures. Coverage is enforced by the coverage command, not by the current CI
+workflow. Git hooks format supported staged files before commits and run
+formatting plus the main test suite before pushes; they do not replace the
+complete pre-merge gate.
 
-```bash
-npm audit --audit-level=high
-npm --prefix backend audit --audit-level=high
-npm --prefix frontend audit --audit-level=high
-```
-
-CI installs all three dependency trees and runs audits, backend type-checking,
-formatting, lint, backend and frontend tests, database integration tests, the
-frontend build, and the production image smoke lane. Coverage is enforced by
-the coverage command, not by the current CI workflow. Git hooks format
-supported staged files before commits and run formatting plus the main test
-suite before pushes.
+See the [CI and pre-merge checklist](docs/ci-and-release-checklist.md) for branch
+protection, local verification, migration cleanup, and Playwright selector
+rules.
 
 ## Repository map
 

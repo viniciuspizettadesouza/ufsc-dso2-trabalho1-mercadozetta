@@ -4,20 +4,9 @@ import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from '@/database/schema';
-import {
-  cartItems,
-  carts,
-  notifications,
-  orders,
-  orderStatusHistory,
-  productPriceHistory,
-  products,
-  reviews,
-  sessions,
-  users,
-  watchlistEntries,
-} from '@/database/schema';
+import { productPriceHistory, products, users } from '@/database/schema';
 import { seedDemoData } from '@/scripts/seedDemoData';
+import { resetPostgresTestData } from './postgresqlTestDatabase';
 
 const connectionString = process.env.POSTGRESQL_URL;
 if (!connectionString)
@@ -27,27 +16,13 @@ if (!connectionString)
 const pool = new Pool({ connectionString, max: 2 });
 const db = drizzle({ client: pool, schema });
 
-async function clearPostgres() {
-  await db.delete(notifications);
-  await db.delete(reviews);
-  await db.delete(watchlistEntries);
-  await db.delete(sessions);
-  await db.delete(orderStatusHistory);
-  await pool.query('truncate table product_price_history, order_items');
-  await db.delete(orders);
-  await db.delete(cartItems);
-  await db.delete(carts);
-  await db.delete(products);
-  await db.delete(users);
-}
-
 describe('demo data seeding', () => {
   beforeAll(async () => {
     await pool.query('select 1');
   });
-  beforeEach(clearPostgres);
+  beforeEach(() => resetPostgresTestData(pool));
   afterEach(async () => {
-    await clearPostgres();
+    await resetPostgresTestData(pool);
   });
   afterAll(async () => {
     await pool.end();

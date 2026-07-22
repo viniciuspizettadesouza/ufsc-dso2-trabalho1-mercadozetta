@@ -148,6 +148,33 @@ Keep focused tests associated with the source module they exercise.
   tests and frontend marketplace workflow tests. Their names must describe the
   behavior being verified rather than a coverage target.
 
+### Pre-Merge Verification
+
+- Run every CI lane affected by the change before declaring work complete. Use
+  `npm run verify:ci` for the complete local gate.
+- When a push is requested, let `.husky/pre-push` run `npm run verify:push` once.
+  Do not run that same gate immediately before `git push`. When no push is
+  requested, run the relevant focused checks once before handoff.
+- Treat a Docker-dependent lane that could not run locally as unverified. Keep
+  the work on a branch and require its pull-request check before merge.
+- Schema and migration changes must also run
+  `npm --prefix backend run db:check` and `npm run test:recovery`.
+- New, removed, or renamed PostgreSQL tables must update
+  `backend/test/integration/postgresqlTestDatabase.ts`. Integration tests must
+  use its shared reset instead of defining private table-cleanup lists or using
+  `TRUNCATE ... CASCADE`.
+- Playwright assertions must first scope to the relevant semantic entity or
+  region and then verify its complete user-visible result. Do not expect a
+  nested formatting element to contain sibling text.
+- Repository and CI scripts may use checked-in dependencies, explicitly
+  installed tools, or baseline POSIX/Ubuntu utilities. Document and install any
+  additional runner tool explicitly.
+- For verbose Docker-backed lanes, keep successful tool output to a concise
+  summary and inspect only relevant failure logs or artifacts. Do not rerun a
+  passing lane on the same tree unless relevant files changed.
+- Follow `docs/ci-and-release-checklist.md` for the authoritative merge gate and
+  change-specific checks.
+
 ## Improvement Plan and Session Handoff
 
 When work is guided by `PROJECT_IMPROVEMENT_PLAN.md`, treat its `Current
