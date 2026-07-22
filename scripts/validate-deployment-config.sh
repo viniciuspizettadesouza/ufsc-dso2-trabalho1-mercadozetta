@@ -16,15 +16,15 @@ export ACCOUNT_TOKEN_HASH_ACTIVE_VERSION='validation'
 
 docker compose -f deploy/digitalocean/docker-compose.staging.yml config --quiet
 
-if rg -n 'latest|Set real|replace-before' \
+if grep -En 'latest|Set real|replace-before' \
   deploy/render/render.staging.yaml \
   deploy/digitalocean/docker-compose.staging.yml; then
   echo 'Deployment templates contain a mutable tag or unresolved safety marker' >&2
   exit 1
 fi
 
-rg -n 'sha256:IMAGE_DIGEST' deploy/render/render.staging.yaml >/dev/null
-rg -n 'sync: false' deploy/render/render.staging.yaml >/dev/null
-rg -n 'ipAllowList: \[\]' deploy/render/render.staging.yaml >/dev/null
+grep -nF 'sha256:IMAGE_DIGEST' deploy/render/render.staging.yaml >/dev/null
+grep -nF 'sync: false' deploy/render/render.staging.yaml >/dev/null
+grep -nF 'ipAllowList: []' deploy/render/render.staging.yaml >/dev/null
 
 echo 'Deployment configuration templates passed local validation'
